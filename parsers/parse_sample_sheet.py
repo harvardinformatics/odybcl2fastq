@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-def parse_sample_sheet(samplesheet=None):
+def sheet_parse(samplesheet=None):
     defaults_by_section = {
         'Header': {
         'IEMFileVersion': None,
