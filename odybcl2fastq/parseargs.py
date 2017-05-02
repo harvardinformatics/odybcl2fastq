@@ -15,6 +15,7 @@ Created on  2017-04-19
 import sys, os, re, traceback
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+from odybcl2fastq.parsers.makebasemask import extract_basemask
 
 def initArgs():
     '''
@@ -117,7 +118,7 @@ def initArgs():
             'switches'  : ['--tiles'],
             'required'  : False,
             'help'      : 'regex for tile selection',
-            'default'   : None,
+            'default'   : False,
             'type'      : str,
         },
         {
@@ -167,8 +168,23 @@ def initArgs():
             'help'      : 'use simple sliding window to detec adapters, indels not handled',
             'default'   : 4,
             'type'      : int,
-            'choices'   : range(1,10)
+            'choices'   : range(1,10),
         },
+        {
+            'name'      : 'BCL_RUNFOLDER_DIR',
+            'switches'  : ['-R','--runfolder-dir'],
+            'required'  : True,
+            'help'      : 'path to run folder directory',
+            'type'      : str,
+        },
+        {
+            'name'      : 'BCL_OUTPUT_DIR',
+            'switches'  : ['-o','--output-dir'],
+            'required'  : True,
+            'help'      : 'path to demultiplexed output',
+            'type'      : str,
+        }
+            
     ]
         
     # Check for environment variable values
@@ -208,7 +224,7 @@ def initArgs():
 
 
 def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
-    cmdstrings=[]
+    cmdstrings=['bcl2fastq']
     fout=open('%s.opts' % runname,'w')
     # keeps consistent order of writing
     switch_list=switches_to_names.keys()
@@ -218,7 +234,7 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
         switch=[switch for switch in switches if '--' in switch][0]
         argvalue=str(argdict[switches_to_names[switches]])
         fout.write('%s\t%s\n' % (switch,argvalue))
-        if argvalue!='False':
+        if argvalue !='False':
             cmdstrings.append(' '.join([switch,argvalue]))
    
     fout.close()
@@ -232,8 +248,10 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
 
 def main():
     bcl_namespace,attributedict,switches_to_names = initArgs()
-    #print bcl_namespace
-    #print attributedict
+
+    ### need to run check on basemask to see if can go with default pickup or need custom
+    # newcmd will have to become a list resulting from iteration over make_bcl2fastq_cmd if
+    # inconsistencies between runinfo.xml and sample_sheet.csv
 
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
     print newcmd
