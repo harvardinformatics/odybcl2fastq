@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+from collections import OrderedDict
 
 def get_readinfo_from_runinfo(runinfo_xml_file):
     tree = ET.parse(runinfo_xml_file)
@@ -9,7 +10,7 @@ def get_readinfo_from_runinfo(runinfo_xml_file):
     for child in root.iter('Reads'):
         for child in child:
             read_dicts.append(child.attrib)
-    readkey_to_readdata_map={}
+    readkey_to_readdata_map=OrderedDict()
     for read_dict in read_dicts:
         number=read_dict.pop('Number')
         readkey_to_readdata_map['read%s' % number] = read_dict
