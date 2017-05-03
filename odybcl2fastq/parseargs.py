@@ -183,8 +183,15 @@ def initArgs():
             'required'  : True,
             'help'      : 'path to demultiplexed output',
             'type'      : str,
-        }
-            
+        },
+        {
+            'name'      : 'BCL_SAMPLE_SHEET',
+            'switches'  : ['--sample-sheet'],
+            'required'  : False,
+            'default'   : False,
+            'type'      : str,
+            'help'      : 'path to sample sheet (if need to call custom sheets, e.g. for a within lane mixed index length run)'
+        }          
     ]
         
     # Check for environment variable values
