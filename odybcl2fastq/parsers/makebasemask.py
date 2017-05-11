@@ -43,47 +43,36 @@ def make_hiseq_mask(universal_mask,sample_key,sample_dict):
 
 """
 def collapse_hiseq_masks(sample_masks):
-    number_lanes=int(sample_masks.keys()[-1].split(':'))
-    masks_by_lane=OrderedDict()
-    for mask in sample_masks.values():
-        if mask.split(':')[1] not in masks_by_lane:
-            masks_by_lane[mask.split(':')[1]]=Set()
-        masks_by_lane[mask.split(':')[1]].add(mask.split(':')[0])
+    #number_lanes=int(sample_masks.keys()[-1].split(':'))
+    #masks_by_lane=OrderedDict()
+    #for mask in sample_masks.values():
+        #if mask.split(':')[1] not in masks_by_lane:
+            #masks_by_lane[mask.split(':')[1]]=Set()
+        #masks_by_lane[mask.split(':')[1]].add(mask.split(':')[0])
 
-    if len(masks_by_lane) == 1: # only 1 mask for all lanes
-        return masks_by_lane.keys()
+    #if len(masks_by_lane) == 1: # only 1 mask for all lanes
+        #return masks_by_lane.keys()
 
-    else: 
+    #else: 
 """        
-        
-        
-                
 
 def extract_basemasks(runinfo,sample_sheet):
     rundata_by_read = get_readinfo_from_runinfo(runinfo)
     data_by_sample = sheet_parse(sample_sheet)['Data']
     universal_mask=make_universal_mask(rundata_by_read)
     sample_masks=OrderedDict() # keep for figuring out which basemask runs to send to which clients
-    unique_masks = []
+    unique_masks = Set()
 
     if 'Lane' in data_by_sample[data_by_sample.keys()[0]]:
-        unique_masks_by_lane = []
         for sample in data_by_sample.keys():
             lane,mask = make_hiseq_mask(universal_mask,sample,data_by_sample[sample])
             sample_masks[sample] = ':'.join([lane,mask])
-            if sample_masks[sample] not in unique_masks_by_lane:
-                unique_masks_by_lane.append(sample_masks[sample])            
-                    
+            unique_masks.add(sample_masks[sample])            
                                    
     else:
         for sample in data_by_sample.keys():
             sample_mask = make_nextseq_mask(universal_mask)    
             sample_masks[sample] = sample_mask
-            if sample_masks[sample] not in unique_masks:
-                unique_masks.append(sample_masks[sample])
-        unique_masks_by_lane = unique_masks
+            unique_masks.add(sample_masks[sample])
                     
-    return rundata_by_read,data_by_sample,universal_mask,sample_masks,unique_masks_by_lane        
-  
-   
-
+    return rundata_by_read,data_by_sample,universal_mask,sample_masks,unique_masks        
