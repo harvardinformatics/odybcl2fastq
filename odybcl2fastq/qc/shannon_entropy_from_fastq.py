@@ -66,7 +66,7 @@ def entropy_runner(fqin,samplingfreq,max_sample_count = 100000):
         entropy_summary['median'] = median(entropy_values)
         entropy_summary['std'] = std(entropy_values)
         entropy_summary['sem'] = sem(entropy_values)
-        entropy_summar['vector'] = entropy_values   
+        entropy_summary['vector'] = entropy_values   
         
 
     return entropy_summary
