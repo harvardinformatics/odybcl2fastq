@@ -15,7 +15,7 @@ Created on  2017-04-19
 import sys, os, re, traceback
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
-from odybcl2fastq.parsers.makebasemask import extract_basemask
+from odybcl2fastq.parsers.makebasemask import extract_basemasks
 
 def initArgs():
     '''
@@ -78,7 +78,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-bcls'],
             'required'  : False,
             'help'      : 'missing or corrupt bcl files are ignored',
-            'default'   : False,
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -86,7 +86,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-filter'],
             'required'  : False,
             'help'      : 'missing or corrupt filter files are ignored',
-            'default'   : False,
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -94,7 +94,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-positions'],
             'required'  : False,
             'help'      : 'missing or corrupt positions files are ignored',
-            'default'   : False,
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -187,11 +187,17 @@ def initArgs():
         {
             'name'      : 'BCL_SAMPLE_SHEET',
             'switches'  : ['--sample-sheet'],
-            'required'  : False,
-            'default'   : False,
+            'required'  : True,
             'type'      : str,
-            'help'      : 'path to sample sheet (if need to call custom sheets, e.g. for a within lane mixed index length run)'
-        }          
+            'help'      : 'path to sample sheet (if need to call custom sheets, e.g. for a within lane mixed index length run)',
+        },
+        {   
+            'name'      : 'BCL_RUNINFO_XML',
+            'switches'  : '--runinfoxml',
+            'required'  : True,
+            'type'      : str,
+            'help'      : 'path to runinfo xml file',
+        },    
     ]
         
     # Check for environment variable values
@@ -249,19 +255,19 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
     cmdstring=' '.join(cmdstrings) 
    
     return cmdstring    
-    
 
 
-
-def main():
+def bcl2fastq_build_cmd_by_queue():
     bcl_namespace,attributedict,switches_to_names = initArgs()
-
-    ### need to run check on basemask to see if can go with default pickup or need custom
-    # newcmd will have to become a list resulting from iteration over make_bcl2fastq_cmd if
-    # inconsistencies between runinfo.xml and sample_sheet.csv
-
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
-    print newcmd
+    queuemasks =  extract_basemasks(bcl_namespace.BCL_RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
+    cmds_by_queue = []
+    for queue in queuemasks:
+        queuecmd ='%s %s' % (newcmd, ' '.join(['--use-bases-mask %s' % mask for mask in queue]))
+        cmds_by_queue.append(queuecmd)
 
+    for cmd in cmds_by_queue:
+        print cmd
+    
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(bcl2fastq_build_cmd_by_queue())
