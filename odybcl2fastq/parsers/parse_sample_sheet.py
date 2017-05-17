@@ -56,12 +56,16 @@ def sheet_parse(samplesheet=None):
                     elif linelist[0] != '':
                         defaults_by_section['Reads']['read2_length'] = linelist[0]
             
-                else: 
-                    if linelist[0] == 'Sample_ID':
+                else:
+                    if 'Sample_ID' in linelist: 
                         data_fields=[field for field in linelist if field != '']
                     else:
                         data_dict=dict(zip(data_fields,linelist[:len(data_fields)]))
-                        name=data_dict['Sample_ID']
+                        if 'Lane' in data_dict.keys():
+                            name = '%s:%s' % (data_dict['Lane'],data_dict['Sample_ID'])
+                        else:
+                            name = data_dict['Sample_ID']
+                        
                         defaults_by_section['Data'][name] = data_dict
                     
     for section_key in ['Settings','Header','Reads']:
