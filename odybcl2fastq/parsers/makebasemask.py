@@ -1,7 +1,3 @@
-"""
-function needs to be written so that an appropriate base mask 
-can be written for each run/lane
-"""
 from odybcl2fastq.parsers.parse_runinfoxml import get_readinfo_from_runinfo
 from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
 from odybcl2fastq import UserException
