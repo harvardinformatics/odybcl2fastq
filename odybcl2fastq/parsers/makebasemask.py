@@ -43,6 +43,14 @@ def make_hiseq_mask(universal_mask,sample_key,sample_dict):
 
 
 def collapse_hiseq_masks(mask_lanes_dict,queues): # unique_masks is a python set
+    """
+    for hiseq runs, creates a list of lists, where each list represents a set
+    of masks that can be run concurrently in a single demultiplexing run that
+    obeys the following rule: each lane can have a separate mask but no lane
+    can have multiple masks. this function build sets of masks for the minimum
+    number of demultiplex runs necessary to handle all samples properly.
+    """
+ 
     queue = {}
     masks = mask_lanes_dict.keys()
     for mask in masks:
@@ -57,15 +65,26 @@ def collapse_hiseq_masks(mask_lanes_dict,queues): # unique_masks is a python set
     queues.append(queue) 
     if len(mask_lanes_dict) != 0:
         collapse_hiseq_masks(mask_lanes_dict,queues)
-
-    return queues
+    
+    queue_lists = []
+    for queue in queues:
+        queue_list = [key+':'+queue[key] for key in queue.keys()]
+        queue_lists.append(queue_list)
+    return queue_lists
     
      
 def extract_basemasks(runinfo,sample_sheet):
+    """
+    creates a list of lists that contain masks
+    that are compatible being run together in one demultiplexing
+    instance, regardless of instrument; nextseq must run each different
+    mask separately, while hiseq can handle different masks for different
+    lanes but not different masks for the same lane
+    """
     rundata_by_read = get_readinfo_from_runinfo(runinfo)
     data_by_sample = sheet_parse(sample_sheet)['Data']
     universal_mask=make_universal_mask(rundata_by_read)
-    sample_masks=OrderedDict() # keep for figuring out which basemask runs to send to which clients
+    sample_masks=OrderedDict() # keep for figuring out which basemask runs to send to which clients ?
     unique_masks = Set()
 
     if 'Lane' in data_by_sample[data_by_sample.keys()[0]]:
@@ -75,20 +94,21 @@ def extract_basemasks(runinfo,sample_sheet):
             unique_masks.add(sample_masks[sample]) 
            
         if len(Set([mask.split(':')[1] for mask in unique_masks])) == 1:
-            return list(Set([mask.split(':')[1] for mask in unique_masks]))
+            queue_lists = list(list(Set([mask.split(':')[1] for mask in unique_masks])))
         else:
             mask_lanes_dict = defaultdict(list)
             for mask in unique_masks:
                 mask_lanes_dict[mask.split(':')[1]].append(mask.split(':')[0])
             queues = []
-            newmasks=defaultdict(list)
-            unique_masks = collapse_hiseq_masks(mask_lanes_dict,queues)
-            return unique_masks 
+            queue_lists = collapse_hiseq_masks(mask_lanes_dict,queues)
                 
- 
     else:
         for sample in data_by_sample.keys():
             sample_mask = make_nextseq_mask(universal_mask)    
             sample_masks[sample] = sample_mask
             unique_masks.add(sample_masks[sample])
-        return unique_masks        
+        queue_lists= []
+        for mask in unique_masks:
+            queue_lists.append([mask])
+
+    return queue_lists                
