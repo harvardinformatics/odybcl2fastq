@@ -35,5 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('-b','--batch',dest='batch',type=str,default=False,help="whether to run as a batch")
     opts = parser.parse_args()
 
-    fastqc_runner(opts.indir,opts.outdir,numthreads=opts.nthreads,batch=opts.batch)
-                          
+    badfiles,errors = fastqc_runner(opts.indir,opts.outdir,numthreads=opts.nthreads,batch=opts.batch)
+    if len(errors) != 0:
+        for i in range(len(errors)):
+            print '%s\n%s\n' % (badfiles[i],errors[i])                     
