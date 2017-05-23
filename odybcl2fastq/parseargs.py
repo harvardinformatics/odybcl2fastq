@@ -261,10 +261,11 @@ def bcl2fastq_build_cmd_by_queue():
     bcl_namespace,attributedict,switches_to_names = initArgs()
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
     queuemasks =  extract_basemasks(bcl_namespace.BCL_RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
+    
     cmds_by_queue = []
     for queue in queuemasks:
         if len(queuemasks) == 1:
-            queuecmd ='%s %s' % (newcmd, ' '.join(['--use-bases-mask %s' % mask for mask in queue]))
+            queuecmd ='%s %s' % (newcmd, ' '.join(['--use-bases-mask',queue]))
             cmds_by_queue.append(queuecmd)
         else:
             lanes = ','.join([mask.split(':')[0] for mask in queue])
