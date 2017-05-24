@@ -260,17 +260,28 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
 def bcl2fastq_build_cmd_by_queue():
     bcl_namespace,attributedict,switches_to_names = initArgs()
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
-    queuemasks =  extract_basemasks(bcl_namespace.BCL_RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
-    
+    queuemasks,instrument =  extract_basemasks(bcl_namespace.BCL_RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
+    print 'queuemasks,instrument',queuemasks,instrument  
     cmds_by_queue = []
     for queue in queuemasks:
         if len(queuemasks) == 1:
-            queuecmd ='%s %s' % (newcmd, ' '.join(['--use-bases-mask',queue]))
-            cmds_by_queue.append(queuecmd)
-        else:
+            if instrument == 'nextseq':
+                if len(queue) !=1:
+                    raise UserException('more than 1 mask per queue detected for nextseq')
+
+            queuecmd ='%s %s' % (newcmd, ' '.join(['--use-bases-mask %s' % mask for mask in queue]))
+        
+        elif instrument == 'hiseq':
             lanes = ','.join([mask.split(':')[0] for mask in queue])
             queuecmd ='%s --lanes %s %s' % (newcmd,lanes, ' '.join(['--use-bases-mask %s' % mask for mask in queue]))
-            cmds_by_queue.append(queuecmd)
+        
+        elif instrument == 'nextseq':
+            if len(queue) == 1:
+                queuecmd ='%s %s' % (newcmd,'--use-bases-mask %s' % queue[0])
+            else:
+                raise UserException('more than 1 mask per queue detected for nextseq')
+        cmds_by_queue.append(queuecmd)
+    
     for cmd in cmds_by_queue:
         print cmd
     
