@@ -15,10 +15,19 @@ def make_universal_mask(rundata_by_read):
     return universal_mask
 
 
-def make_nextseq_mask(universal_mask):
-    return ','.join(universal_mask.values())
+def make_nextseq_mask(universal_mask,sample_dict):
+    index1_length = int(universal_mask['read2'][1:])
+    if len(sample_dict['index']) != index1_length:
+        print('WARNING: sample 1st index of different length than determined from RunInfo.xml for %s' % sample_dict['Sample_Name'])        
+        universal_mask['read2']='i%s' % len(sample_dict['index'])
+    if 'i' in universal_mask['read3']:
+        index2_length = int(universal_mask['read3'][1:])
+        if len(sample_dict['index2']) != index2_length:
+            universal_mask['read3']='i%s' % len(sample_dict['index2'])
 
-            
+    return ','.join(universal_mask.values())    
+
+
 def make_hiseq_mask(universal_mask,sample_key,sample_dict):
     sample_mask = copy(universal_mask)
     
@@ -84,13 +93,14 @@ def extract_basemasks(runinfo,sample_sheet):
     unique_masks = Set()
 
     if 'Lane' in data_by_sample[data_by_sample.keys()[0]]:
+        instrument = 'hiseq'
         for sample in data_by_sample.keys():
             lane,mask = make_hiseq_mask(universal_mask,sample,data_by_sample[sample])
             sample_masks[sample] = ':'.join([lane,mask])
             unique_masks.add(sample_masks[sample]) 
            
         if len(Set([mask.split(':')[1] for mask in unique_masks])) == 1:
-            queue_lists = list(list(Set([mask.split(':')[1] for mask in unique_masks])))
+            queue_lists = [list(list(Set([mask.split(':')[1] for mask in unique_masks])))]
         else:
             mask_lanes_dict = defaultdict(list)
             for mask in unique_masks:
@@ -99,12 +109,15 @@ def extract_basemasks(runinfo,sample_sheet):
             queue_lists = collapse_hiseq_masks(mask_lanes_dict,queues)
                 
     else:
+        instrument = 'nextseq'
         for sample in data_by_sample.keys():
-            sample_mask = make_nextseq_mask(universal_mask)    
+            sample_mask = make_nextseq_mask(universal_mask,data_by_sample[sample])    
             sample_masks[sample] = sample_mask
             unique_masks.add(sample_masks[sample])
-        queue_lists= []
-        for mask in unique_masks:
-            queue_lists.append([mask])
-
-    return queue_lists                
+        
+            queue_lists = []
+            for mask in unique_masks:
+                queue_lists.append([mask])
+                
+                
+    return queue_lists,instrument                
