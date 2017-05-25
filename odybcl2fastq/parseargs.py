@@ -73,7 +73,6 @@ def initArgs():
             'name'      : 'BCL_CREATE_INDEXREAD_FASTQ',
             'switches'  : ['--create-fastq-for-index-reads'],
             'required'  : False,
-            'default'   : False,
             'action'    : 'store_true',
             'help'      : 'writes fastq files for index read(s)',
         },
@@ -82,7 +81,6 @@ def initArgs():
             'switches'  : ['--ignore-missing-bcls'],
             'required'  : False,
             'help'      : 'missing or corrupt bcl files are ignored',
-            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -90,7 +88,6 @@ def initArgs():
             'switches'  : ['--ignore-missing-filter'],
             'required'  : False,
             'help'      : 'missing or corrupt filter files are ignored',
-            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -98,7 +95,6 @@ def initArgs():
             'switches'  : ['--ignore-missing-positions'],
             'required'  : False,
             'help'      : 'missing or corrupt positions files are ignored',
-            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -196,9 +192,9 @@ def initArgs():
             'help'      : 'path to sample sheet (if need to call custom sheets, e.g. for a within lane mixed index length run)',
         },
         {   
-            'name'      : 'BCL_RUNINFO_XML',
+            'name'      : 'RUNINFO_XML',
             'switches'  : '--runinfoxml',
-            'required'  : True,
+            'required'  : False,
             'type'      : str,
             'help'      : 'path to runinfo xml file',
         },  
@@ -234,7 +230,8 @@ def initArgs():
         parameterdef['name'] = name
         
         # add switch tuple as key, paramterdef name (= destination) as value   
-        switches_to_names[tuple(switches)]=parameterdef['name']
+        if 'BCL' in parameterdef['name']: # this allows non BCL things to be excluded from switches to names so don't get incorrectly added to cmd line arg
+            switches_to_names[tuple(switches)]=parameterdef['name']
     args = parser.parse_args()
     bclargs = dict((attr, getattr(args,attr)) for attr in dir(args) if attr.startswith('BCL'))
 
@@ -247,13 +244,19 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
     # keeps consistent order of writing
     switch_list=switches_to_names.keys()
     switch_list.sort()
-    
+    #print 'argdict is', argdict    
     for switches in switch_list:
         switch=[switch for switch in switches if '--' in switch][0]
+        #print switch, argdict[switches_to_names[switches]]
         argvalue=str(argdict[switches_to_names[switches]])
         fout.write('%s\t%s\n' % (switch,argvalue))
-        if argvalue !='False':
-            cmdstrings.append(' '.join([switch,argvalue]))
+        # the bit below prevents boolean flags from having values in the cmd
+        if argvalue != 'False':
+            if argvalue == 'True':
+                cmdstrings.append(switch)
+            else:       
+                cmdstrings.append(' '.join([switch,argvalue]))
+           
    
     fout.close()
    
@@ -264,9 +267,13 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
 
 def bcl2fastq_build_cmd_by_queue():
     bcl_namespace,attributedict,switches_to_names = initArgs()
+    #print 'namespace',bcl_namespace
+    #print 'attribute dict',attributedict
+    #print 'switches to names',switches_to_names
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
-    queuemasks,instrument =  extract_basemasks(bcl_namespace.BCL_RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
-    print 'queuemasks,instrument',queuemasks,instrument  
+    #print 'newcmd is', newcmd
+    queuemasks,instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
+    #print 'queuemasks,instrument',queuemasks,instrument  
     cmds_by_queue = []
     for queue in queuemasks:
         if len(queuemasks) == 1:
@@ -295,22 +302,23 @@ def bcl2fastq_runner(cmd,bcl_namespace):
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate() 
     if demult_run.returncode!=0:
-        message = 'run %s failed\n%s\n' % (basename(bcl_namespace.BCL_RUNFOLDER_DIR,demult_err))
+        message = 'run %s failed\n%s\n' % (basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
         print(message)
     else:
-        message = 'run %s completed successfully\n%s\n' % basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+        message = 'run %s completed successfully\n' % basename(bcl_namespace.BCL_RUNFOLDER_DIR)
 
     fromaddr = 'adamfreedman@fas.harvard.edu'
     toemaillist=['adamfreedman@fas.harvard.edu']
     subject = basename(bcl_namespace.BCL_RUNFOLDER_DIR)
     buildmessage(message,fromaddr,toemaillist,subject,ccemaillist=[],bccemaillist=[],server='rcsmtp.rc.fas.harvard.edu')    
 
-def bcl2fastq_process_runs(test=True):
+def bcl2fastq_process_runs(test=False):
     bcl_namespace,cmds = bcl2fastq_build_cmd_by_queue()      
     for cmd in cmds:
         if test == True:
             print cmd
         else:
+            print 'Launching bcl2fastq...%s\n' % cmd
             bcl2fastq_runner(cmd,bcl_namespace)
             
 
