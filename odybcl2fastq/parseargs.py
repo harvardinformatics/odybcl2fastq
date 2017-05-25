@@ -16,6 +16,10 @@ import sys, os, re, traceback
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
+from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
+#emailer import buildmessage
+from subprocess import Popen,PIPE
+from os.path import basename
 
 def initArgs():
     '''
@@ -197,7 +201,8 @@ def initArgs():
             'required'  : True,
             'type'      : str,
             'help'      : 'path to runinfo xml file',
-        },    
+        },  
+  
     ]
         
     # Check for environment variable values
@@ -282,8 +287,33 @@ def bcl2fastq_build_cmd_by_queue():
                 raise UserException('more than 1 mask per queue detected for nextseq')
         cmds_by_queue.append(queuecmd)
     
-    for cmd in cmds_by_queue:
-        print cmd
-    
+    #for cmd in cmds_by_queue:
+        #print cmd
+    return bcl_namespace,cmds_by_queue
+
+def bcl2fastq_runner(cmd,bcl_namespace):
+    demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
+    demult_out,demult_err=demult_run.communicate() 
+    if demult_run.returncode!=0:
+        message = 'run %s failed\n%s\n' % (basename(bcl_namespace.BCL_RUNFOLDER_DIR,demult_err))
+        print(message)
+    else:
+        message = 'run %s completed successfully\n%s\n' % basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+
+    fromaddr = 'adamfreedman@fas.harvard.edu'
+    toemaillist=['adamfreedman@fas.harvard.edu']
+    subject = basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    buildmessage(message,fromaddr,toemaillist,subject,ccemaillist=[],bccemaillist=[],server='rcsmtp.rc.fas.harvard.edu')    
+
+def bcl2fastq_process_runs(test=True):
+    bcl_namespace,cmds = bcl2fastq_build_cmd_by_queue()      
+    for cmd in cmds:
+        if test == True:
+            print cmd
+        else:
+            bcl2fastq_runner(cmd,bcl_namespace)
+            
+
 if __name__ == "__main__":
-    sys.exit(bcl2fastq_build_cmd_by_queue())
+    #sys.exit(bcl2fastq_build_cmd_by_queue())
+    sys.exit(bcl2fastq_process_runs())
