@@ -8,7 +8,6 @@ from sets import Set
 from os.path import basename
 import matplotlib.pyplot as plt
 from subprocess import Popen,PIPE,call
-import os
 
 def get_input_stream(fastqfile):
     if fastqfile[-2:]=='gz':
@@ -92,17 +91,7 @@ def write_entropy_report(fqin,samplingfreq,maxcount):
     Rcode.close() 
    
     makeplot = 'Rscript %s_entropyhist.R' % filestring
-    #print makeplot
     call("%s" % makeplot,shell=True)
-    #os.system('which Rscript')
-    #plot_run = Popen(makeplot,shell=True,stderr=PIPE,stdout=PIPE)
-    #plotrun_out,plotrun_err=plot_run.communicate() 
-    #print 'err is',plotrun_err
-    #print 'out is', plotrun_out
-    #if plot_run.returncode!=0:
-        #print('Error generating entropy histogram for %s: %s\n' % (fqin,plotrun_err))
-
-    
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="options for calculating entropy from a fastq_file")
