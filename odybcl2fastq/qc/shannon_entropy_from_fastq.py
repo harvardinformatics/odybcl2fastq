@@ -7,7 +7,8 @@ from collections import defaultdict,OrderedDict
 from sets import Set
 from os.path import basename
 import matplotlib.pyplot as plt
-from subprocess import Popen,PIPE
+from subprocess import Popen,PIPE,call
+import os
 
 def get_input_stream(fastqfile):
     if fastqfile[-2:]=='gz':
@@ -76,26 +77,31 @@ def write_entropy_report(fqin,samplingfreq,maxcount):
     filestring = basename(fqin.replace('.fastq','').replace('.gz',''))
     report = open('%s_entropy.txt' % filestring,'w')
     for key in entropy_summary.keys()[:-1]:
-        report.write('%s:\t%s\n' % (key,entropy_summary_keys[key]))
+        report.write('%s:\t%s\n' % (key,entropy_summary[key]))
     report.close()
     
     vals_R_vector='vals=c(%s)' % ','.join([str(val) for val in entropy_summary['vector']])
     Rcode = open('%s_entropyhist.R' % filestring,'w')
     Rcode.write('%s\n' % vals_R_vector)
     outpdf = '%s.entropy.pdf' % filestring
-    pdfcmd = 'pdf(file="%s.pdf")' % outpdf
+    pdfcmd = 'pdf(file="%s")' % outpdf
     plotcmd = 'hist(vals,breaks=20,freq=FALSE,xlab=\"Entropy\")'
     closecmd = 'dev.off()'
-    for cmd in [outpdf,pdfcmd,plotcmd,closecmd]:
-        Rcode.write('%s\n' % plotcmd)
-    
+    for cmd in [pdfcmd,plotcmd,closecmd]:
+        Rcode.write('%s\n' % cmd)
+    Rcode.close() 
+   
     makeplot = 'Rscript %s_entropyhist.R' % filestring
-    plot_run = Popen(makeplot,shell=True,stderr=PIPE,stdout=PIPE)
-    plotrun_out,plotrun_err=plot_run.communicate() 
-    if plot_run.returncode!=0:
-        print('Error generating entropy histogram for %s: %s\n' % (fqin,plotrun_err))
+    #print makeplot
+    call("%s" % makeplot,shell=True)
+    #os.system('which Rscript')
+    #plot_run = Popen(makeplot,shell=True,stderr=PIPE,stdout=PIPE)
+    #plotrun_out,plotrun_err=plot_run.communicate() 
+    #print 'err is',plotrun_err
+    #print 'out is', plotrun_out
+    #if plot_run.returncode!=0:
+        #print('Error generating entropy histogram for %s: %s\n' % (fqin,plotrun_err))
 
-    Rcode.close()
     
 
 if __name__=="__main__":
