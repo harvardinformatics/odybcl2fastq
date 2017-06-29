@@ -1,6 +1,50 @@
 {% extends "base.html" %}
 {% block title %}{{subject}}{% endblock title %}
 {% block content %}
-    <p>{{submission}}</p>
+    <h1>{{run}}</h1>
+    <p>Anaylses: {{analyses}}</p>
+    <h2>Analysis Lane1.indexlength_8:</h2>
+    <p>Reads (R1+R2): {{', '.join(reads)}}<br>
+    Number of samples: {{sample_no}}</p>
+    {% if lane_table %}
+        {% for h in lane_table[0].keys() %}
+            <th>h</th>
+        {% endfor %}
+        {% for row in lane_table %}
+        <tr>
+            {% for v in row.values() %}
+                <td>v</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    {% endif %}
+    {% if sample_table %}
+        {% for h in sample_table[0].keys() %}
+            <th>h</th>
+        {% endfor %}
+        {% for row in sample_table %}
+        <tr>
+            {% for v in row.values() %}
+                <td>v</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    {% endif %}
     <p>{{message}}</p>
+    <h2>Letter:</h2>
+    <p>
+    Hi all,
+    The fastq files with the read sequences of run {{run}} are available at:
+    <a href="{{run_folder}}{{run}}">{{run_folder}}</a>
+    or under {{run_folder}}{{run}} on the cluster.
+    Summary statistics can be found at:
+    {{run_folder}}Lane1.indexlength_8/Reports/html/{{short_run}}/all/all/all/laneBarcode.html
+    Reads with indices not in SampleSheet.csv are in the fastq file labeled
+    Undetermined_SO.  We encourage users to download a local copy of their data,
+    as run data will be removed within 30days with no exceptions.
+
+    For more information, please see our
+    <a href="http://informatics.fas.harvard.edu/faq">FAQ Page</a>.
+    {{letter}}
+    </p>
 {% endblock content %}

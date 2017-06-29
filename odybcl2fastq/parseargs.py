@@ -301,27 +301,38 @@ def bcl2fastq_build_cmd_by_queue():
     return bcl_namespace,cmds_by_queue
 
 def bcl2fastq_runner(cmd,bcl_namespace):
-    demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
+    '''demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
     if demult_run.returncode!=0:
         message = 'run %s failed\n%s\n' % (basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
         print(message)
     else:
         message = 'run %s completed successfully\n' % basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    '''
     fromaddr = 'adamfreedman@fas.harvard.edu'
     toemaillist=['mportermahoney@g.harvard.edu']
-    subject = basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    #subject = basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    subject = 'TEST'
     # create html message with jinja
     j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
             trim_blocks = True)
     # context to put in email template
     context = {
-            'submission': '170516_D00365_0940_BHFVGJBCXY',
+            'run': '170516_D00365_0940_BHFVGJBCXY',
             'subject': subject,
-            'message': message
+            'anaylses': 1,
+            'reads': ['363','058','633'],
+            'sample_no': 8,
+            'lane_table': None,
+            'sample_table': None,
+            'letter': '',
+            # TODO: store in config or something
+            'run_folder': 'http://software.rc.fas.harvard.edu/ngsdata/'
+
     }
     html = j2_env.get_template('summary.html').render(context)
-    buildmessage(html,fromaddr,toemaillist,subject,ccemaillist=[],bccemaillist=[],server='smtp.fas.harvard.edu')
+    print(html)
+    #buildmessage(html,fromaddr,toemaillist,subject,ccemaillist=[],bccemaillist=[],server='smtp.fas.harvard.edu')
 
 def bcl2fastq_process_runs(test=False):
     bcl_namespace,cmds = bcl2fastq_build_cmd_by_queue()
@@ -335,4 +346,5 @@ def bcl2fastq_process_runs(test=False):
 
 if __name__ == "__main__":
     #sys.exit(bcl2fastq_build_cmd_by_queue())
-    sys.exit(bcl2fastq_process_runs())
+    #sys.exit(bcl2fastq_process_runs())
+    bcl2fastq_runner('test','test')
