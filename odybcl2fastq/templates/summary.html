@@ -6,29 +6,33 @@
     <h2>Analysis Lane1.indexlength_8:</h2>
     <p>Reads (R1+R2): {{', '.join(reads)}}<br>
     Number of samples: {{sample_no}}</p>
-    {% if lane_table %}
-        {% for h in lane_table[0].keys() %}
-            <th>h</th>
+    {% if lane_data %}
+        <table cellspacing="0" cellpadding="10" border="0">
+        {% for h in lane_data[0].keys() %}
+        <th>{{h|title}}</th>
         {% endfor %}
-        {% for row in lane_table %}
+        {% for row in lane_data %}
         <tr>
             {% for v in row.values() %}
-                <td>v</td>
+            <td>{{v}}</td>
             {% endfor %}
         </tr>
         {% endfor %}
+        </table>
     {% endif %}
-    {% if sample_table %}
-        {% for h in sample_table[0].keys() %}
-            <th>h</th>
+    {% if sample_data %}
+        <table cellspacing="0" cellpadding="10" border="0">
+        {% for h in sample_data[0].keys() %}
+            <th>{{h|title}}</th>
         {% endfor %}
-        {% for row in sample_table %}
+        {% for row in sample_data %}
         <tr>
             {% for v in row.values() %}
-                <td>v</td>
+                <td>{{v}}</td>
             {% endfor %}
         </tr>
         {% endfor %}
+        </table>
     {% endif %}
     <p>{{message}}</p>
     <h2>Letter:</h2>

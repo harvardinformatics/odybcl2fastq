@@ -19,6 +19,7 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
+from odybcl2fastq.parsers import parse_lane
 #emailer import buildmessage
 from subprocess import Popen,PIPE
 from os.path import basename
@@ -301,18 +302,21 @@ def bcl2fastq_build_cmd_by_queue():
     return bcl_namespace,cmds_by_queue
 
 def bcl2fastq_runner(cmd,bcl_namespace):
-    '''demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
+    demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
     if demult_run.returncode!=0:
         message = 'run %s failed\n%s\n' % (basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
         print(message)
     else:
         message = 'run %s completed successfully\n' % basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-    '''
+
     fromaddr = 'adamfreedman@fas.harvard.edu'
-    toemaillist=['mportermahoney@g.harvard.edu']
-    #subject = basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-    subject = 'TEST'
+    toemaillist=['adamfreedman@fas.harvard.edu']
+    subject = basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    lane_file = '/Users/portermahoney/tmp/analysis_finished/Lane1.indexlength_8/html/HVGC2BGX2/all/all/all/lane.html'
+    lane_data = parse_lane.get_lane_summary(lane_file)
+    sample_file = '/Users/portermahoney/tmp/analysis_finished/Lane1.indexlength_8/html/HVGC2BGX2/all/all/all/laneBarcode.html'
+    sample_data = parse_lane.get_sample_summary(sample_file)
     # create html message with jinja
     j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
             trim_blocks = True)
@@ -323,16 +327,15 @@ def bcl2fastq_runner(cmd,bcl_namespace):
             'anaylses': 1,
             'reads': ['363','058','633'],
             'sample_no': 8,
-            'lane_table': None,
-            'sample_table': None,
+            'lane_data': lane_data,
+            'sample_data': sample_data,
             'letter': '',
             # TODO: store in config or something
             'run_folder': 'http://software.rc.fas.harvard.edu/ngsdata/'
 
     }
     html = j2_env.get_template('summary.html').render(context)
-    print(html)
-    #buildmessage(html,fromaddr,toemaillist,subject,ccemaillist=[],bccemaillist=[],server='smtp.fas.harvard.edu')
+    buildmessage(html,fromaddr,toemaillist,subject,ccemaillist=[],bccemaillist=[],server='smtp.fas.harvard.edu')
 
 def bcl2fastq_process_runs(test=False):
     bcl_namespace,cmds = bcl2fastq_build_cmd_by_queue()
@@ -346,5 +349,4 @@ def bcl2fastq_process_runs(test=False):
 
 if __name__ == "__main__":
     #sys.exit(bcl2fastq_build_cmd_by_queue())
-    #sys.exit(bcl2fastq_process_runs())
-    bcl2fastq_runner('test','test')
+    sys.exit(bcl2fastq_process_runs())
