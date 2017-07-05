@@ -324,9 +324,9 @@ def bcl2fastq_runner(cmd,bcl_namespace):
     context = {
             'run': '170516_D00365_0940_BHFVGJBCXY',
             'subject': subject,
-            'anaylses': 1,
+            'analyses': 1,
+            'sample_no': len(sample_data),
             'reads': ['363','058','633'],
-            'sample_no': 8,
             'lane_data': lane_data,
             'sample_data': sample_data,
             'letter': '',

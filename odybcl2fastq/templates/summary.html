@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{subject}}{% endblock title %}
 {% block content %}
-    <h1>{{run}}</h1>
+    <h3>{{run}}</h3>
     <p>Anaylses: {{analyses}}</p>
-    <h2>Analysis Lane1.indexlength_8:</h2>
+    <h3>Analysis Lane1.indexlength_8:</h3>
     <p>Reads (R1+R2): {{', '.join(reads)}}<br>
     Number of samples: {{sample_no}}</p>
     {% if lane_data %}
-        <table cellspacing="0" cellpadding="10" border="0">
+        <table cellspacing="0" cellpadding="10" border="1px">
         {% for h in lane_data[0].keys() %}
         <th>{{h|title}}</th>
         {% endfor %}
@@ -21,7 +21,10 @@
         </table>
     {% endif %}
     {% if sample_data %}
-        <table cellspacing="0" cellpadding="10" border="0">
+        {% if lane_data %}
+            <br><br>
+        {% endif %}
+        <table cellspacing="0" cellpadding="10" border="1px">
         {% for h in sample_data[0].keys() %}
             <th>{{h|title}}</th>
         {% endfor %}
@@ -35,20 +38,19 @@
         </table>
     {% endif %}
     <p>{{message}}</p>
-    <h2>Letter:</h2>
+    <h3>Letter:</h3>
     <p>
-    Hi all,
-    The fastq files with the read sequences of run {{run}} are available at:
-    <a href="{{run_folder}}{{run}}">{{run_folder}}</a>
-    or under {{run_folder}}{{run}} on the cluster.
-    Summary statistics can be found at:
-    {{run_folder}}Lane1.indexlength_8/Reports/html/{{short_run}}/all/all/all/laneBarcode.html
+    Hi all,<br><br>
+    The fastq files with the read sequences of run {{run}} are available at:<br>
+    <a href="{{run_folder}}{{run}}">{{run_folder}}</a><br>
+    or under {{run_folder}}{{run}} on the cluster.<br><br>
+    Summary statistics can be found at:<br>
+    {{run_folder}}Lane1.indexlength_8/Reports/html/{{short_run}}/all/all/all/laneBarcode.html<br><br>
     Reads with indices not in SampleSheet.csv are in the fastq file labeled
     Undetermined_SO.  We encourage users to download a local copy of their data,
-    as run data will be removed within 30days with no exceptions.
+    as run data will be removed within 30days with no exceptions.<br><br>
 
-    For more information, please see our
+    For more information, please see our<br>
     <a href="http://informatics.fas.harvard.edu/faq">FAQ Page</a>.
-    {{letter}}
     </p>
 {% endblock content %}
