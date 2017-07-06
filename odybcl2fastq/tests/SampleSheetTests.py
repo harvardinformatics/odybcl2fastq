@@ -20,15 +20,12 @@ class Test(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def ValidateSampleSheetParse(self):
-        benchmark = pickle.open('%s%s' % (data_dir,self.segood_hiseq_pickledict),'rb')
-        testparse = sheet_parse('%s%s' % (data_dir,self_segood_hiseq_ssheet)) 
+    def testValidateSampleSheetParse(self):
+        picklefile='%s%s' % (data_dir,self.segood_hiseq_pickledict)
+        benchmark = pickle.load(open(picklefile,'rb'))
+        testparse = sheet_parse('%s%s' % (data_dir,self.segood_hiseq_ssheet)) 
         self.assertEqual(benchmark,testparse)
         
-		
-		
-			
-
 
 if __name__ == "__main__":
     unittest.main()
