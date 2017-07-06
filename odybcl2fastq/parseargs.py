@@ -247,7 +247,6 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
     #print 'argdict is', argdict    
     for switches in switch_list:
         switch=[switch for switch in switches if '--' in switch][0]
-        #print switch, argdict[switches_to_names[switches]]
         argvalue=str(argdict[switches_to_names[switches]])
         fout.write('%s\t%s\n' % (switch,argvalue))
         # the bit below prevents boolean flags from having values in the cmd
@@ -267,13 +266,8 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
 
 def bcl2fastq_build_cmd_by_queue():
     bcl_namespace,attributedict,switches_to_names = initArgs()
-    #print 'namespace',bcl_namespace
-    #print 'attribute dict',attributedict
-    #print 'switches to names',switches_to_names
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
-    #print 'newcmd is', newcmd
     queuemasks,instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
-    #print 'queuemasks,instrument',queuemasks,instrument  
     cmds_by_queue = []
     for queue in queuemasks:
         if len(queuemasks) == 1:
@@ -294,8 +288,6 @@ def bcl2fastq_build_cmd_by_queue():
                 raise UserException('more than 1 mask per queue detected for nextseq')
         cmds_by_queue.append(queuecmd)
     
-    #for cmd in cmds_by_queue:
-        #print cmd
     return bcl_namespace,cmds_by_queue
 
 def bcl2fastq_runner(cmd,bcl_namespace):
