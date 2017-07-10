@@ -12,7 +12,7 @@ Created on  2017-04-19
 @copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
-import sys, os, re, traceback
+import sys, os, re, traceback, glob
 import constants as const
 from jinja2 import Environment, FileSystemLoader
 from argparse import ArgumentParser
@@ -22,7 +22,6 @@ from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_lane
 #emailer import buildmessage
 from subprocess import Popen,PIPE
-from os.path import basename
 
 def initArgs():
     '''
@@ -292,6 +291,13 @@ def bcl2fastq_build_cmd_by_queue():
         cmds_by_queue.append(queuecmd)
     return bcl_namespace,cmds_by_queue
 
+def parse_run_path(bcl_path):
+    dir_lst = bcl_path.split('/')
+    run = dir_lst[-1]
+    root = ('/').join(dir_lst[0:-1]) + '/'
+    short_id = run[-9:]
+    return root, run, short_id
+
 def bcl2fastq_runner(cmd,bcl_namespace):
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
@@ -300,14 +306,18 @@ def bcl2fastq_runner(cmd,bcl_namespace):
         print(message)
     else:
         message = 'run %s completed successfully\n' % basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-
     fromaddr = 'adamfreedman@fas.harvard.edu'
     toemaillist=['adamfreedman@fas.harvard.edu']
-    subject = basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-    lane_file = '/Users/portermahoney/tmp/analysis_finished/Lane1.indexlength_8/html/HVGC2BGX2/all/all/all/lane.html'
-    lane_data = parse_lane.get_lane_summary(lane_file)
-    sample_file = '/Users/portermahoney/tmp/analysis_finished/Lane1.indexlength_8/html/HVGC2BGX2/all/all/all/laneBarcode.html'
-    sample_data = parse_lane.get_sample_summary(sample_file)
+    root, run, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
+    subject = run
+    run_dir = root + run
+    if not os.path.exists(run_dir):
+        raise UserException('Run directory does not exist: %s' % run_dir)
+    for lane_dir in glob.glob(run_dir + "/Lane*/"):
+        lane_file = lane_dir + 'html/' + short_id + '/all/all/all/lane.html'
+        lane_data = parse_lane.get_lane_summary(lane_file)
+        sample_file = lane_dir + 'html/' + short_id + '/all/all/all/laneBarcode.html'
+        sample_data = parse_lane.get_sample_summary(sample_file)
     # create html message with jinja
     j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
             trim_blocks = True)
