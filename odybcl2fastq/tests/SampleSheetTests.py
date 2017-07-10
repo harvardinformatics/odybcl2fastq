@@ -9,7 +9,7 @@ import sys
 import pickle
 from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
 
-data_dir='/n/home_rc/afreedman/workspace/odybcl2fastq/odybcl2fastq/parsers/test_samplesheets/'
+data_dir='test_samplesheets/'
 
 class Test(unittest.TestCase):
 		
