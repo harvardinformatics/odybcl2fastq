@@ -13,8 +13,6 @@ Created on  2017-04-19
 @license: GPL v2.0
 '''
 import sys, os, re, traceback, glob
-import constants as const
-from jinja2 import Environment, FileSystemLoader
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
@@ -266,10 +264,9 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
     return cmdstring
 
 
-def bcl2fastq_build_cmd_by_queue():
-    bcl_namespace,attributedict,switches_to_names = initArgs()
+def bcl2fastq_build_cmd_by_queue(bcl_namespace, attribute_dict,
+        switches_to_names, queuemasks, instrument):
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
-    queuemasks,instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
     cmds_by_queue = []
     for queue in queuemasks:
         if len(queuemasks) == 1:
@@ -289,28 +286,28 @@ def bcl2fastq_build_cmd_by_queue():
             else:
                 raise UserException('more than 1 mask per queue detected for nextseq')
         cmds_by_queue.append(queuecmd)
-    return bcl_namespace,cmds_by_queue
+    return cmds_by_queue
 
 def parse_run_path(bcl_path):
     dir_lst = bcl_path.split('/')
     run = dir_lst[-1]
     root = ('/').join(dir_lst[0:-1]) + '/'
+    run_dir = root + run
     short_id = run[-9:]
-    return root, run, short_id
+    return run_dir, short_id
 
 def bcl2fastq_runner(cmd,bcl_namespace):
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
     if demult_run.returncode!=0:
-        message = 'run %s failed\n%s\n' % (basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
-        print(message)
+        message = 'run %s failed\n%s\n' % (os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
+        success = False
     else:
-        message = 'run %s completed successfully\n' % basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-    fromaddr = 'adamfreedman@fas.harvard.edu'
-    toemaillist=['adamfreedman@fas.harvard.edu']
-    root, run, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
-    subject = run
-    run_dir = root + run
+        message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+        success = True
+    return success, message
+
+def get_summary_info(run_dir, short_id, instrument):
     if not os.path.exists(run_dir):
         raise UserException('Run directory does not exist: %s' % run_dir)
     for lane_dir in glob.glob(run_dir + "/Lane*/"):
@@ -318,35 +315,30 @@ def bcl2fastq_runner(cmd,bcl_namespace):
         lane_data = parse_lane.get_lane_summary(lane_file)
         sample_file = lane_dir + 'html/' + short_id + '/all/all/all/laneBarcode.html'
         sample_data = parse_lane.get_sample_summary(sample_file)
-    # create html message with jinja
-    j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
-            trim_blocks = True)
-    # context to put in email template
-    context = {
-            'run': '170516_D00365_0940_BHFVGJBCXY',
-            'subject': subject,
-            'analyses': 1,
-            'sample_no': len(sample_data),
-            'reads': ['363','058','633'],
-            'lane_data': lane_data,
-            'sample_data': sample_data,
-            'letter': '',
-            # TODO: store in config or something
-            'run_folder': 'http://software.rc.fas.harvard.edu/ngsdata/'
-
-    }
-    html = j2_env.get_template('summary.html').render(context)
-    buildmessage(html,fromaddr,toemaillist,subject,ccemaillist=[],bccemaillist=[],server='smtp.fas.harvard.edu')
+    return lane_data, sample_data
 
 def bcl2fastq_process_runs(test=False):
-    bcl_namespace,cmds = bcl2fastq_build_cmd_by_queue()
+    # TODO: consider a run object to store some shared vars
+    bcl_namespace,attributedict,switches_to_names = initArgs()
+    queuemasks,instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
+    cmds = bcl2fastq_build_cmd_by_queue(bcl_namespace,
+            attributedict, switches_to_names, queuemasks, instrument)
     for cmd in cmds:
         if test == True:
             print cmd
         else:
             print 'Launching bcl2fastq...%s\n' % cmd
-            bcl2fastq_runner(cmd,bcl_namespace)
-
+            success, message = bcl2fastq_runner(cmd,bcl_namespace)
+            run_dir, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
+            subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+            sample_data = {}
+            lane_data = {}
+            if success: # get data from run to put in the email
+                lane_data, sample_data = get_summary_info(run_dir, short_id, instrument)
+            fromaddr = 'adamfreedman@fas.harvard.edu'
+            # TODO: will to email eventually be a cli?
+            toemaillist=['adamfreedman@fas.harvard.edu']
+            buildmessage(message, subject, lane_data, sample_data, fromaddr, toemaillist)
 
 if __name__ == "__main__":
     #sys.exit(bcl2fastq_build_cmd_by_queue())
