@@ -14,8 +14,8 @@ data_dir='test_samplesheets/'
 class Test(unittest.TestCase):
 		
     def setUp(self):
-        self.segood_hiseq_pickledict = '1_hiseq_singleindex_pe_samplesheet.dict.pickled' 
-        self.segood_hiseq_ssheet = '1_hiseq_singleindex_pe_samplesheet.csv'
+        self.segood_hiseq_pickledict = '1_SampleSheet_HiSeq_PE_singleindex_1_170504_D00365_0934_BHGLCMBCXY.dict.pickled' 
+        self.segood_hiseq_ssheet = '1_SampleSheet_HiSeq_PE_singleindex_1_170504_D00365_0934_BHGLCMBCXY.csv'
         self.pegood_singleindex_nextseq_ssheet='2_SampleSheet_NextSeq_PE_singleindex_170518_NS500422_0501_AHVFNVBGX2.csv'
         self.pegood_singleindex_nextseq_pickledict='2_SampleSheet_NextSeq_PE_singleindex_170518_NS500422_0501_AHVFNVBGX2.dict.pickled'
     def tearDown(self):
