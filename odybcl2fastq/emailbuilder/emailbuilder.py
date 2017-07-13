@@ -12,7 +12,7 @@ def generateMessageId():
     return make_msgid()
 
 
-def buildmessage(message, subject, instrument, summary_data, fromaddr,toemaillist, ccemaillist=[], bccemaillist=[], server='smtp.fas.harvard.edu'):
+def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemaillist=[], bccemaillist=[], server='smtp.fas.harvard.edu'):
     msg = MIMEMultipart()
     msg['Message-ID'] = generateMessageId()
     msg['From'] = fromaddr
@@ -22,14 +22,14 @@ def buildmessage(message, subject, instrument, summary_data, fromaddr,toemaillis
         msg['Cc'] = COMMASPACE.join(ccemaillist)
     if len(bccemaillist) > 0:
         msg['Bcc'] = COMMASPACE.join(bccemaillist)
-    html = get_html(message, instrument, summary_data)
+    html = get_html(message, summary_data)
     msg.attach(MIMEText(html.encode('utf-8'),'html'))
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
     smtp.sendmail(fromaddr,emails,msg.as_string())
     smtp.close()
 
-def get_html(message, instrument, summary_data):
+def get_html(message, summary_data):
     # create html message with jinja
     j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
             trim_blocks = True)
@@ -42,7 +42,7 @@ def get_html(message, instrument, summary_data):
             'run_folder': 'http://software.rc.fas.harvard.edu/ngsdata/'
 
     }'''
-    html = j2_env.get_template(instrument + '_summary.html').render(summary_data)
+    html = j2_env.get_template('summary.html').render(summary_data)
     return html
 
 

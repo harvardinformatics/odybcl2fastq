@@ -324,11 +324,12 @@ def bcl2fastq_process_runs(test=False):
             subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
             summary_data = {}
             if success: # get data from run to put in the email
-                summary_data = parse_lane.get_summary(run_dir, short_id, instrument)
+                summary_data = parse_lane.get_summary(run_dir, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
+            summary_data['run'] = subject
             fromaddr = 'adamfreedman@fas.harvard.edu'
             # TODO: will to email eventually be a cli?
             toemaillist=['mportermahoney@g.harvard.edu']
-            buildmessage(message, subject, instrument, summary_data, fromaddr, toemaillist)
+            buildmessage(message, subject, summary_data, fromaddr, toemaillist)
 
 if __name__ == "__main__":
     #sys.exit(bcl2fastq_build_cmd_by_queue())
