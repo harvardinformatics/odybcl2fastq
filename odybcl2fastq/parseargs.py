@@ -296,14 +296,14 @@ def parse_run_path(bcl_path):
     return run_dir, short_id
 
 def bcl2fastq_runner(cmd,bcl_namespace):
-    #demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
-    #demult_out,demult_err=demult_run.communicate()
-    '''if demult_run.returncode!=0:
+    demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
+    demult_out,demult_err=demult_run.communicate()
+    if demult_run.returncode!=0:
         message = 'run %s failed\n%s\n' % (os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
         success = False
-    else:'''
-    message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-    success = True
+    else:
+        message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+        success = True
     return success, message
 
 
@@ -328,7 +328,7 @@ def bcl2fastq_process_runs(test=False):
             summary_data['run'] = subject
             fromaddr = 'adamfreedman@fas.harvard.edu'
             # TODO: will to email eventually be a cli?
-            toemaillist=['mportermahoney@g.harvard.edu']
+            toemaillist=['adamfreedman@fas.harvard.edu']
             buildmessage(message, subject, summary_data, fromaddr, toemaillist)
 
 if __name__ == "__main__":

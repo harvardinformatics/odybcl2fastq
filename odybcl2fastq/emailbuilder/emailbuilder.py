@@ -22,6 +22,7 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
         msg['Cc'] = COMMASPACE.join(ccemaillist)
     if len(bccemaillist) > 0:
         msg['Bcc'] = COMMASPACE.join(bccemaillist)
+    # TODO: remove message or send failure email?
     html = get_html(message, summary_data)
     msg.attach(MIMEText(html.encode('utf-8'),'html'))
     emails = toemaillist + ccemaillist + bccemaillist
@@ -33,15 +34,6 @@ def get_html(message, summary_data):
     # create html message with jinja
     j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
             trim_blocks = True)
-    # context to put in email template
-    '''context = {
-            'run': run,
-            'subject': run,
-            'letter': '',
-            # TODO: store in config or something
-            'run_folder': 'http://software.rc.fas.harvard.edu/ngsdata/'
-
-    }'''
     html = j2_env.get_template('summary.html').render(summary_data)
     return html
 

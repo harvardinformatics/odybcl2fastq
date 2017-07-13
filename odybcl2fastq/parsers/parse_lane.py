@@ -12,18 +12,23 @@ def get_summary(run_dir, short_id, instrument, sample_sheet_dir):
         lane_data = {}
         lane_name =re.search('\/(Lane.*)\/', lane_dir).group(1)
         if instrument == 'nextseq':
-            lane_file = lane_dir + 'html/' + short_id + '/all/all/all/lane.html'
+            lane_file = lane_dir + 'Reports/html/' + short_id + '/all/all/all/lane.html'
             lane_data['lane_summary'] = get_lane_summary_nextseq(lane_file)
-            sample_file = lane_dir + 'html/' + short_id + '/all/all/all/laneBarcode.html'
-            lane_data['sample_summary'], land_data['reads'] = get_sample_summary_nextseq(sample_file)
+            run = run_dir.split('/')[-1]
+            sam_part = 'Reports/html/' + short_id + '/all/all/all/laneBarcode.html'
+            sample_file = lane_dir + sam_part
+            stats = run + '/' + lane_name + '/' + sam_part
+            lane_data['sample_summary'], lane_data['reads'] = get_sample_summary_nextseq(sample_file)
+            summary_data['undetermined'] = 'file labeled Undetermined_SO.'
         elif instrument == 'hiseq':
             stats = 'Basecall_Stats/Demultiplex_Stats.htm'
-            summary_data['stats_file'] = stats
             sample_file = lane_dir + stats
             lane_data['sample_summary'], lane_data['reads'] = get_sample_summary_hiseq(sample_file)
+            summary_data['undetermined'] = 'file(s) labeled Undetermined.'
         else:
             raise Exception('instrument unknonw: ' + instrument)
         lane_data['sample_num'] = get_sample_num(lane_data['sample_summary'])
+        summary_data['stats_file'] = stats
         summary_data['sample_sheet'] = get_sample_sheet(sample_sheet_dir)
         summary_data['lanes'][lane_name] = lane_data
         summary_data['fastq_url'] = const.FASTQ_URL
@@ -59,7 +64,7 @@ def parse_table_nextseq(path, tbl):
     tree = lh.parse(path)
     table = tree.xpath("//h2[.='" + tbl + "']/following::table[1]")[0]
     table = table.xpath(".//tr") # get only rows
-    rows = list(iter(table))
+    rows = iter(table)
     next(rows) # skip first row which is high level header
     return rows_to_dict(rows)
 
