@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{subject}}{% endblock title %}
+{% block content %}
+    <h3>{{run}}</h3>
+    <p>Anaylses: {{lanes|length}}</p>
+    {% for name, lane in lanes.items() %}
+        <h3>Analysis name: {{name}}</h3>
+        <p>Reads (R1+R2): {{lane['reads']}}<br>
+        Number of samples: {{lane['sample_num']}}</p>
+        {% if lane['lane_summary'] %}
+            <table cellspacing="0" cellpadding="10" border="1px">
+            {% for h in lane['lane_summary'][0].keys() %}
+            <th>{{h|title}}</th>
+            {% endfor %}
+            {% for row in lane['lane_summary'] %}
+            <tr>
+                {% for v in row.values() %}
+                <td>{{v}}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </table>
+            <br><br>
+        {% endif %}
+        {% if lane['sample_summary'] %}
+            <table cellspacing="0" cellpadding="10" border="1px">
+            {% for h in lane['sample_summary'][0].keys() %}
+                <th>{{h|title}}</th>
+            {% endfor %}
+            {% for row in lane['sample_summary'] %}
+            <tr>
+                {% for v in row.values() %}
+                    <td>{{v}}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </table>
+            <br><br>
+        {% endif %}
+    {% endfor %}
+    <p>{{message}}</p>
+    <h3>Letter:</h3>
+    <p>
+    Hi all,<br><br>
+    The fastq files with the read sequences of run {{run}} are available at:<br>
+    <a href="{{run_folder}}{{run}}">{{run_folder}}</a><br>
+    or under {{run_folder}}{{run}} on the cluster.<br><br>
+    Summary statistics can be found at:<br>
+    {{run_folder}}Lane1.indexlength_8/Reports/html/{{short_run}}/all/all/all/laneBarcode.html<br><br>
+    Reads with indices not in SampleSheet.csv are in the fastq file labeled
+    Undetermined_SO.  We encourage users to download a local copy of their data,
+    as run data will be removed within 30days with no exceptions.<br><br>
+
+    For more information, please see our<br>
+    <a href="http://informatics.fas.harvard.edu/faq">FAQ Page</a>.
+    </p>
+{% endblock content %}
