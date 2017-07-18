@@ -57,8 +57,8 @@ def sheet_parse(samplesheet=None):
                         defaults_by_section['Reads']['read2_length'] = linelist[0]
             
                 else:
-                    if 'Sample_ID' in linelist: 
-                        data_fields=[field for field in linelist if field != '']
+                    if 'Sample_ID' in linelist or 'SampleID' in linelist: 
+                        data_fields=[field.replace('SampleID','Sample_ID') for field in linelist if field != '']
                     else:
                         data_dict=dict(zip(data_fields,linelist[:len(data_fields)]))
                         if 'Lane' in data_dict.keys():
@@ -74,14 +74,15 @@ def sheet_parse(samplesheet=None):
                 defaults_by_section[section_key].pop(data_key)    
     
     if len(defaults_by_section['Header']) == 0:
-        raise ValueError('No header information in sample sheet')
-
+        #raise ValueError('No header information in sample sheet')
+        print('odbcl2fastq WARNING: no header information in sample sheet')
     if len(defaults_by_section['Settings']) == 0:
-        raise ValueError('No settings information provided in sample sheet')
-    
+        #raise ValueError('No settings information provided in sample sheet')
+        print('odybcl2fastq WARNING: no settings information provided in sample sheet')        
+
     if len(defaults_by_section['Reads']) == 0:
-        raise ValueError('No read information provided in sample sheet')
-    
+        #raise ValueError('No read information provided in sample sheet')
+        print('odybcl2fastq WARNING: no read information provided in sample sheet')
     if len(defaults_by_section['Data']) == 0:
          raise ValueError('No data for samples present')
 
