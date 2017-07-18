@@ -12,13 +12,12 @@ Created on  2017-04-19
 @copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
-import sys, os, re, traceback, glob
+import sys, os, traceback
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_lane
-#emailer import buildmessage
 from subprocess import Popen,PIPE
 
 def initArgs():
@@ -264,7 +263,7 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
     return cmdstring
 
 
-def bcl2fastq_build_cmd_by_queue(bcl_namespace, attribute_dict,
+def bcl2fastq_build_cmd_by_queue(bcl_namespace, attributedict,
         switches_to_names, queuemasks, instrument):
     newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
     cmds_by_queue = []
@@ -307,15 +306,7 @@ def bcl2fastq_runner(cmd,bcl_namespace):
         success = True
     return success, message
 
-def get_summary_info(run_dir, short_id, instrument):
-    if not os.path.exists(run_dir):
-        raise UserException('Run directory does not exist: %s' % run_dir)
-    for lane_dir in glob.glob(run_dir + "/Lane*/"):
-        lane_file = lane_dir + 'html/' + short_id + '/all/all/all/lane.html'
-        lane_data = parse_lane.get_lane_summary(lane_file)
-        sample_file = lane_dir + 'html/' + short_id + '/all/all/all/laneBarcode.html'
-        sample_data = parse_lane.get_sample_summary(sample_file)
-    return lane_data, sample_data
+
 
 def bcl2fastq_process_runs(test=False):
     # TODO: consider a run object to store some shared vars
@@ -331,14 +322,14 @@ def bcl2fastq_process_runs(test=False):
             success, message = bcl2fastq_runner(cmd,bcl_namespace)
             run_dir, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
             subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-            sample_data = {}
-            lane_data = {}
+            summary_data = {}
             if success: # get data from run to put in the email
-                lane_data, sample_data = get_summary_info(run_dir, short_id, instrument)
+                summary_data = parse_lane.get_summary(run_dir, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
+            summary_data['run'] = subject
             fromaddr = 'adamfreedman@fas.harvard.edu'
             # TODO: will to email eventually be a cli?
             toemaillist=['adamfreedman@fas.harvard.edu']
-            buildmessage(message, subject, lane_data, sample_data, fromaddr, toemaillist)
+            buildmessage(message, subject, summary_data, fromaddr, toemaillist)
 
 if __name__ == "__main__":
     #sys.exit(bcl2fastq_build_cmd_by_queue())
