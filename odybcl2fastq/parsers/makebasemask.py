@@ -119,5 +119,12 @@ def extract_basemasks(runinfo,sample_sheet):
             for mask in unique_masks:
                 queue_lists.append([mask])
                 
-                
+    """deal with odd case where the run info has index settings
+       but the hiseq run has recipe == 0, i.e. the instrument is forced
+       to look for indices but there is truly no multiplexing
+    """
+
+    if instrument == 'hiseq' and len(queue_lists) == 1 and 'i0' in queue_lists[0][0]:
+        removed_mask = queue_lists.pop() 
+        print('WARNING: index length of zero detected for hiseq sample, removing associated mask: %s' % removed_mask)          
     return queue_lists,instrument                
