@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{subject}}{% endblock title %}
 {% block content %}
+    {% if run %}
     <h3>{{run}}</h3>
     <p>Anaylses {{lanes|length}}</p>
     {% for name, lane in lanes.items() %}
@@ -58,4 +59,5 @@
     <h3>Sample Sheet:</h3>
     {{sample_sheet}}
     </p>
+    {% endif %}
 {% endblock content %}

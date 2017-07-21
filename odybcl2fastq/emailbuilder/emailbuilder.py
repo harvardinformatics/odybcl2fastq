@@ -23,7 +23,10 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
     if len(bccemaillist) > 0:
         msg['Bcc'] = COMMASPACE.join(bccemaillist)
     # TODO: remove message or send failure email?
-    html = get_html(message, summary_data)
+    if summary_data:
+        html = get_html(message, summary_data)
+    else:
+        html = message
     msg.attach(MIMEText(html.encode('utf-8'),'html'))
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
