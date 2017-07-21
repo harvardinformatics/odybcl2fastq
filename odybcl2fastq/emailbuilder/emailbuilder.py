@@ -12,7 +12,7 @@ def generateMessageId():
     return make_msgid()
 
 
-def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemaillist=[], bccemaillist=[], server='smtp.fas.harvard.edu'):
+def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemaillist=[], bccemaillist=[], server='rcsmtp.rc.fas.harvard.edu'):
     msg = MIMEMultipart()
     msg['Message-ID'] = generateMessageId()
     msg['From'] = fromaddr
