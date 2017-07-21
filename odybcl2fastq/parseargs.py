@@ -329,7 +329,7 @@ def bcl2fastq_process_runs(test=False):
             summary_data['run'] = subject
             fromaddr = 'adamfreedman@fas.harvard.edu'
             # TODO: will to email eventually be a cli?
-            toemaillist=['adamfreedman@fas.harvard.edu']
+            toemaillist=['mportermahoney@g.harvard.edu', 'adamfreedman@fas.harvard.edu']
             buildmessage(message, subject, summary_data, fromaddr, toemaillist)
 
 if __name__ == "__main__":
