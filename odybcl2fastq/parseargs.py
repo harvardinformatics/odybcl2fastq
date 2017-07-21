@@ -320,6 +320,7 @@ def bcl2fastq_process_runs(test=False):
         else:
             print 'Launching bcl2fastq...%s\n' % cmd
             success, message = bcl2fastq_runner(cmd,bcl_namespace)
+            print 'message = ', message
             run_dir, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
             subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
             summary_data = {}
