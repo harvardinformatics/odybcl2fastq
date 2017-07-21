@@ -15,20 +15,34 @@ def make_universal_mask(rundata_by_read):
     return universal_mask
 
 
-def make_nextseq_mask(universal_mask,sample_dict):
+def make_nextseq_mask(universal_mask,sample_dict,legacytrim = True):
+    #index1_length = int(universal_mask['read2'][1:])
+    #if len(sample_dict['index']) != index1_length:
+    #    print('WARNING: sample 1st index of different length than determined from RunInfo.xml for %s' % sample_dict['Sample_Name'])        
+    #    universal_mask['read2']='i%s' % len(sample_dict['index']) 
+    #if 'i' in universal_mask['read3']:
+    #    index2_length = int(universal_mask['read3'][1:])
+    #    if len(sample_dict['index2']) != index2_length:
+    #        universal_mask['read3']='i%s' % len(sample_dict['index2'])
+    universal_mask = copy(universal_mask)
     index1_length = int(universal_mask['read2'][1:])
     if len(sample_dict['index']) != index1_length:
-        print('WARNING: sample 1st index of different length than determined from RunInfo.xml for %s' % sample_dict['Sample_Name'])        
-        universal_mask['read2']='i%s' % len(sample_dict['index'])
+        raise UserException('index 1 length inconsistent with sample: %s' % sample_dict['Sample_ID'])
     if 'i' in universal_mask['read3']:
-        index2_length = int(universal_mask['read3'][1:])
+        index2_length = int(universal_mask['read3'][1:]) 
         if len(sample_dict['index2']) != index2_length:
-            universal_mask['read3']='i%s' % len(sample_dict['index2'])
+            raise UserException('index 2 length inconsistent with sample: %s' % sample_dict['Sample_ID'])
+    if legacytrim == True:
+        print 'universal mask is', universal_mask
+        for read in universal_mask.keys():
+            if 'y' == universal_mask[read][0]:
+                newmask = 'y%sN' % str(int(universal_mask[read][1:])-1)
+                universal_mask[read] = newmask 
 
     return ','.join(universal_mask.values())    
 
 
-def make_hiseq_mask(universal_mask,sample_key,sample_dict):
+def make_hiseq_mask(universal_mask,sample_key,sample_dict,legacytrim = True):
     sample_mask = copy(universal_mask)
     
     if '_' not in sample_dict['Recipe']: # single indexed
@@ -42,6 +56,17 @@ def make_hiseq_mask(universal_mask,sample_key,sample_dict):
             sample_mask['read3'] = 'i%s' % sample_dict['Recipe'].split('_')[1]
         else:
             raise UserException('# of runinfo reads inconsistent with sample sheet Recipe setting for %s' % sample_key)            
+    
+    if legacytrim == True:
+        for read in sample_mask.keys():
+            if 'y' == sample_mask[read][0]:
+                newmask = '%sN' % str(int(sample_mask[read][1:])-1)
+            elif 'i' == sample_mask[read][0]:
+                newmask = '%sN' % sample_mask[read]   
+                sample_mask[read] = newmask
+            else:
+                raise UserException('Unknown sample mask type for HiSeq sample %s' % sample_key)   
+
     lane,mask = sample_dict['Lane'],','.join(sample_mask.values())
 
     return lane,mask            
