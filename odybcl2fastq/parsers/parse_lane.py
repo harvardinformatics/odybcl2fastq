@@ -1,5 +1,6 @@
 import os, re, glob
 from lxml import html as lh
+from odybcl2fastq import UserException
 from collections import OrderedDict
 import constants as const
 import numpy
@@ -37,8 +38,11 @@ def get_summary(run_dir, short_id, instrument, sample_sheet_dir):
 
 def get_sample_sheet(sample_sheet_dir):
     data = ''
-    with open(sample_sheet_dir, 'r') as ss:
-        data = ss.read()
+    # putting sample sheet in the email is a convenience so don't fail if path
+    # for sample sheet is wrong
+    if os.path.exists(sample_sheet_dir):
+        with open(sample_sheet_dir, 'r') as ss:
+            data = ss.read()
     return data
 
 def get_sample_num(summary):
@@ -61,39 +65,45 @@ def get_lane_summary_nextseq(path):
     return filtered
 
 def parse_table_nextseq(path, tbl):
+    if not os.path.exists(path):
+        raise UserException('File does not exist: %s' % path)
+    rows = []
     tree = lh.parse(path)
-    table = tree.xpath("//h2[.='" + tbl + "']/following::table[1]")[0]
-    table = table.xpath(".//tr") # get only rows
-    rows = iter(table)
-    next(rows) # skip first row which is high level header
+    tables = tree.xpath("//h2[.='" + tbl + "']/following::table[1]")
+    if tables:
+        rows = tables[0].xpath(".//tr") # get only rows
+        del rows[0] # skip first row which is high level header
     return rows_to_dict(rows)
 
 def parse_table_hiseq(path, tbl):
+    if not os.path.exists(path):
+        raise UserException('File does not exist: %s' % path)
+    rows = []
     tree = lh.parse(path)
-    # the html is hiseq file is malformed and headers are in seperate table from
+    # the html in hiseq file is malformed and headers are in seperate table from
     # data rows
-    table = tree.xpath("//h2[.='" + tbl + "']/following::table[1]")[0]
-    table2 = tree.xpath("//h2[.='" + tbl + "']/following::table[2]")[0]
-    table = table.xpath(".//tr") # get only rows
-    table2 = table2.xpath(".//tr") # get only rows
-    rows = list(iter(table))
-    rows.extend(list(iter(table2)))
-    rows = iter(rows)
+    header = tree.xpath("//h2[.='" + tbl + "']/following::table[1]")
+    table = tree.xpath("//h2[.='" + tbl + "']/following::table[2]")
+    if header and table:
+        rows = header[0].xpath(".//tr") # get only rows
+        table = table[0].xpath(".//tr") # get only rows
+        rows.extend(table)
     return rows_to_dict(rows)
 
 def rows_to_dict(rows):
-    headers = [col.text.lower() for col in next(rows)]
-    for i, h in enumerate(headers):
-        # TODO: consider moving these to nextseq specific
-        if h == '#':
-            headers[i] = 'lane'
-        if h == 'clusters':
-            headers[i] = 'clusters raw'
-            break
     data = []
-    for r  in rows:
-        values = [col.text for col in r]
-        data.append(OrderedDict(zip(headers, values)))
+    if len(rows) > 1:
+        headers = [col.text.lower() for col in rows[0]]
+        for i, h in enumerate(headers):
+            # TODO: consider moving these to nextseq specific
+            if h == '#':
+                headers[i] = 'lane'
+            if h == 'clusters':
+                headers[i] = 'clusters raw'
+                break
+        for r  in rows[1:]:
+            values = [col.text for col in r]
+            data.append(OrderedDict(zip(headers, values)))
     return data
 
 def get_sample_summary_nextseq(path):
