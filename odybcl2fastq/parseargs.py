@@ -304,6 +304,7 @@ def bcl2fastq_runner(cmd,bcl_namespace):
     else:
         message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
         success = True
+    print demult_out
     return success, message
 
 
