@@ -22,9 +22,8 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
         msg['Cc'] = COMMASPACE.join(ccemaillist)
     if len(bccemaillist) > 0:
         msg['Bcc'] = COMMASPACE.join(bccemaillist)
-    # TODO: remove message or send failure email?
     if summary_data:
-        html = get_html(message, summary_data)
+        html = get_html(summary_data)
     else:
         html = message
     msg.attach(MIMEText(html.encode('utf-8'),'html'))
@@ -33,7 +32,7 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
     smtp.sendmail(fromaddr,emails,msg.as_string())
     smtp.close()
 
-def get_html(message, summary_data):
+def get_html(summary_data):
     # create html message with jinja
     j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
             trim_blocks = True)
