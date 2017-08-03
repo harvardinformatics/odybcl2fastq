@@ -22,7 +22,7 @@ Adapter,AGATCGGAAGAGCACACGTCTGAACTCCAGTCA,,,,,,,,
 AdapterRead2,AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT,,,,,,,,
 ,,,,,,,,,
 [Data],,,,,,,,,
-FCID,Lane,Sample_ID,SampleRef,index,Description,Control,Recipe,Operator,SampleProject
+FCID,Lane,SampleID,SampleRef,index,Description,Control,Recipe,Operator,SampleProject
 HGLCMBCXY,1,KT8i6,,GCCAAT,SUB05516,Y,6,ktreibergs@g.harvard.edu,KT_Bugula_stolonifera_5_4_17
 HGLCMBCXY,1,KT13i10,,TAGCTT,SUB05516,Y,6,ktreibergs@g.harvard.edu,KT_Bugula_stolonifera_5_4_17
 HGLCMBCXY,1,KT1i2,,CGATGT,SUB05516,Y,6,ktreibergs@g.harvard.edu,KT_Bugula_stolonifera_5_4_17
