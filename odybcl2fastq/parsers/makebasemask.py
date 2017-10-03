@@ -44,7 +44,7 @@ def make_nextseq_mask(universal_mask,sample_dict,legacytrim = True):
 
 def make_hiseq_mask(universal_mask,sample_key,sample_dict,legacytrim = True):
     sample_mask = copy(universal_mask)
-    
+    print 'sampledict is', sample_dict 
     if '_' not in sample_dict['Recipe']: # single indexed
         if len(sample_mask.keys()) in [2,3]: # single or paired end
             sample_mask['read2'] = 'i%s' % sample_dict['Recipe']

@@ -298,13 +298,13 @@ def parse_run_path(bcl_path):
 def bcl2fastq_runner(cmd,bcl_namespace):
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
+    print demult_out
     if demult_run.returncode!=0:
         message = 'run %s failed\n%s\n' % (os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
         success = False
     else:
-        message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-        success = True
-    print demult_out
+       message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+       success = True
     return success, message
 
 
