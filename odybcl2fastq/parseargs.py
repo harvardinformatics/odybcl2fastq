@@ -236,9 +236,13 @@ def initArgs():
 
     return args,bclargs,switches_to_names
 
-
-def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
-    cmdstrings=['bcl2fastq']
+def bcl2fastq_build_cmd(bcl_namespace, argdict,
+        switches_to_names, mask_list, instrument):
+    mask_switch = '--use-bases-mask'
+    # each mask should be prefaced by the switch
+    mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
+    cmdstrings=['bcl2fastq', mask_opt]
+    runname = 'test' #TODO: call default? when is it overwritten?
     fout=open('%s.opts' % runname,'w')
     # keeps consistent order of writing
     switch_list=switches_to_names.keys()
@@ -254,38 +258,9 @@ def make_bcl2fastq_cmd(argdict,switches_to_names,runname='test'):
                 cmdstrings.append(switch)
             else:
                 cmdstrings.append(' '.join([switch,argvalue]))
-
-
     fout.close()
-
     cmdstring=' '.join(cmdstrings)
-
     return cmdstring
-
-
-def bcl2fastq_build_cmd_by_queue(bcl_namespace, attributedict,
-        switches_to_names, queuemasks, instrument):
-    newcmd=make_bcl2fastq_cmd(attributedict,switches_to_names)
-    cmds_by_queue = []
-    for queue in queuemasks:
-        if len(queuemasks) == 1:
-            if instrument == 'nextseq':
-                if len(queue) !=1:
-                    raise UserException('more than 1 mask per queue detected for nextseq')
-
-            queuecmd ='%s %s' % (newcmd, ' '.join(['--use-bases-mask %s' % mask for mask in queue]))
-
-        elif instrument == 'hiseq':
-            lanes = ','.join([mask.split(':')[0] for mask in queue])
-            queuecmd ='%s --lanes %s %s' % (newcmd,lanes, ' '.join(['--use-bases-mask %s' % mask for mask in queue]))
-
-        elif instrument == 'nextseq':
-            if len(queue) == 1:
-                queuecmd ='%s %s' % (newcmd,'--use-bases-mask %s' % queue[0])
-            else:
-                raise UserException('more than 1 mask per queue detected for nextseq')
-        cmds_by_queue.append(queuecmd)
-    return cmds_by_queue
 
 def parse_run_path(bcl_path):
     dir_lst = bcl_path.split('/')
@@ -303,35 +278,34 @@ def bcl2fastq_runner(cmd,bcl_namespace):
         message = 'run %s failed\n%s\n' % (os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
         success = False
     else:
-       message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-       success = True
+        message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+        success = True
     return success, message
 
 
 
 def bcl2fastq_process_runs(test=False):
     # TODO: consider a run object to store some shared vars
-    bcl_namespace,attributedict,switches_to_names = initArgs()
-    queuemasks,instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
-    cmds = bcl2fastq_build_cmd_by_queue(bcl_namespace,
-            attributedict, switches_to_names, queuemasks, instrument)
-    for cmd in cmds:
-        if test == True:
-            print cmd
-        else:
-            print 'Launching bcl2fastq...%s\n' % cmd
-            success, message = bcl2fastq_runner(cmd,bcl_namespace)
-            print 'message = ', message
-            run_dir, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
-            subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-            summary_data = {}
-            if success: # get data from run to put in the email
-                summary_data = parse_lane.get_summary(run_dir, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
-                summary_data['run'] = subject
-            fromaddr = 'adamfreedman@fas.harvard.edu'
-            # TODO: will to email eventually be a cli?
-            toemaillist=['adamfreedman@fas.harvard.edu']
-            buildmessage(message, subject, summary_data, fromaddr, toemaillist)
+    bcl_namespace,argdict,switches_to_names = initArgs()
+    mask_list, instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
+    cmd = bcl2fastq_build_cmd(bcl_namespace,
+            argdict, switches_to_names, mask_list, instrument)
+    if test == True:
+        print cmd
+    else:
+        print 'Launching bcl2fastq...%s\n' % cmd
+        success, message = bcl2fastq_runner(cmd,bcl_namespace)
+        print 'message = ', message
+        run_dir, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
+        subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+        summary_data = {}
+        if success: # get data from run to put in the email
+            summary_data = parse_lane.get_summary(run_dir, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
+            summary_data['run'] = subject
+        fromaddr = 'mportermahoney@g.harvard.edu'
+        # TODO: will to email eventually be a cli?
+        toemaillist=['adamfreedman@fas.harvard.edu']
+        buildmessage(message, subject, summary_data, fromaddr, toemaillist)
 
 if __name__ == "__main__":
     #sys.exit(bcl2fastq_build_cmd_by_queue())
