@@ -13,12 +13,15 @@ Created on  2017-04-19
 @license: GPL v2.0
 '''
 import sys, os, traceback
+import logging
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_lane
 from subprocess import Popen,PIPE
+
+BCL2FASTQ_LOG_DIR = '/n/informatics_external/seq/odybcl2fastq_log/'
 
 def initArgs():
     '''
@@ -28,6 +31,13 @@ def initArgs():
     '''
 
     parameterdefs = [
+        {
+            'name'      : 'TEST',
+            'switches'  : ['-t','--test'],
+            'required'  : False,
+            'help'      : 'run in test mode, log to std out, no not run cmd',
+            'action'    : 'store_true',
+        },
         {
             'name'      : 'BCL_LOAD_THREADS',
             'switches'  : ['-r','--loading-threads'],
@@ -233,7 +243,6 @@ def initArgs():
             switches_to_names[tuple(switches)]=parameterdef['name']
     args = parser.parse_args()
     bclargs = dict((attr, getattr(args,attr)) for attr in dir(args) if attr.startswith('BCL'))
-
     return args,bclargs,switches_to_names
 
 def bcl2fastq_build_cmd(bcl_namespace, argdict,
@@ -247,7 +256,6 @@ def bcl2fastq_build_cmd(bcl_namespace, argdict,
     # keeps consistent order of writing
     switch_list=switches_to_names.keys()
     switch_list.sort()
-    #print 'argdict is', argdict
     for switches in switch_list:
         switch=[switch for switch in switches if '--' in switch][0]
         argvalue=str(argdict[switches_to_names[switches]])
@@ -273,40 +281,53 @@ def parse_run_path(bcl_path):
 def bcl2fastq_runner(cmd,bcl_namespace):
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
-    print demult_out
+    # create run dir for logs
+    run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    output_log = BCL2FASTQ_LOG_DIR + run + '/'
+    if not os.path.exists(output_log):
+        os.makedirs(output_log)
+    # write output to logs
+    stderr_log = output_log + 'stderr.log'
+    stdout_log = output_log + 'stdout.log'
+    with open(stderr_log, 'w+') as f:
+        f.write(demult_err)
+    with open(stdout_log, 'w+') as f:
+        f.write(demult_out)
     if demult_run.returncode!=0:
-        message = 'run %s failed\n%s\n' % (os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR),demult_err)
+        message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
+                dumult_err)
         success = False
     else:
-        message = 'run %s completed successfully\n' % os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+        message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
         success = True
     return success, message
 
-
-
-def bcl2fastq_process_runs(test=False):
+def bcl2fastq_process_runs():
     # TODO: consider a run object to store some shared vars
     bcl_namespace,argdict,switches_to_names = initArgs()
+    test = ('TEST' in bcl_namespace and bcl_namespace.TEST)
+    if test:
+        logging.getLogger().addHandler(logging.StreamHandler())
     mask_list, instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
     cmd = bcl2fastq_build_cmd(bcl_namespace,
             argdict, switches_to_names, mask_list, instrument)
-    if test == True:
-        print cmd
+    if test:
+        logging.info(cmd)
     else:
-        print 'Launching bcl2fastq...%s\n' % cmd
+        logging.info('Launching bcl2fastq...%s\n' % cmd)
         success, message = bcl2fastq_runner(cmd,bcl_namespace)
-        print 'message = ', message
+        logging.info('message = %s' % message)
         run_dir, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
         subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
         summary_data = {}
         if success: # get data from run to put in the email
             summary_data = parse_lane.get_summary(run_dir, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
             summary_data['run'] = subject
-        fromaddr = 'mportermahoney@g.harvard.edu'
+        fromaddr = 'afreedman@fas.harvard.edu'
         # TODO: will to email eventually be a cli?
-        toemaillist=['adamfreedman@fas.harvard.edu']
+        toemaillist=['mportermahoney@g.harvard.edu']
         buildmessage(message, subject, summary_data, fromaddr, toemaillist)
 
 if __name__ == "__main__":
-    #sys.exit(bcl2fastq_build_cmd_by_queue())
+    logging.basicConfig(filename='odybcl2fastq.log', level=logging.INFO)
     sys.exit(bcl2fastq_process_runs())
