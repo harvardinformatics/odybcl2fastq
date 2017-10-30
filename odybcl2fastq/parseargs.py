@@ -279,8 +279,10 @@ def parse_run_path(bcl_path):
     return run_dir, short_id
 
 def bcl2fastq_runner(cmd,bcl_namespace):
-    demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
-    demult_out,demult_err=demult_run.communicate()
+    '''demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
+    demult_out,demult_err=demult_run.communicate()'''
+    demult_out = 'out'
+    demult_err = 'err'
     # create run dir for logs
     run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
     output_log = BCL2FASTQ_LOG_DIR + run + '/'
@@ -293,13 +295,13 @@ def bcl2fastq_runner(cmd,bcl_namespace):
         f.write(demult_err)
     with open(stdout_log, 'w+') as f:
         f.write(demult_out)
-    if demult_run.returncode!=0:
+    '''if demult_run.returncode!=0:
         message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
                 dumult_err)
         success = False
-    else:
-        message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
-        success = True
+    else:'''
+    message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
+    success = True
     return success, message
 
 def bcl2fastq_process_runs():
@@ -321,7 +323,7 @@ def bcl2fastq_process_runs():
         subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
         summary_data = {}
         if success: # get data from run to put in the email
-            summary_data = parse_lane.get_summary(run_dir, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
+            summary_data = parse_lane.get_summary(bcl_namespace.BCL_OUTPUT_DIR, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
             summary_data['run'] = subject
         fromaddr = 'afreedman@fas.harvard.edu'
         # TODO: will to email eventually be a cli?

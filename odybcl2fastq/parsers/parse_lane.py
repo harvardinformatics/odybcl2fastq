@@ -4,36 +4,30 @@ from odybcl2fastq import UserException
 from collections import OrderedDict
 import constants as const
 import numpy
+import json
 
-def get_summary(run_dir, short_id, instrument, sample_sheet_dir):
-    if not os.path.exists(run_dir):
-        raise UserException('Run directory does not exist: %s' % run_dir)
-    summary_data = {'lanes':{}}
-    for lane_dir in glob.glob(run_dir + "/Lane*/"):
-        lane_data = {}
-        lane_name =re.search('\/(Lane.*)\/', lane_dir).group(1)
-        if instrument == 'nextseq':
-            lane_file = lane_dir + 'Reports/html/' + short_id + '/all/all/all/lane.html'
-            lane_data['lane_summary'] = get_lane_summary_nextseq(lane_file)
-            run = run_dir.split('/')[-1]
-            sam_part = 'Reports/html/' + short_id + '/all/all/all/laneBarcode.html'
-            sample_file = lane_dir + sam_part
-            stats = run + '/' + lane_name + '/' + sam_part
-            lane_data['sample_summary'], lane_data['reads'] = get_sample_summary_nextseq(sample_file)
-            summary_data['undetermined'] = 'file labeled Undetermined_SO.'
-        elif instrument == 'hiseq':
-            stats = 'Basecall_Stats/Demultiplex_Stats.htm'
-            sample_file = lane_dir + stats
-            lane_data['sample_summary'], lane_data['reads'] = get_sample_summary_hiseq(sample_file)
-            summary_data['undetermined'] = 'file(s) labeled Undetermined.'
-        else:
-            raise Exception('instrument unknonw: ' + instrument)
-        lane_data['sample_num'] = get_sample_num(lane_data['sample_summary'])
-        summary_data['stats_file'] = stats
-        summary_data['sample_sheet'] = get_sample_sheet(sample_sheet_dir)
-        summary_data['lanes'][lane_name] = lane_data
-        summary_data['fastq_url'] = const.FASTQ_URL
-        summary_data['fastq_dir'] = const.FASTQ_DIR
+# Stats.json
+def get_summary(output_dir, short_id, instrument, sample_sheet_dir):
+    stats_path = output_dir + '/Stats/Stats.json'
+    if not os.path.exists(stats_path):
+        raise UserException('Stats path does not exist: %s' % stats_path)
+    with open(stats_path) as f:
+        data = json.load(f)
+    if not data:
+        raise UserException('Stats file empty: %s' % stats_path)
+    summary_data = {} # used in email
+    lanes = get_stats(data)
+    if instrument == 'hiseq':
+        lanes = format_lane_table(lanes)
+    elif instrument == 'nextseq':
+        lanes = format_nextseq_tables(lanes)
+    else:
+        raise Exception('instrument unknonw: ' + instrument)
+    summary_data['lanes'] = lanes
+    summary_data['stats_file'] = stats_path
+    summary_data['sample_sheet'] = get_sample_sheet(sample_sheet_dir)
+    summary_data['fastq_url'] = const.FASTQ_URL
+    summary_data['fastq_dir'] = const.FASTQ_DIR
     return summary_data
 
 def get_sample_sheet(sample_sheet_dir):
@@ -45,100 +39,85 @@ def get_sample_sheet(sample_sheet_dir):
             data = ss.read()
     return data
 
-def get_sample_num(summary):
-    sample_num = 0
-    for row in summary:
-        if row['index'].lower() not in ['unknown', 'undetermined']:
-            sample_num += 1
-    return sample_num
+def get_stats(data):
+    summary_data = OrderedDict()
+    for lane_info in data['ConversionResults']:
+        lane = lane_info['LaneNumber']
+        tot_yield = lane_info['Yield']
+        clusters = lane_info['TotalClustersPF']
+        reads = 0
+        sam_num = 0
+        lane_data = {'samples': [], 'clusters': clusters}
+        # loop through samples and collect sam_data
+        for row in lane_info['DemuxResults']:
+            sam = row['SampleId']
+            if sam not in summary_data:
+                sam_num += 1
+                sam_data = {
+                        'sample': sam,
+                        'indexes': [],
+                        'yield': [],
+                        'yield_q30': []
+                }
+                for i in row['IndexMetrics']:
+                    sam_data['indexes'].append(i['IndexSequence'])
+            else:
+                sam_data = summary_data[sam]
+            read = float(row['NumberReads'])
+            reads += read
+            sam_data['reads'] = read
+            for r in row['ReadMetrics']:
+                sam_data['yield'].append(float(r['Yield']))
+                sam_data['yield_q30'].append(float(r['YieldQ30']))
+            lane_data['samples'].append(sam_data)
+        lane_data['reads'] = '{:,.0f}'.format(reads)
+        lane_data['sam_num'] = sam_num
+        summary_data[lane] = lane_data
+    return summary_data
 
-def get_lane_summary_nextseq(path):
-    data = parse_table_nextseq(path, 'Lane Summary')
-    cols_to_display = ['lane', 'clusters', '% >= q30']
-    filtered = []
-    for r in data:
-        row = OrderedDict()
-        for k, v in r.items():
-            if k in cols_to_display:
-                row[k] = v.strip()
-        filtered.append(row)
-    return filtered
+def format_lane_table(lanes):
+    for lane_num, lane_info in lanes.items():
+        for i, sam in enumerate(lane_info['samples']):
+            row = OrderedDict()
+            row['sample'] = sam['sample']
+            row['index'] = ', '.join(sam['indexes'])
+            row['reads'] = '{:,.0f}'.format(sam['reads'])
+            row['% >= Q30'] = '{:.2f}'.format(numpy.sum(sam['yield_q30'])/numpy.sum(sam['yield']) * 100)
+            lanes[lane_num]['samples'][i] = row
+    return lanes
 
-def parse_table_nextseq(path, tbl):
-    if not os.path.exists(path):
-        raise UserException('File does not exist: %s' % path)
-    rows = []
-    tree = lh.parse(path)
-    tables = tree.xpath("//h2[.='" + tbl + "']/following::table[1]")
-    if tables:
-        rows = tables[0].xpath(".//tr") # get only rows
-        del rows[0] # skip first row which is high level header
-    return rows_to_dict(rows)
-
-def parse_table_hiseq(path, tbl):
-    if not os.path.exists(path):
-        raise UserException('File does not exist: %s' % path)
-    rows = []
-    tree = lh.parse(path)
-    # the html in hiseq file is malformed and headers are in seperate table from
-    # data rows
-    header = tree.xpath("//h2[.='" + tbl + "']/following::table[1]")
-    table = tree.xpath("//h2[.='" + tbl + "']/following::table[2]")
-    if header and table:
-        rows = header[0].xpath(".//tr") # get only rows
-        table = table[0].xpath(".//tr") # get only rows
-        rows.extend(table)
-    return rows_to_dict(rows)
-
-def rows_to_dict(rows):
-    data = []
-    if len(rows) > 1:
-        headers = [col.text.lower() for col in rows[0]]
-        for i, h in enumerate(headers):
-            # TODO: consider moving these to nextseq specific
-            if h == '#':
-                headers[i] = 'lane'
-            if h == 'clusters':
-                headers[i] = 'clusters raw'
-                break
-        for r  in rows[1:]:
-            values = [col.text for col in r]
-            data.append(OrderedDict(zip(headers, values)))
-    return data
-
-def get_sample_summary_nextseq(path):
-    data = parse_table_nextseq(path, 'Lane Summary')
-    sam_data = OrderedDict()
-    reads = 0
-    for row in data:
-        sam = row['sample']
-        if sam not in sam_data:
-            sam_data[sam] = OrderedDict()
-            sam_data[sam]['sample'] = sam
-            sam_data[sam]['index'] = row['barcode sequence']
-            sam_data[sam]['reads'] = []
-            sam_data[sam]['% >= q30'] = []
-        sam_data[sam]['reads'].append(float(row['clusters'].replace(',', '')))
-        sam_data[sam]['% >= q30'].append(float(row['% >= q30'].replace(',','')))
-    reads = 0
-    for sam, data in sam_data.items():
-        read = int(numpy.sum(sam_data[sam]['reads']))
-        reads += read
-        sam_data[sam]['reads'] = '{:,.0f}'.format(read)
-        sam_data[sam]['% >= q30'] = '{:.2f}'.format(numpy.mean(sam_data[sam]['% >= q30']))
-    return sam_data.values(), '{:,.0f}'.format(reads)
-
-def get_sample_summary_hiseq(path):
-    data = parse_table_hiseq(path, 'Barcode lane statistics')
-    sam_data = OrderedDict()
-    reads = 0
-    for row in data:
-        sam = row['sample id']
-        sam_data[sam] = OrderedDict()
-        sam_data[sam]['sample'] = sam
-        sam_data[sam]['index'] = row['index']
-        read = float(row['# reads'].replace(',', ''))
-        reads += read
-        sam_data[sam]['reads'] = '{:,.0f}'.format(read)
-        sam_data[sam]['% >= q30'] = '{:.2f}'.format(float(row['% of >= q30 bases (pf)'].replace(',','')))
-    return sam_data.values(), '{:,.0f}'.format(reads)
+def format_nextseq_tables(lanes):
+    lane_sum = []
+    agg = OrderedDict()
+    agg_reads = 0
+    for lane_num, lane_info in lanes.items():
+        lane_row = OrderedDict()
+        lane_row['lane'] = lane_num
+        lane_row['clusters'] = lane_info['clusters']
+        lane_row['yield'] = []
+        lane_row['yield_q30'] = []
+        for i, sam in enumerate(lane_info['samples']):
+            sample = sam['sample']
+            if sample not in agg:
+                agg[sample] = {
+                        'sample': sam['sample'],
+                        'indexes': sam['indexes'],
+                        'reads': 0,
+                        'yield': [],
+                        'yield_q30': []
+                }
+            agg[sample]['reads'] += sam['reads']
+            agg_reads += sam['reads']
+            agg[sample]['yield'].extend(sam['yield'])
+            agg[sample]['yield_q30'].extend(sam['yield_q30'])
+            lane_row['yield'].extend(sam['yield'])
+            lane_row['yield_q30'].extend(sam['yield_q30'])
+        lane_row['% >= Q30'] = numpy.sum(lane_row.pop('yield_q30'))/numpy.sum(lane_row.pop('yield'))
+        lane_sum.append(lane_row)
+    lanes_new = {}
+    lanes_new[1] = lanes[1]
+    lanes_new[1]['samples'] = agg.values()
+    lanes_new[1]['reads'] = agg_reads
+    ret = format_lane_table(lanes_new)
+    ret[1]['lane_summary'] = lane_sum
+    return ret
