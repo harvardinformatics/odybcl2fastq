@@ -41,49 +41,57 @@ def get_sample_sheet(sample_sheet_dir):
 
 def get_stats(data):
     summary_data = OrderedDict()
+    # get data on from each lane and samples in the lane
     for lane_info in data['ConversionResults']:
         lane = lane_info['LaneNumber']
-        tot_yield = lane_info['Yield']
-        clusters = lane_info['TotalClustersPF']
-        reads = 0
         sam_num = 0
-        lane_data = {'samples': [], 'clusters': clusters}
+        lane_stats = {
+                'samples': OrderedDict(),
+                'clusters': lane_info['TotalClustersPF'],
+                'reads': lane_info['Yield'],
+                'sam_num': len(lane_info['DemuxResults'])
+        }
         # loop through samples and collect sam_data
         for row in lane_info['DemuxResults']:
             sam = row['SampleId']
-            if sam not in summary_data:
-                sam_num += 1
-                sam_data = {
-                        'sample': sam,
-                        'indexes': [],
-                        'yield': [],
-                        'yield_q30': []
-                }
-                for i in row['IndexMetrics']:
-                    sam_data['indexes'].append(i['IndexSequence'])
-            else:
-                sam_data = summary_data[sam]
-            read = float(row['NumberReads'])
-            reads += read
-            sam_data['reads'] = read
-            for r in row['ReadMetrics']:
-                sam_data['yield'].append(float(r['Yield']))
-                sam_data['yield_q30'].append(float(r['YieldQ30']))
-            lane_data['samples'].append(sam_data)
-        lane_data['reads'] = '{:,.0f}'.format(reads)
-        lane_data['sam_num'] = sam_num
-        summary_data[lane] = lane_data
+            lane_stats['samples'][sam] = get_sam_stats(sam, lane_stats['samples'], row)
+        # include a row for undertermined stats
+        if lane_info['Undetermined']:
+            sam = 'undetermined'
+            lane_stats['samples'][sam] = get_sam_stats(sam, lane_stats['samples'], lane_info['Undetermined'])
+        summary_data[lane] = lane_stats
     return summary_data
+
+def get_sam_stats(sam, sam_summary, row):
+    if sam not in sam_summary:
+        sam_stats = {
+                'sample': sam,
+                'indexes': [],
+                'yield': [],
+                'yield_q30': []
+        }
+        if 'IndexMetrics' in row:
+            for i in row['IndexMetrics']:
+                sam_stats['indexes'].append(i['IndexSequence'])
+        else:
+            sam_stats['indexes'].append('undetermined')
+    else:
+        sam_stats = sam_summary[sam]
+    sam_stats['reads'] = float(row['NumberReads'])
+    for r in row['ReadMetrics']:
+        sam_stats['yield'].append(float(r['Yield']))
+        sam_stats['yield_q30'].append(float(r['YieldQ30']))
+    return sam_stats
 
 def format_lane_table(lanes):
     for lane_num, lane_info in lanes.items():
-        for i, sam in enumerate(lane_info['samples']):
+        for sam_name, sam_info in lane_info['samples'].items():
             row = OrderedDict()
-            row['sample'] = sam['sample']
-            row['index'] = ', '.join(sam['indexes'])
-            row['reads'] = '{:,.0f}'.format(sam['reads'])
-            row['% >= Q30'] = '{:.2f}'.format(numpy.sum(sam['yield_q30'])/numpy.sum(sam['yield']) * 100)
-            lanes[lane_num]['samples'][i] = row
+            row['sample'] = sam_info['sample']
+            row['index'] = ', '.join(sam_info['indexes'])
+            row['reads'] = '{:,.0f}'.format(sam_info['reads'])
+            row['% >= Q30'] = '{:.2f}'.format(numpy.sum(sam_info['yield_q30'])/numpy.sum(sam_info['yield']) * 100)
+            lanes[lane_num]['samples'][sam_name] = row
     return lanes
 
 def format_nextseq_tables(lanes):
@@ -96,27 +104,26 @@ def format_nextseq_tables(lanes):
         lane_row['clusters'] = lane_info['clusters']
         lane_row['yield'] = []
         lane_row['yield_q30'] = []
-        for i, sam in enumerate(lane_info['samples']):
-            sample = sam['sample']
-            if sample not in agg:
-                agg[sample] = {
-                        'sample': sam['sample'],
-                        'indexes': sam['indexes'],
+        for sam_name, sam_info in lane_info['samples'].items():
+            if sam_name not in agg:
+                agg[sam_name] = {
+                        'sample': sam_info['sample'],
+                        'indexes': sam_info['indexes'],
                         'reads': 0,
                         'yield': [],
                         'yield_q30': []
                 }
-            agg[sample]['reads'] += sam['reads']
-            agg_reads += sam['reads']
-            agg[sample]['yield'].extend(sam['yield'])
-            agg[sample]['yield_q30'].extend(sam['yield_q30'])
-            lane_row['yield'].extend(sam['yield'])
-            lane_row['yield_q30'].extend(sam['yield_q30'])
+            agg[sam_name]['reads'] += sam_info['reads']
+            agg_reads += sam_info['reads']
+            agg[sam_name]['yield'].extend(sam_info['yield'])
+            agg[sam_name]['yield_q30'].extend(sam_info['yield_q30'])
+            lane_row['yield'].extend(sam_info['yield'])
+            lane_row['yield_q30'].extend(sam_info['yield_q30'])
         lane_row['% >= Q30'] = numpy.sum(lane_row.pop('yield_q30'))/numpy.sum(lane_row.pop('yield'))
         lane_sum.append(lane_row)
     lanes_new = {}
     lanes_new[1] = lanes[1]
-    lanes_new[1]['samples'] = agg.values()
+    lanes_new[1]['samples'] = agg
     lanes_new[1]['reads'] = agg_reads
     ret = format_lane_table(lanes_new)
     ret[1]['lane_summary'] = lane_sum

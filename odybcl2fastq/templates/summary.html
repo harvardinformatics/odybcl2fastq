@@ -24,10 +24,10 @@
         {% endif %}
         {% if lane['samples'] %}
             <table cellspacing="0" cellpadding="10" border="1px">
-            {% for h in lane['samples'][0].keys() %}
+            {% for h in lane['samples'].itervalues().next().keys() %}
                 <th>{{h|title}}</th>
             {% endfor %}
-            {% for row in lane['samples'] %}
+            {% for row in lane['samples'].values() %}
             <tr>
                 {% for v in row.values() %}
                     <td>{{v}}</td>
