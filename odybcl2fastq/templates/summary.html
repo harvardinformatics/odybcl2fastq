@@ -2,9 +2,13 @@
 {% block title %}{{subject}}{% endblock title %}
 {% block content %}
     <h3>{{run}}</h3>
-    <p>Anaylses {{lanes|length}}</p>
+    <h3>{{instrument|title}}
+    {% if lanes|length > 1 %}
+         Total Anaylses {{lanes|length}}
+    {% endif %}
+    </h3>
     {% for name, lane in lanes.items() %}
-        <h3>Analysis: {{name}}</h3>
+        <h4>Analysis: {{name}}</h4>
         <p>Reads (R1+R2): {{lane['reads']}}<br>
         Number of samples: {{lane['sam_num']}}</p>
         {% if lane['lane_summary'] %}

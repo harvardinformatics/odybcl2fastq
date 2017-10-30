@@ -15,19 +15,23 @@ def get_summary(output_dir, short_id, instrument, sample_sheet_dir):
         data = json.load(f)
     if not data:
         raise UserException('Stats file empty: %s' % stats_path)
-    summary_data = {} # used in email
+    # parse stats for both hiseq and nextseq
     lanes = get_stats(data)
-    if instrument == 'hiseq':
-        lanes = format_lane_table(lanes)
-    elif instrument == 'nextseq':
-        lanes = format_nextseq_tables(lanes)
-    else:
+    if instrument == 'nextseq':
+        # no real lanes in nextseq, aggregate the stats
+        lanes = aggregate_nextseq_lanes(lanes)
+    elif instrument != 'hiseq':
         raise Exception('instrument unknonw: ' + instrument)
-    summary_data['lanes'] = lanes
-    summary_data['stats_file'] = stats_path
-    summary_data['sample_sheet'] = get_sample_sheet(sample_sheet_dir)
-    summary_data['fastq_url'] = const.FASTQ_URL
-    summary_data['fastq_dir'] = const.FASTQ_DIR
+    # format lane summary tables
+    lanes = format_lane_table(lanes)
+    summary_data = {
+            'lanes': lanes,
+            'instrument': instrument,
+            'stats_file': stats_path,
+            'sample_sheet': get_sample_sheet(sample_sheet_dir),
+            'fastq_url': const.FASTQ_URL,
+            'fastq_dir': const.FASTQ_DIR
+    }
     return summary_data
 
 def get_sample_sheet(sample_sheet_dir):
@@ -40,7 +44,7 @@ def get_sample_sheet(sample_sheet_dir):
     return data
 
 def get_stats(data):
-    summary_data = OrderedDict()
+    stats = OrderedDict()
     # get data on from each lane and samples in the lane
     for lane_info in data['ConversionResults']:
         lane = lane_info['LaneNumber']
@@ -59,22 +63,22 @@ def get_stats(data):
         if lane_info['Undetermined']:
             sam = 'undetermined'
             lane_stats['samples'][sam] = get_sam_stats(sam, lane_stats['samples'], lane_info['Undetermined'])
-        summary_data[lane] = lane_stats
-    return summary_data
+        stats[lane] = lane_stats
+    return stats
 
 def get_sam_stats(sam, sam_summary, row):
     if sam not in sam_summary:
         sam_stats = {
                 'sample': sam,
-                'indexes': [],
+                'index': [],
                 'yield': [],
                 'yield_q30': []
         }
         if 'IndexMetrics' in row:
             for i in row['IndexMetrics']:
-                sam_stats['indexes'].append(i['IndexSequence'])
+                sam_stats['index'].append(i['IndexSequence'])
         else:
-            sam_stats['indexes'].append('undetermined')
+            sam_stats['index'].append('undetermined')
     else:
         sam_stats = sam_summary[sam]
     sam_stats['reads'] = float(row['NumberReads'])
@@ -85,30 +89,27 @@ def get_sam_stats(sam, sam_summary, row):
 
 def format_lane_table(lanes):
     for lane_num, lane_info in lanes.items():
+        lanes[lane_num]['reads'] = '{:,.0f}'.format(lane_info['reads'])
         for sam_name, sam_info in lane_info['samples'].items():
             row = OrderedDict()
             row['sample'] = sam_info['sample']
-            row['index'] = ', '.join(sam_info['indexes'])
+            row['index'] = ', '.join(sam_info['index'])
             row['reads'] = '{:,.0f}'.format(sam_info['reads'])
             row['% >= Q30'] = '{:.2f}'.format(numpy.sum(sam_info['yield_q30'])/numpy.sum(sam_info['yield']) * 100)
             lanes[lane_num]['samples'][sam_name] = row
     return lanes
 
-def format_nextseq_tables(lanes):
-    lane_sum = []
+def aggregate_nextseq_lanes(lanes):
+    lanes_new = {}
     agg = OrderedDict()
     agg_reads = 0
+    # aggregate sample stats since there are no real lanes in nextseq
     for lane_num, lane_info in lanes.items():
-        lane_row = OrderedDict()
-        lane_row['lane'] = lane_num
-        lane_row['clusters'] = lane_info['clusters']
-        lane_row['yield'] = []
-        lane_row['yield_q30'] = []
         for sam_name, sam_info in lane_info['samples'].items():
             if sam_name not in agg:
                 agg[sam_name] = {
                         'sample': sam_info['sample'],
-                        'indexes': sam_info['indexes'],
+                        'index': sam_info['index'],
                         'reads': 0,
                         'yield': [],
                         'yield_q30': []
@@ -117,14 +118,10 @@ def format_nextseq_tables(lanes):
             agg_reads += sam_info['reads']
             agg[sam_name]['yield'].extend(sam_info['yield'])
             agg[sam_name]['yield_q30'].extend(sam_info['yield_q30'])
-            lane_row['yield'].extend(sam_info['yield'])
-            lane_row['yield_q30'].extend(sam_info['yield_q30'])
-        lane_row['% >= Q30'] = numpy.sum(lane_row.pop('yield_q30'))/numpy.sum(lane_row.pop('yield'))
-        lane_sum.append(lane_row)
-    lanes_new = {}
-    lanes_new[1] = lanes[1]
-    lanes_new[1]['samples'] = agg
-    lanes_new[1]['reads'] = agg_reads
-    ret = format_lane_table(lanes_new)
-    ret[1]['lane_summary'] = lane_sum
-    return ret
+    # since nextseq has no lanes put aggregated results in a single "lane"
+    lanes_new[1] = {
+            'sam_num': lanes[1]['sam_num'],
+            'samples': agg,
+            'reads': agg_reads
+    }
+    return lanes_new
