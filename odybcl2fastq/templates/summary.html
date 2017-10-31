@@ -11,21 +11,6 @@
         <h4>Analysis: {{name}}</h4>
         <p>Reads (R1+R2): {{lane['reads']}}<br>
         Number of samples: {{lane['sam_num']}}</p>
-        {% if lane['lane_summary'] %}
-            <table cellspacing="0" cellpadding="10" border="1px">
-            {% for h in lane['lane_summary'][0].keys() %}
-            <th>{{h|title}}</th>
-            {% endfor %}
-            {% for row in lane['lane_summary'] %}
-            <tr>
-                {% for v in row.values() %}
-                <td>{{v}}</td>
-                {% endfor %}
-            </tr>
-            {% endfor %}
-            </table>
-            <br><br>
-        {% endif %}
         {% if lane['samples'] %}
             <table cellspacing="0" cellpadding="10" border="1px">
             {% for h in lane['samples'].itervalues().next().keys() %}

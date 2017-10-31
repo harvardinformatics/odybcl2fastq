@@ -14,11 +14,12 @@ Created on  2017-04-19
 '''
 import sys, os, traceback
 import logging
+import json
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
-from odybcl2fastq.parsers import parse_lane
+from odybcl2fastq.parsers import parse_stats
 from subprocess import Popen,PIPE
 
 BCL2FASTQ_LOG_DIR = '/n/informatics_external/seq/odybcl2fastq_log/'
@@ -270,32 +271,19 @@ def bcl2fastq_build_cmd(bcl_namespace, argdict,
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
-def parse_run_path(bcl_path):
-    dir_lst = bcl_path.split('/')
-    run = dir_lst[-1]
-    root = ('/').join(dir_lst[0:-1]) + '/'
-    run_dir = root + run
-    short_id = run[-9:]
-    return run_dir, short_id
-
 def bcl2fastq_runner(cmd,bcl_namespace):
+    logging.info("***** START bcl2fastq *****\n\n")
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
-    # create run dir for logs
     run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
-    output_log = BCL2FASTQ_LOG_DIR + run + '/'
-    if not os.path.exists(output_log):
-        os.makedirs(output_log)
-    # write output to logs
-    stderr_log = output_log + 'stderr.log'
-    stdout_log = output_log + 'stdout.log'
-    with open(stderr_log, 'w+') as f:
-        f.write(demult_err)
-    with open(stdout_log, 'w+') as f:
-        f.write(demult_out)
+    # append to output to log for the run
+    output_log = get_output_log(run)
+    with open(output_log, 'a+') as f:
+        f.write(demult_err + "\n\n")
+    logging.info("***** END bcl2fastq *****\n\n")
     if demult_run.returncode!=0:
         message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
-                dumult_err)
+                demult_err)
         success = False
     else:
         message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
@@ -303,31 +291,47 @@ def bcl2fastq_runner(cmd,bcl_namespace):
     return success, message
 
 def bcl2fastq_process_runs():
-    # TODO: consider a run object to store some shared vars
     bcl_namespace,argdict,switches_to_names = initArgs()
     test = ('TEST' in bcl_namespace and bcl_namespace.TEST)
-    if test:
-        logging.getLogger().addHandler(logging.StreamHandler())
-    mask_list, instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML,bcl_namespace.BCL_SAMPLE_SHEET)
+    run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    setup_logging(run, test)
+    logging.info("***** START Odybcl2fastq *****\n\n")
+    logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(bcl_namespace))))
+    mask_list, instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML, bcl_namespace.BCL_SAMPLE_SHEET)
     cmd = bcl2fastq_build_cmd(bcl_namespace,
             argdict, switches_to_names, mask_list, instrument)
     if test:
-        logging.info(cmd)
+        logging.info("Test run, command not run: %s" % cmd)
     else:
         logging.info('Launching bcl2fastq...%s\n' % cmd)
         success, message = bcl2fastq_runner(cmd,bcl_namespace)
         logging.info('message = %s' % message)
-        run_dir, short_id = parse_run_path(bcl_namespace.BCL_RUNFOLDER_DIR)
-        subject = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
         summary_data = {}
         if success: # get data from run to put in the email
-            summary_data = parse_lane.get_summary(bcl_namespace.BCL_OUTPUT_DIR, short_id, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
-            summary_data['run'] = subject
+            summary_data = parse_stats.get_summary(bcl_namespace.BCL_OUTPUT_DIR, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
+            summary_data['run'] = run
         fromaddr = 'afreedman@fas.harvard.edu'
-        # TODO: will to email eventually be a cli?
         toemaillist=['mportermahoney@g.harvard.edu']
-        buildmessage(message, subject, summary_data, fromaddr, toemaillist)
+        logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
+        buildmessage(message, run, summary_data, fromaddr, toemaillist)
+    logging.info("***** END Odybcl2fastq *****\n\n")
+
+def get_output_log(run):
+    return BCL2FASTQ_LOG_DIR + run + '.log'
+
+def setup_logging(run, test):
+    # take level from env or INFO
+    level = os.getenv('LOGGING_LEVEL', logging.INFO)
+    logging.basicConfig(
+            filename=get_output_log(run),
+            level=level,
+            format='%(asctime)s %(filename)s %(message)s'
+    )
+    if test:
+        logging.getLogger().addHandler(logging.StreamHandler())
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='odybcl2fastq.log', level=logging.INFO)
-    sys.exit(bcl2fastq_process_runs())
+    try:
+        sys.exit(bcl2fastq_process_runs())
+    except Exception as e:
+        logging.exception(e)

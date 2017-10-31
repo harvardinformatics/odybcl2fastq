@@ -51,7 +51,7 @@ def make_mask(universal_mask, sample_key, sample_dict):
         # if the universal mask had a indexed read3 but this sample doesn't, add nutral
         cnt = int(sample_mask['read3'][1:])
         sample_mask['read3'] = NUTRAL_BASE * cnt
-    logging.info('sample mask is: %s' % sample_mask)
+    logging.info('sample %s mask is: %s' % (sample_key, sample_mask))
     if sample_mask != universal_mask:
         #TODO: consider removing this, too noisy
         logging.warning('sample mask for %s differs from the universal mask %s vs %s' % (sample_key, json.dumps(sample_mask), json.dumps(universal_mask)))
@@ -94,4 +94,5 @@ def extract_basemasks(runinfo,sample_sheet):
             elif mask not in mask_list:
                 raise UserException('nextseq sample mask for %s differs from another sample %s vs %s' % (sample, mask, mask_list[0]))
     logging.info('instrument is %s' % instrument)
+    logging.info('mask is %s' % json.dumps(mask_list))
     return mask_list, instrument

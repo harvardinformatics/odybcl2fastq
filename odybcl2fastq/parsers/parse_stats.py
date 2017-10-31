@@ -5,9 +5,12 @@ from collections import OrderedDict
 import constants as const
 import numpy
 import json
+import logging
 
-# Stats.json
-def get_summary(output_dir, short_id, instrument, sample_sheet_dir):
+def get_summary(output_dir, instrument, sample_sheet_dir):
+    """
+    parse summary from Stats.json
+    """
     stats_path = output_dir + '/Stats/Stats.json'
     if not os.path.exists(stats_path):
         raise UserException('Stats path does not exist: %s' % stats_path)
@@ -32,6 +35,7 @@ def get_summary(output_dir, short_id, instrument, sample_sheet_dir):
             'fastq_url': const.FASTQ_URL,
             'fastq_dir': const.FASTQ_DIR
     }
+    logging.info("summary_data for email: %s\n" % json.dumps(summary_data))
     return summary_data
 
 def get_sample_sheet(sample_sheet_dir):
