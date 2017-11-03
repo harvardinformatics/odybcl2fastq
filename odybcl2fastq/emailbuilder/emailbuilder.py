@@ -24,9 +24,9 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
         msg['Bcc'] = COMMASPACE.join(bccemaillist)
     if summary_data:
         html = get_html(summary_data)
+        msg.attach(MIMEText(html.encode('utf-8'),'html'))
     else:
-        html = message
-    msg.attach(MIMEText(html.encode('utf-8'),'html'))
+        msg.attach(MIMEText(message.encode('utf-8'),'plain'))
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
     smtp.sendmail(fromaddr,emails,msg.as_string())

@@ -273,9 +273,9 @@ def bcl2fastq_build_cmd(bcl_namespace, argdict,
 
 def bcl2fastq_runner(cmd,bcl_namespace):
     logging.info("***** START bcl2fastq *****\n\n")
+    run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
-    run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
     # append to output to log for the run
     output_log = get_output_log(run)
     with open(output_log, 'a+') as f:
@@ -335,3 +335,4 @@ if __name__ == "__main__":
         sys.exit(bcl2fastq_process_runs())
     except Exception as e:
         logging.exception(e)
+        raise

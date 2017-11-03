@@ -1,0 +1,137 @@
+#!/usr/bin/env python
+
+# -*- coding: utf-8 -*-
+
+'''
+look for newly completed illumina runs and run odybcl2fastq/parseargs.py on them
+
+Created on  2017-11-01
+
+@author: Meghan Correa <mportermahoney@g.harvard.edu>
+@copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
+@license: GPL v2.0
+'''
+import os, glob
+import logging
+import subprocess
+import json
+from datetime import datetime
+from multiprocessing import Pool
+import odybcl2fastq.parseargs as parseargs
+from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
+
+SOURCE_DIR = '/n/boslfs/INSTRUMENTS/illumina/'
+OUTPUT_DIR = '/n/regal/informatics/mportermahoney/odytest/'
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_FILE = ROOT_DIR + '/odybcl2fastq.log'
+PROCESSED_FILE = 'odybcl2fastq.processed'
+DAYS_TO_SEARCH = 1
+# a hardcoded date not to search before
+# this will be helpful in transitioning from seqprep to odybcl2fastq
+SEARCH_AFTER_DATE = datetime.strptime('Nov 1 2017', '%b %d %Y')
+REQUIRED_FILES = ['SampleSheet.csv', 'InterOp', 'RunInfo.xml', 'RTAComplete.txt']
+
+def setup_logging():
+    # take level from env or INFO
+    level = os.getenv('LOGGING_LEVEL', logging.INFO)
+    logging.basicConfig(
+            filename= LOG_FILE,
+            level=level,
+            format='%(asctime)s %(message)s'
+    )
+    logging.getLogger().addHandler(logging.StreamHandler())
+
+def failure_email(run, cmd, ret_code, std_out, std_err):
+    log = parseargs.get_output_log(run)
+    subject =  "Run Failed: %s" % run
+    message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
+            " error: %s\nsee log: %s\n" % (subject, cmd, ret_code, std_out, std_err, log))
+    logging.warning(message)
+    fromaddr = 'afreedman@fas.harvard.edu'
+    toemaillist=['mportermahoney@g.harvard.edu']
+    buildmessage(message, subject, None, fromaddr, toemaillist)
+
+def mark_processed(run_dir):
+    # touch a processed file in the run_dir
+    path = run_dir + PROCESSED_FILE
+    with open(path, 'w+'):
+        os.utime(path, None)
+
+def need_to_process(dir):
+    now = datetime.now()
+    m_time = datetime.fromtimestamp(os.stat(dir).st_mtime)
+    # filter out if modified before cutover to odybcl2fastq
+    if m_time < SEARCH_AFTER_DATE:
+        return False
+    # filter out if modified outside or search window
+    if ((now - m_time).days) > DAYS_TO_SEARCH:
+        return False
+    # filter out if tagged as processed
+    if os.path.isfile(dir + PROCESSED_FILE):
+        return False
+    # filter out if any required files are missing
+    for req in REQUIRED_FILES:
+        if not os.path.exists(dir + req):
+            return False
+    return True
+
+def runs_to_process():
+    # get all subdirectories
+    dirs = glob.glob(SOURCE_DIR + '*/')
+    runs = []
+    for dir in dirs:
+        if need_to_process(dir):
+            runs.append(dir)
+    return runs
+
+def get_odybcl2fastq_cmd(run_dir):
+    run = os.path.basename(os.path.normpath(run_dir))
+    params = {
+        'runfolder': os.path.dirname(run_dir),
+        'output-dir': OUTPUT_DIR + run,
+        'sample-sheet': run_dir + 'SampleSheet.csv',
+        'runinfoxml': run_dir + 'RunInfo.xml'
+    }
+    args = []
+    opt_flag = '--'
+    for opt, val in params.items():
+        args.append(opt_flag +  opt)
+        if val:
+            args.append(val)
+    return 'python ' + ROOT_DIR + '/odybcl2fastq/parseargs.py ' + ' '.join(args)
+
+def run_odybcl2fastq(cmd):
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+    std_out, std_err = proc.communicate()
+    return (proc.returncode, std_out, std_err, cmd)
+
+if __name__ == "__main__":
+    try:
+        setup_logging()
+        run_dirs = runs_to_process()
+        logging.info("Found %s runs to process:\n%s\n" % (len(run_dirs),
+            json.dumps(run_dirs)))
+        proc_num = os.environ.get('ODYBCL2FASTQ_PROC_NUM', 2)
+        pool = Pool(proc_num)
+        results = {}
+        for run_dir in run_dirs:
+            run = os.path.basename(os.path.normpath(run_dir))
+            cmd = get_odybcl2fastq_cmd(run_dir)
+            logging.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
+            results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
+            mark_processed(run_dir) # mark so it doesn't get reprocessed
+        failed_runs = []
+        success_runs = []
+        for run, result in results.items():
+            ret_code, std_out, std_err, cmd = result.get()
+            logging.info("Odybcl2fastq for %s returned %i\n" % (run, ret_code))
+            if ret_code == 0:
+                success_runs.append(run)
+            else:
+                failed_runs.append(run)
+                failure_email(run, cmd, ret_code, std_out, std_err)
+        logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
+                (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
+    except Exception as e:
+        logging.exception(e)

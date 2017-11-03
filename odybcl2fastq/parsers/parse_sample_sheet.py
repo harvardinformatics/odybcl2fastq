@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import logging
 
 def sheet_parse(samplesheet=None):
     defaults_by_section = {
@@ -76,14 +77,14 @@ def sheet_parse(samplesheet=None):
 
     if len(defaults_by_section['Header']) == 0:
         #raise ValueError('No header information in sample sheet')
-        print('odbcl2fastq WARNING: no header information in sample sheet')
+        logging.warning('odbcl2fastq WARNING: no header information in sample sheet')
     if len(defaults_by_section['Settings']) == 0:
         #raise ValueError('No settings information provided in sample sheet')
-        print('odybcl2fastq WARNING: no settings information provided in sample sheet')
+        logging.warning('odybcl2fastq WARNING: no settings information provided in sample sheet')
 
     if len(defaults_by_section['Reads']) == 0:
         #raise ValueError('No read information provided in sample sheet')
-        print('odybcl2fastq WARNING: no read information provided in sample sheet')
+        logging.warning('odybcl2fastq WARNING: no read information provided in sample sheet')
     if len(defaults_by_section['Data']) == 0:
          raise ValueError('No data for samples present')
 
