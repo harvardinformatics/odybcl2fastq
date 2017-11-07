@@ -30,6 +30,7 @@ DAYS_TO_SEARCH = 1
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Nov 1 2017', '%b %d %Y')
 REQUIRED_FILES = ['SampleSheet.csv', 'InterOp', 'RunInfo.xml', 'RTAComplete.txt']
+MAX_PARALLEL_RUNS = 3
 
 def setup_logging():
     # take level from env or INFO
@@ -109,8 +110,11 @@ def run_odybcl2fastq(cmd):
 if __name__ == "__main__":
     try:
         setup_logging()
-        run_dirs = runs_to_process()
-        logging.info("Found %s runs to process:\n%s\n" % (len(run_dirs),
+        runs_found = runs_to_process()
+        max_parallel_runs = os.environ.get('ODYBCL2FASTQ_MAX_PARALLEL_RUNS',
+                MAX_PARALLEL_RUNS)
+        run_dirs = runs_found[:max_parallel_runs]
+        logging.info("Found %s runs: %s processing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
             json.dumps(run_dirs)))
         proc_num = os.environ.get('ODYBCL2FASTQ_PROC_NUM', 2)
         pool = Pool(proc_num)
