@@ -64,7 +64,7 @@ def get_stats(data):
             sam = row['SampleId']
             lane_stats['samples'][sam] = get_sam_stats(sam, lane_stats['samples'], row)
         # include a row for undertermined stats
-        if lane_info['Undetermined']:
+        if 'Undetermined' in lane_info:
             sam = 'undetermined'
             lane_stats['samples'][sam] = get_sam_stats(sam, lane_stats['samples'], lane_info['Undetermined'])
         stats[lane] = lane_stats

@@ -40,8 +40,9 @@ def make_mask(universal_mask, sample_key, sample_dict):
     sample_mask = copy(universal_mask)
     # update index lengths from sample sheet
     if 'index' in sample_dict: # both single and dual
-        sample_mask['read2'] = update_mask_index(sample_dict['index'],
-                sample_mask['read2'], sample_key)
+        if 'read2' in sample_mask:
+            sample_mask['read2'] = update_mask_index(sample_dict['index'],
+                    sample_mask['read2'], sample_key)
     else:
         raise UserException('no index in sample sheet for %s' % sample_key)
     if 'index2' in sample_dict and sample_dict['index2']: # dual indexed

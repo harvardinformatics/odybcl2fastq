@@ -274,10 +274,10 @@ def bcl2fastq_build_cmd(bcl_namespace, argdict,
 def bcl2fastq_runner(cmd,bcl_namespace):
     logging.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    output_log = get_output_log(run)
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
     # append to output to log for the run
-    output_log = get_output_log(run)
     with open(output_log, 'a+') as f:
         f.write(demult_err + "\n\n")
     logging.info("***** END bcl2fastq *****\n\n")
