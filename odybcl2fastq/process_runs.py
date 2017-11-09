@@ -11,7 +11,7 @@ Created on  2017-11-01
 @copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
-import os, glob
+import os, glob, time
 import logging
 import subprocess
 import json
@@ -31,10 +31,11 @@ DAYS_TO_SEARCH = 1
 SEARCH_AFTER_DATE = datetime.strptime('Nov 1 2017', '%b %d %Y')
 REQUIRED_FILES = ['SampleSheet.csv', 'InterOp', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = 3
+FREQUENCY = 60
 
 def setup_logging():
     # take level from env or INFO
-    level = os.getenv('LOGGING_LEVEL', logging.INFO)
+    level = os.getenv('ODYBCL2FASTQ_LOGGING_LEVEL', logging.INFO)
     logging.basicConfig(
             filename= LOG_FILE,
             level=level,
@@ -107,33 +108,43 @@ def run_odybcl2fastq(cmd):
     std_out, std_err = proc.communicate()
     return (proc.returncode, std_out, std_err, cmd)
 
+def process_runs():
+    runs_found = runs_to_process()
+    proc_num = os.environ.get('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
+    run_dirs = runs_found[:proc_num]
+    logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
+        json.dumps(run_dirs)))
+    pool = Pool(proc_num)
+    results = {}
+    for run_dir in run_dirs:
+        run = os.path.basename(os.path.normpath(run_dir))
+        cmd = get_odybcl2fastq_cmd(run_dir)
+        logging.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
+        results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
+        mark_processed(run_dir) # mark so it doesn't get reprocessed
+    failed_runs = []
+    success_runs = []
+    for run, result in results.items():
+        ret_code, std_out, std_err, cmd = result.get()
+        logging.info("Odybcl2fastq for %s returned %i\n" % (run, ret_code))
+        if ret_code == 0:
+            success_runs.append(run)
+        else:
+            failed_runs.append(run)
+            failure_email(run, cmd, ret_code, std_out, std_err)
+    logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
+            (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
+
 if __name__ == "__main__":
     try:
         setup_logging()
-        runs_found = runs_to_process()
-        proc_num = os.environ.get('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
-        run_dirs = runs_found[:proc_num]
-        logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
-            json.dumps(run_dirs)))
-        pool = Pool(proc_num)
-        results = {}
-        for run_dir in run_dirs:
-            run = os.path.basename(os.path.normpath(run_dir))
-            cmd = get_odybcl2fastq_cmd(run_dir)
-            logging.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
-            results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
-            mark_processed(run_dir) # mark so it doesn't get reprocessed
-        failed_runs = []
-        success_runs = []
-        for run, result in results.items():
-            ret_code, std_out, std_err, cmd = result.get()
-            logging.info("Odybcl2fastq for %s returned %i\n" % (run, ret_code))
-            if ret_code == 0:
-                success_runs.append(run)
-            else:
-                failed_runs.append(run)
-                failure_email(run, cmd, ret_code, std_out, std_err)
-        logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
-                (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
+        # run continuously
+        while True:
+            process_runs()
+            # wait before checking for more runs to process
+            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+            if frequency != FREQUENCY:
+                logging.info("Frequency is not default: %i\n" % frequency)
+            time.sleep(frequency)
     except Exception as e:
         logging.exception(e)
