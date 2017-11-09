@@ -1,5 +1,4 @@
 import os, re, glob
-from lxml import html as lh
 from odybcl2fastq import UserException
 from collections import OrderedDict
 import constants as const

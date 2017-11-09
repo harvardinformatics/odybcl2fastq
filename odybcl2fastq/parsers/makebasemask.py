@@ -3,7 +3,6 @@ from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
 from odybcl2fastq import UserException
 from collections import OrderedDict,defaultdict
 from copy import copy
-from sets import Set
 import json
 import logging
 
