@@ -1,5 +1,4 @@
 from odybcl2fastq.parsers.parse_runinfoxml import get_readinfo_from_runinfo
-from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
 from odybcl2fastq import UserException
 from collections import OrderedDict,defaultdict
 from copy import copy
@@ -57,7 +56,7 @@ def make_mask(universal_mask, sample_key, sample_dict):
         logging.warning('sample mask for %s differs from the universal mask %s vs %s' % (sample_key, json.dumps(sample_mask), json.dumps(universal_mask)))
     return ','.join(sample_mask.values())
 
-def extract_basemasks(runinfo,sample_sheet):
+def extract_basemasks(data_by_sample, runinfo):
     """
     creates a list of lists that contain masks
     that are compatible being run together in one demultiplexing
@@ -66,7 +65,6 @@ def extract_basemasks(runinfo,sample_sheet):
     lanes but not different masks for the same lane
     """
     rundata_by_read = get_readinfo_from_runinfo(runinfo)
-    data_by_sample = sheet_parse(sample_sheet)['Data'] #list of tuples
     universal_mask=make_universal_mask(rundata_by_read)
     mask_list = []
     if 'Lane' in data_by_sample.itervalues().next():

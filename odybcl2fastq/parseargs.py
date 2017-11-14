@@ -21,6 +21,8 @@ from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_stats
 from subprocess import Popen,PIPE
+from odybcl2fastq.status_db import StatusDB
+from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
 
 BCL2FASTQ_LOG_DIR = '/n/informatics_external/seq/odybcl2fastq_log/'
 
@@ -246,6 +248,13 @@ def initArgs():
     bclargs = dict((attr, getattr(args,attr)) for attr in dir(args) if attr.startswith('BCL'))
     return args,bclargs,switches_to_names
 
+def post_processing(run, subs_str):
+    # update minilims database
+    stdb = StatusDB()
+    analysis = stdb.insert_analysis(run, subs_str)
+    subs = subs_str.split(',')
+    stdb.link_run_and_subs(run, subs)
+
 def bcl2fastq_build_cmd(bcl_namespace, argdict,
         switches_to_names, mask_list, instrument):
     mask_switch = '--use-bases-mask'
@@ -297,7 +306,8 @@ def bcl2fastq_process_runs():
     setup_logging(run, test)
     logging.info("***** START Odybcl2fastq *****\n\n")
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(bcl_namespace))))
-    mask_list, instrument =  extract_basemasks(bcl_namespace.RUNINFO_XML, bcl_namespace.BCL_SAMPLE_SHEET)
+    sample_sheet = sheet_parse(bcl_namespace.BCL_SAMPLE_SHEET)
+    mask_list, instrument =  extract_basemasks(sample_sheet['Data'], bcl_namespace.RUNINFO_XML)
     cmd = bcl2fastq_build_cmd(bcl_namespace,
             argdict, switches_to_names, mask_list, instrument)
     if test:
@@ -314,6 +324,8 @@ def bcl2fastq_process_runs():
         toemaillist=['mportermahoney@g.harvard.edu']
         logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
         buildmessage(message, run, summary_data, fromaddr, toemaillist)
+        subs_str = sample_sheet['Header']['Description']
+        post_processing(run, subs_str)
     logging.info("***** END Odybcl2fastq *****\n\n")
 
 def get_output_log(run):

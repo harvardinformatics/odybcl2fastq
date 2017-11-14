@@ -25,11 +25,13 @@ OUTPUT_DIR = '/n/regal/informatics/mportermahoney/odytest/'
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_FILE = ROOT_DIR + '/odybcl2fastq.log'
 PROCESSED_FILE = 'odybcl2fastq.processed'
-DAYS_TO_SEARCH = 1
+DAYS_TO_SEARCH = 7
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Nov 1 2017', '%b %d %Y')
-REQUIRED_FILES = ['SampleSheet.csv', 'InterOp', 'RunInfo.xml', 'RTAComplete.txt']
+# TODO: seqprep looks for required file runParameters.xml or RunParameters.xml,
+# do we need to check for that?
+REQUIRED_FILES = ['SampleSheet.csv', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = 3
 FREQUENCY = 60
 
