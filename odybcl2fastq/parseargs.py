@@ -320,12 +320,13 @@ def bcl2fastq_process_runs():
         if success: # get data from run to put in the email
             summary_data = parse_stats.get_summary(bcl_namespace.BCL_OUTPUT_DIR, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
             summary_data['run'] = run
+            # update lims
+            subs_str = sample_sheet['Header']['Description']
+            post_processing(run, subs_str)
         fromaddr = 'afreedman@fas.harvard.edu'
         toemaillist=['mportermahoney@g.harvard.edu']
         logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
         buildmessage(message, run, summary_data, fromaddr, toemaillist)
-        subs_str = sample_sheet['Header']['Description']
-        post_processing(run, subs_str)
     logging.info("***** END Odybcl2fastq *****\n\n")
 
 def get_output_log(run):
