@@ -92,13 +92,13 @@ def get_sam_stats(sam, sam_summary, row):
 
 def format_lane_table(lanes):
     for lane_num, lane_info in lanes.items():
-        lanes[lane_num]['reads'] = '{:,.0f}'.format(lane_info['reads'])
+        lanes[lane_num]['reads'] = '{0:.0f}'.format(lane_info['reads'])
         for sam_name, sam_info in lane_info['samples'].items():
             row = OrderedDict()
             row['sample'] = sam_info['sample']
             row['index'] = ', '.join(sam_info['index'])
-            row['reads'] = '{:,.0f}'.format(sam_info['reads'])
-            row['% >= Q30'] = '{:.2f}'.format(numpy.sum(sam_info['yield_q30'])/numpy.sum(sam_info['yield']) * 100)
+            row['reads'] = '{0:.0f}'.format(sam_info['reads'])
+            row['% >= Q30'] = '{0:.2f}'.format(numpy.sum(sam_info['yield_q30'])/numpy.sum(sam_info['yield']) * 100)
             lanes[lane_num]['samples'][sam_name] = row
     return lanes
 
