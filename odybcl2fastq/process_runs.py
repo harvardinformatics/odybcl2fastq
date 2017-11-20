@@ -27,8 +27,8 @@ LOG_FILE = ROOT_DIR + '/odybcl2fastq.log'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
-DAYS_TO_SEARCH = 7
-INCOMPLETE_AFTER_DAYS = 0
+DAYS_TO_SEARCH = 10
+INCOMPLETE_AFTER_DAYS = 1
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Nov 1 2017', '%b %d %Y')
@@ -92,7 +92,7 @@ def run_is_incomplete(dir):
     if m_time < SEARCH_AFTER_DATE:
         return False
     # filter out if modified after reasonable delay to allow for completion
-    if ((now - m_time).days) < INCOMPLETE_AFTER_DAYS:
+    if ((now - m_time).days) <= INCOMPLETE_AFTER_DAYS:
         return False
     # filter out if tagged as complete
     if os.path.isfile(dir + COMPLETE_FILE):
@@ -125,7 +125,7 @@ def get_odybcl2fastq_cmd(run_dir):
     params = {
         'runfolder': os.path.dirname(run_dir),
         'output-dir': OUTPUT_DIR + run,
-        'sample-sheet': run_dir + 'SampleSheet.csv',
+        'sample-sheet': run_dir + 'SampleSheet_new.csv',
         'runinfoxml': run_dir + 'RunInfo.xml'
     }
     args = []
@@ -145,51 +145,57 @@ def run_odybcl2fastq(cmd):
 def notify_incomplete_runs():
     run_dirs = incomplete_runs()
     run_dirs_str = "\n".join(run_dirs)
-    message = "The following runs failed to complete %s or more days ago:\n\n%s" % (INCOMPLETE_AFTER_DAYS, run_dirs_str)
-    send_email(message, 'Odybcl2fastq incomplete runs')
-    for run in run_dirs:
-        touch(run, INCOMPLETE_NOTIFIED_FILE)
+    if run_dirs:
+        message = "The following runs failed to complete %s or more days ago:\n\n%s" % (INCOMPLETE_AFTER_DAYS, run_dirs_str)
+        send_email(message, 'Odybcl2fastq incomplete runs')
+        for run in run_dirs:
+            touch(run, INCOMPLETE_NOTIFIED_FILE)
 
 
-def process_runs():
+def process_runs(pool, proc_num):
     runs_found = runs_to_process()
-    proc_num = os.environ.get('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
     run_dirs = runs_found[:proc_num]
-    logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
-        json.dumps(run_dirs)))
-    pool = Pool(proc_num)
-    results = {}
-    for run_dir in run_dirs:
-        run = os.path.basename(os.path.normpath(run_dir))
-        cmd = get_odybcl2fastq_cmd(run_dir)
-        logging.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
-        results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
-        touch(run_dir, PROCESSED_FILE) # mark so it doesn't get reprocessed
-    failed_runs = []
-    success_runs = []
-    for run, result in results.items():
-        ret_code, std_out, std_err, cmd = result.get()
-        logging.info("Odybcl2fastq for %s returned %i\n" % (run, ret_code))
-        if ret_code == 0:
-            success_runs.append(run)
-        else:
-            failed_runs.append(run)
-            failure_email(run, cmd, ret_code, std_out, std_err)
-        touch(run_dir, COMPLETE_FILE) # mark so it doesn't get reprocessed
-    logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
-            (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
+    if run_dirs:
+        logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
+            json.dumps(run_dirs)))
+        results = {}
+        for run_dir in run_dirs:
+            run = os.path.basename(os.path.normpath(run_dir))
+            cmd = get_odybcl2fastq_cmd(run_dir)
+            logging.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
+            results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
+            touch(run_dir, PROCESSED_FILE) # mark so it doesn't get reprocessed
+        failed_runs = []
+        success_runs = []
+        for run, result in results.items():
+            ret_code, std_out, std_err, cmd = result.get()
+            logging.info("Odybcl2fastq for %s returned %i\n" % (run, ret_code))
+            if ret_code == 0:
+                success_runs.append(run)
+                touch(run_dir, COMPLETE_FILE)
+            else:
+                failed_runs.append(run)
+                failure_email(run, cmd, ret_code, std_out, std_err)
+        logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
+                (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
 
 if __name__ == "__main__":
     try:
         setup_logging()
+        proc_num = os.environ.get('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
+        # create pool and call process_runs to apply_async jobs
+        pool = Pool(proc_num)
         # run continuously
         while True:
-            process_runs()
+            # queue new runs for demultiplexing with bcl2fastq2
+            process_runs(pool, proc_num)
+            # check for any runs that started but never completed demultiplexing
             notify_incomplete_runs()
             # wait before checking for more runs to process
             frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
             if frequency != FREQUENCY:
                 logging.info("Frequency is not default: %i\n" % frequency)
             time.sleep(frequency)
+        pool.close()
     except Exception as e:
         logging.exception(e)
