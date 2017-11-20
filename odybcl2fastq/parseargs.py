@@ -232,11 +232,20 @@ def initArgs():
     bclargs = dict((attr, getattr(args,attr)) for attr in dir(args) if attr.startswith('BCL'))
     return args,bclargs,switches_to_names
 
-def post_processing(run, subs_str):
+def get_submissions(sample_sheet, instrument):
+    if instrument == 'nextseq':
+        return sample_sheet['Header']['Description'].split(',')
+    else:
+        subs = set()
+        for key, row in sample_sheet['Data'].items():
+            if row['Description']:
+                subs.add(row['Description'])
+        return list(subs)
+
+def post_processing(run, subs):
     # update minilims database
     stdb = StatusDB()
-    analysis = stdb.insert_analysis(run, subs_str)
-    subs = subs_str.split(',')
+    analysis = stdb.insert_analysis(run, ', '.join(subs))
     stdb.link_run_and_subs(run, subs)
 
 def bcl2fastq_build_cmd(bcl_namespace, argdict,
@@ -305,8 +314,8 @@ def bcl2fastq_process_runs():
             summary_data = parse_stats.get_summary(bcl_namespace.BCL_OUTPUT_DIR, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
             summary_data['run'] = run
             # update lims
-            subs_str = sample_sheet['Header']['Description']
-            post_processing(run, subs_str)
+            subs = get_submissions(sample_sheet, instrument)
+            post_processing(run, subs)
         fromaddr = 'afreedman@fas.harvard.edu'
         toemaillist=['mportermahoney@g.harvard.edu']
         logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
