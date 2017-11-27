@@ -230,12 +230,7 @@ def initArgs():
         if 'BCL' in parameterdef['name']: # this allows non BCL things to be excluded from switches to names so don't get incorrectly added to cmd line arg
             switches_to_names[tuple(switches)]=parameterdef['name']
     args = parser.parse_args()
-    #bclargs = dict((attr, getattr(args,attr)) for attr in dir(args) if attr.startswith('BCL'))
-    print(args)
-    print(bclargs)
-    print(switches_to_names)
-    print(test99)
-    return args,bclargs,switches_to_names
+    return args, switches_to_names
 
 def get_submissions(sample_sheet, instrument):
     if instrument == 'nextseq':
@@ -253,8 +248,8 @@ def post_processing(run, subs):
     analysis = stdb.insert_analysis(run, ', '.join(subs))
     stdb.link_run_and_subs(run, subs)
 
-def bcl2fastq_build_cmd(bcl_namespace, argdict,
-        switches_to_names, mask_list, instrument):
+def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument):
+    argdict = vars(args)
     mask_switch = '--use-bases-mask'
     # each mask should be prefaced by the switch
     mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
@@ -278,9 +273,9 @@ def bcl2fastq_build_cmd(bcl_namespace, argdict,
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
-def bcl2fastq_runner(cmd,bcl_namespace):
+def bcl2fastq_runner(cmd,args):
     logging.info("***** START bcl2fastq *****\n\n")
-    run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     output_log = get_output_log(run)
     demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
     demult_out,demult_err=demult_run.communicate()
@@ -315,37 +310,39 @@ def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
     return new_sample_sheet
 
 def bcl2fastq_process_runs():
-    arg_namespace,bclarg_dict,switches_to_names = initArgs()
-    test = ('TEST' in bcl_namespace and bcl_namespace.TEST)
-    run = os.path.basename(bcl_namespace.BCL_RUNFOLDER_DIR)
+    args, switches_to_names = initArgs()
+    test = ('TEST' in args and args.TEST)
+    run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     setup_logging(run, test)
     logging.info("***** START Odybcl2fastq *****\n\n")
-    logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(bcl_namespace))))
-    sample_sheet = sheet_parse(bcl_namespace.BCL_SAMPLE_SHEET)
-    mask_lists, mask_samples, instrument =  extract_basemasks(sample_sheet['Data'], bcl_namespace.RUNINFO_XML)
+    logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
+    sample_sheet = sheet_parse(args.BCL_SAMPLE_SHEET)
+    mask_lists, mask_samples, instrument =  extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML)
     jobs_tot = len(mask_lists)
     if jobs_tot > 1:
         logging.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
     job_cnt = 1
+    sample_sheet_dir = args.BCL_SAMPLE_SHEET
+    output_dir = args.BCL_OUTPUT_DIR
     for mask, mask_list in mask_lists.items():
         output_suffix = None
+        # if more than one bcl2fastq cmd needed suffix output dir and sample sheet
         if jobs_tot > 1:
             output_suffix = mask.replace(',', '_')
-            bcl_namespace.BCL_OUTPUT_DIR += '/' + output_suffix
-            bcl_namespace.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], bcl_namespace.BCL_SAMPLE_SHEET, output_suffix)
-            print(bcl_namespace.BCL_OUTPUT_DIR)
-        cmd = bcl2fastq_build_cmd(bcl_namespace,
-                argdict, switches_to_names, mask_list, instrument)
+            args.BCL_OUTPUT_DIR = output_dir + '/' + output_suffix
+            args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
+        cmd = bcl2fastq_build_cmd(args,
+                switches_to_names, mask_list, instrument)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
         else:
             logging.info('Launching bcl2fastq...%s\n' % cmd)
-            success, message = bcl2fastq_runner(cmd,bcl_namespace)
+            success, message = bcl2fastq_runner(cmd,args)
             logging.info('message = %s' % message)
             summary_data = {}
             if success: # get data from run to put in the email
-                summary_data = parse_stats.get_summary(bcl_namespace.BCL_OUTPUT_DIR, instrument, bcl_namespace.BCL_SAMPLE_SHEET)
+                summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
                 # update lims
                 subs = get_submissions(sample_sheet, instrument)
