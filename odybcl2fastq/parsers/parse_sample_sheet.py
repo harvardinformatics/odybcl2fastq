@@ -39,7 +39,6 @@ def sheet_parse(samplesheet=None):
 
         'Data': OrderedDict(),
         }
-    # TODO: consider a dict of dict rather than a list of tuples
     ssheet_open = open(samplesheet,'r')
     defaults_section = ''
     for line in ssheet_open:
@@ -62,7 +61,7 @@ def sheet_parse(samplesheet=None):
                         # TODO: lowercase all fields?
                         data_fields=[field.replace('SampleID','Sample_ID').replace('Index', 'index') for field in linelist if field != '']
                     else:
-                        data_dict=dict(zip(data_fields,linelist[:len(data_fields)]))
+                        data_dict=OrderedDict(zip(data_fields,linelist[:len(data_fields)]))
                         if 'Lane' in data_dict.keys():
                             name = '%s:%s' % (data_dict['Lane'],data_dict['Sample_ID'])
                         else:
@@ -87,7 +86,7 @@ def sheet_parse(samplesheet=None):
         logging.warning('odybcl2fastq WARNING: no read information provided in sample sheet')
     if len(defaults_by_section['Data']) == 0:
          raise ValueError('No data for samples present')
-
+    print(defaults_by_section)
     return defaults_by_section
 
 

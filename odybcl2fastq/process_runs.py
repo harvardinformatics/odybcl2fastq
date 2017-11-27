@@ -27,7 +27,7 @@ LOG_FILE = ROOT_DIR + '/odybcl2fastq.log'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
-DAYS_TO_SEARCH = 10
+DAYS_TO_SEARCH = 14
 INCOMPLETE_AFTER_DAYS = 1
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
@@ -107,7 +107,7 @@ def run_is_incomplete(dir):
 
 def find_runs(filter):
     # get all subdirectories
-    dirs = glob.glob(SOURCE_DIR + '*/')
+    dirs = sorted(glob.glob(SOURCE_DIR + '*/'))
     runs = []
     for dir in dirs:
         if filter(dir):
@@ -182,20 +182,20 @@ def process_runs(pool, proc_num):
 if __name__ == "__main__":
     try:
         setup_logging()
-        proc_num = os.environ.get('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
+        proc_num = os.getenv('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
         # run continuously
-        while True:
-            # queue new runs for demultiplexing with bcl2fastq2
-            process_runs(pool, proc_num)
-            # check for any runs that started but never completed demultiplexing
-            notify_incomplete_runs()
-            # wait before checking for more runs to process
-            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
-            if frequency != FREQUENCY:
-                logging.info("Frequency is not default: %i\n" % frequency)
-            time.sleep(frequency)
+        #while True:
+        # queue new runs for demultiplexing with bcl2fastq2
+        process_runs(pool, proc_num)
+        # check for any runs that started but never completed demultiplexing
+        notify_incomplete_runs()
+        # wait before checking for more runs to process
+        frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+        if frequency != FREQUENCY:
+            logging.info("Frequency is not default: %i\n" % frequency)
+        #time.sleep(frequency)
         pool.close()
     except Exception as e:
         logging.exception(e)

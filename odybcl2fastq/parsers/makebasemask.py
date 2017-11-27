@@ -62,11 +62,13 @@ def extract_basemasks(data_by_sample, runinfo):
     that are compatible being run together in one demultiplexing
     instance, regardless of instrument; nextseq must run each different
     mask separately, while hiseq can handle different masks for different
-    lanes but not different masks for the same lane
+    lanes but if masks are different for same lane then it will require multiple
+    demultiplexing runs
     """
     rundata_by_read = get_readinfo_from_runinfo(runinfo)
     universal_mask=make_universal_mask(rundata_by_read)
     mask_list = []
+    mask_samples = {}
     if 'Lane' in data_by_sample.itervalues().next():
         instrument = 'hiseq'
         # get mask per sample
@@ -74,15 +76,21 @@ def extract_basemasks(data_by_sample, runinfo):
         for sample, row in data_by_sample.items():
             mask = make_mask(universal_mask, sample, row)
             lane = row['Lane']
-            if lane in lane_masks:
-                # throw an error if mask is not the same per lane
-                if lane_masks[lane] != mask:
-                    raise UserException('hiseq sample mask for %s differs from another sample in lane %s: %s vs %s' % (sample, lane, mask, lane_masks[lane]))
-            else:
-                lane_masks[lane] = mask
-                logging.info('adding mask %s for lane %s' % (mask, lane))
-        # one mask per lane
-        mask_list = [lane + ':' + mask for lane, mask in lane_masks.items()]
+            if lane not in lane_masks:
+                lane_masks[lane] = set()
+            lane_masks[lane].add(mask)
+            if mask not in mask_samples:
+                mask_samples[mask] = []
+            mask_samples[mask].append(row)
+            logging.info('adding mask %s for lane %s' % (mask, lane))
+        mask_lists = {}
+        for lane, masks in lane_masks.items():
+            for mask in list(masks):
+                if mask not in mask_lists:
+                    mask_lists[mask] = OrderedDict()
+                mask_lists[mask][lane] = mask
+        for mask, lane_masks in mask_lists.items():
+            mask_lists[mask] = [lane + ':' + mask for lane, mask in lane_masks.items()]
     else:
         instrument = 'nextseq'
         for sample, row in data_by_sample.items():
@@ -91,6 +99,10 @@ def extract_basemasks(data_by_sample, runinfo):
                 mask_list = [mask]
             elif mask not in mask_list:
                 raise UserException('nextseq sample mask for %s differs from another sample %s vs %s' % (sample, mask, mask_list[0]))
+            if mask not in mask_samples:
+                mask_samples[mask] = []
+            mask_samples[mask].append(row)
+        mask_lists[mask] = mask_list
     logging.info('instrument is %s' % instrument)
-    logging.info('mask is %s' % json.dumps(mask_list))
-    return mask_list, instrument
+    logging.info('masks: %s' % json.dumps(mask_lists))
+    return mask_lists, mask_samples, instrument
