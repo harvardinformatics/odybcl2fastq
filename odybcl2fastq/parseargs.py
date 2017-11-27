@@ -15,7 +15,6 @@ Created on  2017-04-19
 import sys, os, traceback
 import logging
 import json
-import shutil
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
@@ -307,6 +306,8 @@ def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
     # write new samples to sheet
     new_lines = [(','.join(row.values()) + "\r\n") for row in new_samples]
     output.writelines(new_lines)
+    output.close()
+    input.close()
     return new_sample_sheet
 
 def bcl2fastq_process_runs():

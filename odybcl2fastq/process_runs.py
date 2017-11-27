@@ -186,16 +186,16 @@ if __name__ == "__main__":
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
         # run continuously
-        #while True:
-        # queue new runs for demultiplexing with bcl2fastq2
-        process_runs(pool, proc_num)
-        # check for any runs that started but never completed demultiplexing
-        notify_incomplete_runs()
-        # wait before checking for more runs to process
-        frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
-        if frequency != FREQUENCY:
-            logging.info("Frequency is not default: %i\n" % frequency)
-        #time.sleep(frequency)
-        pool.close()
+        while True:
+            # queue new runs for demultiplexing with bcl2fastq2
+            process_runs(pool, proc_num)
+            # check for any runs that started but never completed demultiplexing
+            notify_incomplete_runs()
+            # wait before checking for more runs to process
+            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+            if frequency != FREQUENCY:
+                logging.info("Frequency is not default: %i\n" % frequency)
+            time.sleep(frequency)
+            pool.close()
     except Exception as e:
         logging.exception(e)

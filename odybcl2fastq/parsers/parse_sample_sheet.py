@@ -86,7 +86,6 @@ def sheet_parse(samplesheet=None):
         logging.warning('odybcl2fastq WARNING: no read information provided in sample sheet')
     if len(defaults_by_section['Data']) == 0:
          raise ValueError('No data for samples present')
-    print(defaults_by_section)
     return defaults_by_section
 
 
