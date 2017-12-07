@@ -31,6 +31,7 @@ FINAL_DIR = '/net/rcstorenfs02/ifs/rc_labs/ngsdata/odybcl2fastq_test/'
 #FINAL_DIR = '/net/rcstorenfs02/ifs/rc_labs/ngsdata/'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
+INDROP_FILE = 'indrop.txt'
 
 def initArgs():
     '''
@@ -312,7 +313,7 @@ def run_cmd(cmd):
     out, err = proc.communicate()
     return (proc.returncode, out, err)
 
-def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument):
+def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type):
     argdict = vars(args)
     mask_switch = '--use-bases-mask'
     # each mask should be prefaced by the switch
@@ -334,6 +335,10 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument):
             else:
                 cmdstrings.append(' '.join([switch,argvalue]))
     fout.close()
+    if instrument == 'hiseq':
+        cmdstrings.append('--no-lane-split')
+    if run_type == 'indrop':
+        cmdstrings.append('--create-fastq-for-index-reads')
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
@@ -374,6 +379,13 @@ def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
     input.close()
     return new_sample_sheet
 
+def get_run_type(run_dir):
+    # flag files will be used for some special run types
+    indrop_path = run_dir + '/' + INDROP_FILE
+    if os.path.isfile(run_dir + '/' + INDROP_FILE):
+            return 'indrop'
+    return 'standard'
+
 def bcl2fastq_process_runs():
     args, switches_to_names = initArgs()
     test = ('TEST' in args and args.TEST)
@@ -389,6 +401,7 @@ def bcl2fastq_process_runs():
     job_cnt = 1
     sample_sheet_dir = args.BCL_SAMPLE_SHEET
     output_dir = args.BCL_OUTPUT_DIR
+    run_type = get_run_type(args.BCL_RUNFOLDER_DIR)
     # run bcl2fatq per indexing strategy on run
     for mask, mask_list in mask_lists.items():
         output_suffix = None
@@ -398,7 +411,8 @@ def bcl2fastq_process_runs():
             args.BCL_OUTPUT_DIR = output_dir + '/' + output_suffix
             args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
-                switches_to_names, mask_list, instrument)
+                switches_to_names, mask_list, instrument, run_type)
+        print(test88)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
