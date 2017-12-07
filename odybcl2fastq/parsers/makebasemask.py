@@ -69,6 +69,7 @@ def extract_basemasks(data_by_sample, runinfo):
     universal_mask=make_universal_mask(rundata_by_read)
     mask_list = []
     mask_samples = {}
+    mask_lists = {}
     if 'Lane' in data_by_sample.itervalues().next():
         instrument = 'hiseq'
         # get mask per sample
@@ -83,7 +84,6 @@ def extract_basemasks(data_by_sample, runinfo):
                 mask_samples[mask] = []
             mask_samples[mask].append(row)
             logging.info('adding mask %s for lane %s' % (mask, lane))
-        mask_lists = {}
         for lane, masks in lane_masks.items():
             for mask in list(masks):
                 if mask not in mask_lists:
