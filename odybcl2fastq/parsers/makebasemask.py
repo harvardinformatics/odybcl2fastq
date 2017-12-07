@@ -36,6 +36,13 @@ def update_mask_index(index, mask, sample):
 def make_mask(universal_mask, sample_key, sample_dict):
     # sample mask is based on universal mask from run info
     sample_mask = copy(universal_mask)
+    # limit indexes to length in recipe
+    if 'Recipe' in sample_dict and sample_dict['Recipe']:
+        recipe = sample_dict['Recipe'].split('_')
+        if 'index' in sample_dict:
+            sample_dict['index'] = sample_dict['index'][:int(recipe[0])]
+        if 'index2' in sample_dict and sample_dict['index2']:
+            sample_dict['index2'] = sample_dict['index2'][:int(recipe[1])]
     # update index lengths from sample sheet
     if 'index' in sample_dict: # both single and dual
         if 'read2' in sample_mask:
