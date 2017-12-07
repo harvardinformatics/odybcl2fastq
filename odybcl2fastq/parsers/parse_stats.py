@@ -1,10 +1,14 @@
-import os, re, glob
+import os, re
 from odybcl2fastq import UserException
 from collections import OrderedDict
 import constants as const
+import operator
+import locale
 import numpy
 import json
 import logging
+
+MIN_UNDETER_CNT = 1000000
 
 def get_summary(output_dir, instrument, sample_sheet_dir):
     """
@@ -26,13 +30,15 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
         raise Exception('instrument unknonw: ' + instrument)
     # format lane summary tables
     lanes = format_lane_table(lanes)
+    undetermined = format_undetermined(data['UnknownBarcodes'])
     summary_data = {
             'lanes': lanes,
             'instrument': instrument,
             'stats_file': stats_path,
             'sample_sheet': get_sample_sheet(sample_sheet_dir),
             'fastq_url': const.FASTQ_URL,
-            'fastq_dir': const.FASTQ_DIR
+            'fastq_dir': const.FASTQ_DIR,
+            'undetermined': undetermined
     }
     logging.info("summary_data for email: %s\n" % json.dumps(summary_data))
     return summary_data
@@ -91,14 +97,15 @@ def get_sam_stats(sam, sam_summary, row):
     return sam_stats
 
 def format_lane_table(lanes):
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
     for lane_num, lane_info in lanes.items():
-        lanes[lane_num]['reads'] = '{0:.0f}'.format(lane_info['reads'])
+        lanes[lane_num]['reads'] = locale.format('%d', lane_info['reads'], True)
         for sam_name, sam_info in lane_info['samples'].items():
             row = OrderedDict()
             row['sample'] = sam_info['sample']
             row['index'] = ', '.join(sam_info['index'])
-            row['reads'] = '{0:.0f}'.format(sam_info['reads'])
-            row['% >= Q30'] = '{0:.2f}'.format(numpy.sum(sam_info['yield_q30'])/numpy.sum(sam_info['yield']) * 100)
+            row['reads'] = locale.format('%d', sam_info['reads'], True)
+            row['% >= Q30'] = locale.format('%.2f',numpy.sum(sam_info['yield_q30'])/numpy.sum(sam_info['yield']) * 100, True)
             lanes[lane_num]['samples'][sam_name] = row
     return lanes
 
@@ -128,3 +135,13 @@ def aggregate_nextseq_lanes(lanes):
             'reads': agg_reads
     }
     return lanes_new
+
+def format_undetermined(undeter):
+    top = OrderedDict()
+    for lane in undeter:
+        sorted_undeter = sorted(lane['Barcodes'].items(), key=operator.itemgetter(1), reverse = True)
+        for (index, cnt) in sorted_undeter:
+            if cnt > MIN_UNDETER_CNT:
+                locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+                top[index] = locale.format('%d', cnt, True)
+    return dict(top)

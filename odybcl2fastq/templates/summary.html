@@ -27,6 +27,14 @@
             <br><br>
         {% endif %}
     {% endfor %}
+    {% if undetermined %}
+    <h4>Top undetermined indices (count > 1,000,000)</h4>
+    <table>
+        {% for index, cnt in undetermined.items() %}
+        <tr><td>{{index}}</td><td>{{cnt}}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
     <h3>Letter</h3>
     <p>
     Hi all,<br><br>

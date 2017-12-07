@@ -12,11 +12,12 @@ Created on  2017-04-19
 @copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
-import sys, os, traceback
+import sys, os, traceback, stat
 import logging
 import json
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+import odybcl2fastq.util as util
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_stats
@@ -25,6 +26,11 @@ from odybcl2fastq.status_db import StatusDB
 from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
 
 BCL2FASTQ_LOG_DIR = '/n/informatics_external/seq/odybcl2fastq_log/'
+#FINAL_DIR = '/n/ngsdata/odybcltest/'
+FINAL_DIR = '/net/rcstorenfs02/ifs/rc_labs/ngsdata/odybcl2fastq_test/'
+#FINAL_DIR = '/net/rcstorenfs02/ifs/rc_labs/ngsdata/'
+FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
+FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
 
 def initArgs():
     '''
@@ -241,11 +247,70 @@ def get_submissions(sample_sheet, instrument):
                 subs.add(row['Description'])
         return list(subs)
 
-def post_processing(run, subs):
-    # update minilims database
+def update_lims_db(run, sample_sheet, instrument):
+    subs = get_submissions(sample_sheet, instrument)
     stdb = StatusDB()
     analysis = stdb.insert_analysis(run, ', '.join(subs))
     stdb.link_run_and_subs(run, subs)
+
+def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
+    # copy important source files to the output dir they will then be moved to
+    # final
+    src_root += '/'
+    dest_root += '/'
+    if instrument == 'hiseq':
+        run_params_file = 'runParameters.xml'
+    else: # nextseq
+        run_params_file = 'RunParameters.xml'
+    # get filename part of sample_sheet
+    sample_sheet = sample_sheet.replace(src_root, '')
+    files_to_copy = [
+            sample_sheet,
+            'RunInfo.xml',
+            run_params_file,
+            'InterOp'
+    ]
+    for file in files_to_copy:
+        dest = dest_root  + file
+        src = src_root + file
+        util.copy(src, dest)
+
+def copy_output_to_final(output_dir, run, suffix):
+    # determine dest_dir
+    dest_dir = FINAL_DIR + run
+    if suffix: # runs with multiple indexing strategies have a subdir
+        dest_dir += '/' + suffix
+    # check size of output_dir
+    cmd = 'du -s %s' % output_dir
+    code, out, err = run_cmd(cmd)
+    if code != 0:
+        raise Exception('Could not check size of output_dir, files not copied to %s: %s' % (FINAL_DIR, cmd))
+    output_space = int(out.split()[0])
+    # check capacity of final dir
+    cmd = 'df -P %s | grep  -v Filesystem' % FINAL_DIR
+    code, out, err = run_cmd(cmd)
+    if code != 0:
+        raise Exception('Could not check capacity of %s, files not copied %s: %s' % (FINAL_DIR, output_dir, cmd))
+    dest_space = out.split()
+    tot_space = int(dest_space[1])
+    used = int(dest_space[2])
+    capacity = (used + output_space) / float(tot_space)
+    if capacity > 0.8:
+        logging.warning('%s near capacity copying %s: %s, used: %s, tot: %s' % (FINAL_DIR, output_dir, output_space, used, tot_space))
+    if capacity > 0.9:
+        msg = 'Could not copy %s to  %s: %s' % (output_dir, FINAL_DIR, capacity)
+        raise Exception(msg)
+    logging.info('Copying %s: %s, to %s at capacity: %s' % (output_dir, output_space,
+        dest_dir, capacity))
+    util.copy(output_dir, dest_dir)
+    # change permissions on dest_dir
+    util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
+
+def run_cmd(cmd):
+    # run unix cmd, return out and error
+    proc = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
+    out, err = proc.communicate()
+    return (proc.returncode, out, err)
 
 def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument):
     argdict = vars(args)
@@ -276,13 +341,12 @@ def bcl2fastq_runner(cmd,args):
     logging.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     output_log = get_output_log(run)
-    demult_run = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
-    demult_out,demult_err=demult_run.communicate()
+    code, demult_out, demult_err = run_cmd(cmd)
     # append to output to log for the run
     with open(output_log, 'a+') as f:
         f.write(demult_err + "\n\n")
     logging.info("***** END bcl2fastq *****\n\n")
-    if demult_run.returncode!=0:
+    if code!=0:
         message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
                 demult_err)
         success = False
@@ -325,6 +389,7 @@ def bcl2fastq_process_runs():
     job_cnt = 1
     sample_sheet_dir = args.BCL_SAMPLE_SHEET
     output_dir = args.BCL_OUTPUT_DIR
+    # run bcl2fatq per indexing strategy on run
     for mask, mask_list in mask_lists.items():
         output_suffix = None
         # if more than one bcl2fastq cmd needed suffix output dir and sample sheet
@@ -342,12 +407,20 @@ def bcl2fastq_process_runs():
             success, message = bcl2fastq_runner(cmd,args)
             logging.info('message = %s' % message)
             summary_data = {}
-            if success: # get data from run to put in the email
+            if success:
+                # get data from run to put in the email
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
-                # update lims
-                subs = get_submissions(sample_sheet, instrument)
-                post_processing(run, subs)
+                # run  qc, TODO: consider a seperate job for this
+                # copy run files to final
+                copy_source_to_output(args.BCL_RUNFOLDER_DIR,
+                        args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
+                        instrument)
+                # copy output to final dest where users will access
+                copy_output_to_final(args.BCL_OUTPUT_DIR, run,
+                output_suffix)
+                # update lims db
+                update_lims_db(run, sample_sheet, instrument)
             fromaddr = 'afreedman@fas.harvard.edu'
             toemaillist=['mportermahoney@g.harvard.edu']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
