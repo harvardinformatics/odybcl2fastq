@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-look for newly completed illumina runs and run odybcl2fastq/parseargs.py on them
+look for newly completed illumina runs and run odybcl2fastq/odybcl2fastq.py on them
 
 Created on  2017-11-01
 
@@ -17,7 +17,7 @@ import subprocess
 import json
 from datetime import datetime
 from multiprocessing import Pool
-import odybcl2fastq.parseargs as parseargs
+import odybcl2fastq.odybcl2fastq as odybcl2fastq
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 
 SOURCE_DIR = '/n/boslfs/INSTRUMENTS/illumina/'
@@ -49,7 +49,7 @@ def setup_logging():
     logging.getLogger().addHandler(logging.StreamHandler())
 
 def failure_email(run, cmd, ret_code, std_out, std_err):
-    log = parseargs.get_output_log(run)
+    log = odybcl2fastq.get_output_log(run)
     subject =  "Run Failed: %s" % run
     message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
             " error: %s\nsee log: %s\n" % (subject, cmd, ret_code, std_out, std_err, log))
@@ -134,7 +134,7 @@ def get_odybcl2fastq_cmd(run_dir):
         args.append(opt_flag +  opt)
         if val:
             args.append(val)
-    return 'python ' + ROOT_DIR + '/odybcl2fastq/parseargs.py ' + ' '.join(args)
+    return 'python ' + ROOT_DIR + '/odybcl2fastq/odybcl2fastq.py ' + ' '.join(args)
 
 def run_odybcl2fastq(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,

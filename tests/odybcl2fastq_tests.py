@@ -3,7 +3,7 @@ import os
 import csv
 import json
 from argparse import Namespace
-import odybcl2fastq.parseargs as pa
+import odybcl2fastq.odybcl2fastq as odybcl2fastq
 import odybcl2fastq.parsers.parse_sample_sheet as ss
 
 class Odybcl2fastqTests(unittest.TestCase):
@@ -34,7 +34,7 @@ class Odybcl2fastqTests(unittest.TestCase):
         instrument = 'hiseq'
         sample_sheet_path = 'tests/sample_data/SampleSheet.json'
         sample_sheet = self._load_json(sample_sheet_path)
-        mask_lists, mask_samples =  pa.extract_basemasks(sample_sheet['Data'], run_info, instrument)
+        mask_lists, mask_samples =  odybcl2fastq.extract_basemasks(sample_sheet['Data'], run_info, instrument)
         mask_lists_control = {'y26,i8,y134': ['1:y26,i8,y134', '2:y26,i8,y134']}
         mask_samples_path = 'tests/sample_data/mask_samples.json'
         mask_samples_control = self._load_json(mask_samples_path)
@@ -93,7 +93,7 @@ class Odybcl2fastqTests(unittest.TestCase):
         run_type = None
         cmd_path = 'tests/sample_data/cmd.json'
         cmd_control = self._load_json(cmd_path)
-        cmd = pa.bcl2fastq_build_cmd(args,
+        cmd = odybcl2fastq.bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type)
         assert cmd == cmd_control
 

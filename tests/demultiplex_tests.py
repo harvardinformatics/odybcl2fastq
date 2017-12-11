@@ -2,7 +2,7 @@ import unittest
 import os
 import json
 import gzip
-import odybcl2fastq.parseargs as pa
+import odybcl2fastq.odybcl2fastq as odybcl2fastq
 
 class DemultiplexTests(unittest.TestCase):
 
@@ -22,12 +22,11 @@ class DemultiplexTests(unittest.TestCase):
     def test_demultiplex(self):
         cmd_path = 'tests/sample_data/cmd.json'
         cmd = self._load_json(cmd_path)
-        #code, demult_out, demult_err = pa.run_cmd(cmd)
-        #assert code == 0
+        code, demult_out, demult_err = odybcl2fastq.run_cmd(cmd)
+        assert code == 0
         fastq_file = 'MDT1_SI_GA_A11_1_S1_L001_R1_001.fastq.gz'
         fastq_control_path = 'tests/sample_data/' + fastq_file
-        #fastq_path = '/n/ngsdata/odybcl2fastq_test/171101_D00365_1013_AHYYTWBCXY/bambahmukku/' + fastq_file
-        fastq_path = '/n/regal/informatics/mportermahoney/odytest/171101_D00365_1013_AHYYTWBCXY/bambahmukku/' + fastq_file
+        fastq_path = '/n/ngsdata/odybcl2fastq_test/171101_D00365_1013_AHYYTWBCXY/bambahmukku/' + fastq_file
         control = gzip.open(fastq_control_path, 'r')
         test = gzip.open(fastq_path, 'r')
         for i in range(7):
