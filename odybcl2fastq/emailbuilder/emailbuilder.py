@@ -3,7 +3,7 @@ from jinja2 import Environment, FileSystemLoader
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE,make_msgid
-import constants as const
+import odybcl2fastq.constants as const
 
 def generateMessageId():
     '''

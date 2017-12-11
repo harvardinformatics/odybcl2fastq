@@ -24,6 +24,7 @@ from odybcl2fastq.parsers import parse_stats
 from subprocess import Popen,PIPE
 from odybcl2fastq.status_db import StatusDB
 from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
+from odybcl2fastq.qc.fastqc_runner import fastqc_runner
 
 BCL2FASTQ_LOG_DIR = '/n/informatics_external/seq/odybcl2fastq_log/'
 #FINAL_DIR = '/n/ngsdata/odybcltest/'
@@ -239,14 +240,11 @@ def initArgs():
     return args, switches_to_names
 
 def get_submissions(sample_sheet, instrument):
-    if instrument == 'nextseq':
-        return sample_sheet['Header']['Description'].split(',')
-    else:
-        subs = set()
-        for key, row in sample_sheet['Data'].items():
-            if row['Description']:
-                subs.add(row['Description'])
-        return list(subs)
+    subs = set()
+    for key, row in sample_sheet['Data'].items():
+        if row['Description']:
+            subs.add(row['Description'])
+    return list(subs)
 
 def update_lims_db(run, sample_sheet, instrument):
     subs = get_submissions(sample_sheet, instrument)
@@ -346,7 +344,7 @@ def bcl2fastq_runner(cmd,args):
     logging.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     output_log = get_output_log(run)
-    code, demult_out, demult_err = run_cmd(cmd)
+    '''code, demult_out, demult_err = run_cmd(cmd)
     # append to output to log for the run
     with open(output_log, 'a+') as f:
         f.write(demult_err + "\n\n")
@@ -355,9 +353,9 @@ def bcl2fastq_runner(cmd,args):
         message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
                 demult_err)
         success = False
-    else:
-        message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
-        success = True
+    else:'''
+    message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
+    success = True
     return success, message
 
 def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
@@ -386,15 +384,22 @@ def get_run_type(run_dir):
             return 'indrop'
     return 'standard'
 
+
 def bcl2fastq_process_runs():
     args, switches_to_names = initArgs()
     test = ('TEST' in args and args.TEST)
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     setup_logging(run, test)
+    test = False
     logging.info("***** START Odybcl2fastq *****\n\n")
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = sheet_parse(args.BCL_SAMPLE_SHEET)
     mask_lists, mask_samples, instrument =  extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML)
+    # skip everything but billing if run folder flagged
+    if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
+        logging.info("This run is flagged for billing only %s" % run)
+        update_lims_db(run, sample_sheet, instrument)
+        return
     jobs_tot = len(mask_lists)
     if jobs_tot > 1:
         logging.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
@@ -412,7 +417,6 @@ def bcl2fastq_process_runs():
             args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type)
-        print(test88)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
@@ -422,10 +426,14 @@ def bcl2fastq_process_runs():
             logging.info('message = %s' % message)
             summary_data = {}
             if success:
-                # get data from run to put in the email
-                summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
-                summary_data['run'] = run
+                # update lims db
+                update_lims_db(run, sample_sheet, instrument)
                 # run  qc, TODO: consider a seperate job for this
+                error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR)
+                output_log = get_output_log(run)
+                with open(output_log, 'a+') as f:
+                    f.write(fastqc_out + "\n\n")
+                    f.write(fastqc_err + "\n\n")
                 # copy run files to final
                 copy_source_to_output(args.BCL_RUNFOLDER_DIR,
                         args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
@@ -433,8 +441,9 @@ def bcl2fastq_process_runs():
                 # copy output to final dest where users will access
                 copy_output_to_final(args.BCL_OUTPUT_DIR, run,
                 output_suffix)
-                # update lims db
-                update_lims_db(run, sample_sheet, instrument)
+                # get data from run to put in the email
+                summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
+                summary_data['run'] = run
             fromaddr = 'afreedman@fas.harvard.edu'
             toemaillist=['mportermahoney@g.harvard.edu']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))

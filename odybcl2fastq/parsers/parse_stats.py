@@ -1,7 +1,7 @@
 import os, re
 from odybcl2fastq import UserException
 from collections import OrderedDict
-import constants as const
+import odybcl2fastq.constants as const
 import operator
 import locale
 import numpy
