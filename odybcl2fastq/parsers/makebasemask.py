@@ -63,7 +63,7 @@ def make_mask(universal_mask, sample_key, sample_dict):
         logging.warning('sample mask for %s differs from the universal mask %s vs %s' % (sample_key, json.dumps(sample_mask), json.dumps(universal_mask)))
     return ','.join(sample_mask.values())
 
-def extract_basemasks(data_by_sample, runinfo):
+def extract_basemasks(data_by_sample, runinfo, instrument):
     """
     creates a list of lists that contain masks
     that are compatible being run together in one demultiplexing
@@ -77,8 +77,7 @@ def extract_basemasks(data_by_sample, runinfo):
     mask_list = []
     mask_samples = {}
     mask_lists = {}
-    if 'Lane' in data_by_sample.itervalues().next():
-        instrument = 'hiseq'
+    if instrument == 'hiseq':
         # get mask per sample
         lane_masks=OrderedDict()
         for sample, row in data_by_sample.items():
@@ -99,7 +98,6 @@ def extract_basemasks(data_by_sample, runinfo):
         for mask, lane_masks in mask_lists.items():
             mask_lists[mask] = [lane + ':' + mask for lane, mask in lane_masks.items()]
     else:
-        instrument = 'nextseq'
         for sample, row in data_by_sample.items():
             mask = make_mask(universal_mask, sample, row)
             if not mask_list:
@@ -112,4 +110,4 @@ def extract_basemasks(data_by_sample, runinfo):
         mask_lists[mask] = mask_list
     logging.info('instrument is %s' % instrument)
     logging.info('masks: %s' % json.dumps(mask_lists))
-    return mask_lists, mask_samples, instrument
+    return mask_lists, mask_samples

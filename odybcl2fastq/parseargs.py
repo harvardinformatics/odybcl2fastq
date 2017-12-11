@@ -23,16 +23,16 @@ from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_stats
 from subprocess import Popen,PIPE
 from odybcl2fastq.status_db import StatusDB
-from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
+import odybcl2fastq.parsers.parse_sample_sheet as ss
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
 
 BCL2FASTQ_LOG_DIR = '/n/informatics_external/seq/odybcl2fastq_log/'
-#FINAL_DIR = '/n/ngsdata/odybcltest/'
 FINAL_DIR = '/net/rcstorenfs02/ifs/rc_labs/ngsdata/odybcl2fastq_test/'
 #FINAL_DIR = '/net/rcstorenfs02/ifs/rc_labs/ngsdata/'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
 INDROP_FILE = 'indrop.txt'
+TO_EMAIL = ['mportermahoney@g.harvard.edu']
 
 def initArgs():
     '''
@@ -393,8 +393,9 @@ def bcl2fastq_process_runs():
     test = False
     logging.info("***** START Odybcl2fastq *****\n\n")
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
-    sample_sheet = sheet_parse(args.BCL_SAMPLE_SHEET)
-    mask_lists, mask_samples, instrument =  extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML)
+    sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
+    instrument = ss.get_instrument(sample_sheet['Data'])
+    mask_lists, mask_samples = extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML, instrument)
     # skip everything but billing if run folder flagged
     if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
         logging.info("This run is flagged for billing only %s" % run)
@@ -445,7 +446,7 @@ def bcl2fastq_process_runs():
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
             fromaddr = 'afreedman@fas.harvard.edu'
-            toemaillist=['mportermahoney@g.harvard.edu']
+            toemaillist = os.getenv('ODYBCL2FASTQ_TO_EMAIL', TO_EMAIL)
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             buildmessage(message, run, summary_data, fromaddr, toemaillist)
         job_cnt += 1

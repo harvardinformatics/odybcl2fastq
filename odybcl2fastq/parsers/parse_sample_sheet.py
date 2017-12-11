@@ -88,5 +88,10 @@ def sheet_parse(samplesheet=None):
          raise ValueError('No data for samples present')
     return defaults_by_section
 
-
+def get_instrument(sample_data):
+    if 'Lane' in sample_data.itervalues().next():
+        instrument = 'hiseq'
+    else:
+        instrument = 'nextseq'
+    return instrument
 
