@@ -344,7 +344,7 @@ def bcl2fastq_runner(cmd,args):
     logging.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     output_log = get_output_log(run)
-    '''code, demult_out, demult_err = run_cmd(cmd)
+    code, demult_out, demult_err = run_cmd(cmd)
     # append to output to log for the run
     with open(output_log, 'a+') as f:
         f.write(demult_err + "\n\n")
@@ -353,9 +353,9 @@ def bcl2fastq_runner(cmd,args):
         message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
                 demult_err)
         success = False
-    else:'''
-    message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
-    success = True
+    else:
+        message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
+        success = True
     return success, message
 
 def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
