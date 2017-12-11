@@ -1,0 +1,33 @@
+[Header],,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,
+Investigator Name,20171010alsotest,,,,,,,,,
+Experiment Name,20171010test,,,,,,,,,
+Date,10/10/2017,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,
+Application,HiSeq FASTQ Only,,,,,,,,,
+Assay,Nextera XT,,,,,,,,,
+Description,20171010alsoalsotest,,,,,,,,,
+Chemistry,Amplicon,,,,,,,,,
+,,,,,,,,,,
+[Reads],,,,,,,,,,
+26,,,,,,,,,,
+134,,,,,,,,,,
+,,,,,,,,,,
+[Settings],,,,,,,,,,
+CustomRead1PrimerMix,C1,,,,,,,,,
+CustomIndexPrimerMix,C2,,,,,,,,,
+CustomRead2PrimerMix,C3,,,,,,,,,
+ReverseComplement,1,,,,,,,,,
+Adapter,CTGTCTCTTATACACATCT,,,,,,,,,
+,,,,,,,,,,
+[Data],,,,,,,,,,
+Lane,Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Description
+1,MDT1_SI_GA_A11_1,MDT1_SI_GA_A11_1,,,,GTCCGGTC,,,bambahmukku,SUB06264
+1,MDT1_SI_GA_A11_2,MDT1_SI_GA_A11_2,,,,AAGATCAT,,,bambahmukku,SUB06264
+1,MDT1_SI_GA_A11_3,MDT1_SI_GA_A11_3,,,,CCTGAAGG,,,bambahmukku,SUB06264
+1,MDT1_SI_GA_A11_4,MDT1_SI_GA_A11_4,,,,TGATCTCA,,,bambahmukku,SUB06264
+2,MDT1_SI_GA_A11_1,MDT1_SI_GA_A11_1,,,,GTCCGGTC,,,bambahmukku,SUB06264
+2,MDT1_SI_GA_A11_2,MDT1_SI_GA_A11_2,,,,AAGATCAT,,,bambahmukku,SUB06264
+2,MDT1_SI_GA_A11_3,MDT1_SI_GA_A11_3,,,,CCTGAAGG,,,bambahmukku,SUB06264
+2,MDT1_SI_GA_A11_4,MDT1_SI_GA_A11_4,,,,TGATCTCA,,,bambahmukku,SUB06264
+,,,,,,,,,,
