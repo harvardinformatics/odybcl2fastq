@@ -19,14 +19,14 @@ from datetime import datetime
 from multiprocessing import Pool
 from odybcl2fastq import config
 from odybcl2fastq import constants as const
-import odybcl2fastq.odybcl2fastq as odybcl2fastq
+from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 
 LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
-DAYS_TO_SEARCH = 14
+DAYS_TO_SEARCH = 2
 INCOMPLETE_AFTER_DAYS = 1
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
@@ -34,7 +34,7 @@ SEARCH_AFTER_DATE = datetime.strptime('Nov 1 2017', '%b %d %Y')
 # TODO: seqprep looks for required file runParameters.xml or RunParameters.xml,
 # do we need to check for that?
 REQUIRED_FILES = ['SampleSheet.csv', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
-PROC_NUM = 3
+PROC_NUM = 1
 FREQUENCY = 60
 
 def setup_logging():
@@ -48,7 +48,7 @@ def setup_logging():
     logging.getLogger().addHandler(logging.StreamHandler())
 
 def failure_email(run, cmd, ret_code, std_out, std_err):
-    log = odybcl2fastq.get_output_log(run)
+    log = ody_run.get_output_log(run)
     subject =  "Run Failed: %s" % run
     message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
             " error: %s\nsee log: %s\n" % (subject, cmd, ret_code, std_out, std_err, log))
@@ -123,7 +123,7 @@ def get_odybcl2fastq_cmd(run_dir):
     run = os.path.basename(os.path.normpath(run_dir))
     params = {
         'runfolder': os.path.dirname(run_dir),
-        'output-dir': congig.OUTPUT_DIR + run,
+        'output-dir': config.OUTPUT_DIR + run,
         'sample-sheet': run_dir + 'SampleSheet_new.csv',
         'runinfoxml': run_dir + 'RunInfo.xml'
     }
@@ -133,7 +133,7 @@ def get_odybcl2fastq_cmd(run_dir):
         args.append(opt_flag +  opt)
         if val:
             args.append(val)
-    return 'python ' + ROOT_DIR + '/odybcl2fastq/run.py ' + ' '.join(args)
+    return 'python ' + const.APP_DIR + 'run.py ' + ' '.join(args)
 
 def run_odybcl2fastq(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
@@ -154,6 +154,7 @@ def notify_incomplete_runs():
 def process_runs(pool, proc_num):
     runs_found = runs_to_process()
     run_dirs = runs_found[:proc_num]
+    print(run_dirs)
     if run_dirs:
         logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
             json.dumps(run_dirs)))
