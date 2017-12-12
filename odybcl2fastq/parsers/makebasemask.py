@@ -1,155 +1,113 @@
 from odybcl2fastq.parsers.parse_runinfoxml import get_readinfo_from_runinfo
-from odybcl2fastq.parsers.parse_sample_sheet import sheet_parse
 from odybcl2fastq import UserException
 from collections import OrderedDict,defaultdict
 from copy import copy
-from sets import Set
+import json
+import logging
+
+NUTRAL_BASE = 'n'
 
 def make_universal_mask(rundata_by_read):
     universal_mask=OrderedDict()
     mask_type={'Y':'i','N':'y'}
-    for read in rundata_by_read.keys():
-        mask_value = rundata_by_read[read]['NumCycles']
-        universal_mask[read] = '%s%s' % (mask_type[rundata_by_read[read]['IsIndexedRead']],mask_value)
-    
+    for read, data in rundata_by_read.items():
+        mask_value = data['NumCycles']
+        indexed = data['IsIndexedRead']
+        if indexed not in mask_type:
+            raise UserException('IsIndexedRead was a value not in %s: %s' % (json.dumps(mask_type), data['IsIndexedRead']))
+        universal_mask[read] = '%s%s' % (mask_type[indexed],mask_value)
     return universal_mask
 
+def update_mask_index(index, mask, sample):
+    if 'i' in mask:
+        bases = len(index)
+        if bases <= 0:
+            raise UserException('sample %s index has zero bases' % sample)
+        prev_bases = int(mask.replace('i', ''))
+        nutral_base = ''
+        if prev_bases > bases:
+            diff = prev_bases - bases
+            nutral_base = NUTRAL_BASE * diff
+        mask = 'i%s' % (str(bases) + nutral_base)
+    else:
+        raise UserException('# of runinfo reads inconsistent with sample sheet Recipe setting for %s' % sample)
+    return mask
 
-def make_nextseq_mask(universal_mask,sample_dict,legacytrim = True):
-    #index1_length = int(universal_mask['read2'][1:])
-    #if len(sample_dict['index']) != index1_length:
-    #    print('WARNING: sample 1st index of different length than determined from RunInfo.xml for %s' % sample_dict['Sample_Name'])        
-    #    universal_mask['read2']='i%s' % len(sample_dict['index']) 
-    #if 'i' in universal_mask['read3']:
-    #    index2_length = int(universal_mask['read3'][1:])
-    #    if len(sample_dict['index2']) != index2_length:
-    #        universal_mask['read3']='i%s' % len(sample_dict['index2'])
-    universal_mask = copy(universal_mask)
-    index1_length = int(universal_mask['read2'][1:])
-    if len(sample_dict['index']) != index1_length:
-        raise UserException('index 1 length inconsistent with sample: %s' % sample_dict['Sample_ID'])
-    if 'i' in universal_mask['read3']:
-        index2_length = int(universal_mask['read3'][1:]) 
-        if len(sample_dict['index2']) != index2_length:
-            raise UserException('index 2 length inconsistent with sample: %s' % sample_dict['Sample_ID'])
-    if legacytrim == True:
-        print 'universal mask is', universal_mask
-        for read in universal_mask.keys():
-            if 'y' == universal_mask[read][0]:
-                newmask = 'y%sN' % str(int(universal_mask[read][1:])-1)
-                universal_mask[read] = newmask 
-
-    return ','.join(universal_mask.values())    
-
-
-def make_hiseq_mask(universal_mask,sample_key,sample_dict,legacytrim = True):
+def make_mask(universal_mask, sample_key, sample_dict):
+    # sample mask is based on universal mask from run info
     sample_mask = copy(universal_mask)
-    print 'sampledict is', sample_dict 
-    if '_' not in sample_dict['Recipe']: # single indexed
-        if len(sample_mask.keys()) in [2,3]: # single or paired end
-            sample_mask['read2'] = 'i%s' % sample_dict['Recipe']
-        else:
-            raise UserException('# of runinfo reads inconsistent with sample sheet Recipe setting for %s' % sample_key)
-    elif '_' in sample_dict['Recipe']: # dual indexed
-        if 'i' in sample_mask['read2'] and 'i' in sample_mask['read3']:
-            sample_mask['read2'] = 'i%s' % sample_dict['Recipe'].split('_')[0]
-            sample_mask['read3'] = 'i%s' % sample_dict['Recipe'].split('_')[1]
-        else:
-            raise UserException('# of runinfo reads inconsistent with sample sheet Recipe setting for %s' % sample_key)            
-    
-    if legacytrim == True:
-        for read in sample_mask.keys():
-            if 'y' == sample_mask[read][0]:
-                newmask = '%sN' % str(int(sample_mask[read][1:])-1)
-            elif 'i' == sample_mask[read][0]:
-                newmask = '%sN' % sample_mask[read]   
-                sample_mask[read] = newmask
-            else:
-                raise UserException('Unknown sample mask type for HiSeq sample %s' % sample_key)   
+    # limit indexes to length in recipe
+    if 'Recipe' in sample_dict and sample_dict['Recipe']:
+        recipe = sample_dict['Recipe'].split('_')
+        if 'index' in sample_dict:
+            sample_dict['index'] = sample_dict['index'][:int(recipe[0])]
+        if 'index2' in sample_dict and sample_dict['index2']:
+            sample_dict['index2'] = sample_dict['index2'][:int(recipe[1])]
+    # update index lengths from sample sheet
+    if 'index' in sample_dict: # both single and dual
+        if 'read2' in sample_mask:
+            sample_mask['read2'] = update_mask_index(sample_dict['index'],
+                    sample_mask['read2'], sample_key)
+    else:
+        raise UserException('no index in sample sheet for %s' % sample_key)
+    if 'index2' in sample_dict and sample_dict['index2']: # dual indexed
+        sample_mask['read3'] = update_mask_index(sample_dict['index2'],
+                sample_mask['read3'], sample_key)
+    elif 'read3' in sample_mask and 'i' in sample_mask['read3']:
+        # if the universal mask had a indexed read3 but this sample doesn't, add nutral
+        cnt = int(sample_mask['read3'][1:])
+        sample_mask['read3'] = NUTRAL_BASE * cnt
+    logging.info('sample %s mask is: %s' % (sample_key, sample_mask))
+    if sample_mask != universal_mask:
+        #TODO: consider removing this, too noisy
+        logging.warning('sample mask for %s differs from the universal mask %s vs %s' % (sample_key, json.dumps(sample_mask), json.dumps(universal_mask)))
+    return ','.join(sample_mask.values())
 
-    lane,mask = sample_dict['Lane'],','.join(sample_mask.values())
-
-    return lane,mask            
-
-
-def collapse_hiseq_masks(mask_lanes_dict,queues): # unique_masks is a python set
-    """
-    for hiseq runs, creates a list of lists, where each list represents a set
-    of masks that can be run concurrently in a single demultiplexing run that
-    obeys the following rule: each lane can have a separate mask but no lane
-    can have multiple masks. this function build sets of masks for the minimum
-    number of demultiplex runs necessary to handle all samples properly.
-    """
- 
-    queue = {}
-    masks = mask_lanes_dict.keys()
-    for mask in masks:
-        lanes = mask_lanes_dict[mask]
-        for i,lane in enumerate(lanes):
-            if lane not in queue.keys():
-                queue[lane] = mask
-                mask_lanes_dict[mask].pop(i)
-        if len(mask_lanes_dict[mask]) == 0:
-            mask_lanes_dict.pop(mask)                 
-                    
-    queues.append(queue) 
-    if len(mask_lanes_dict) != 0:
-        collapse_hiseq_masks(mask_lanes_dict,queues)
-    
-    queue_lists = []
-    for queue in queues:
-        queue_list = [key+':'+queue[key] for key in queue.keys()]
-        queue_lists.append(queue_list)
-    return queue_lists
-    
-     
-def extract_basemasks(runinfo,sample_sheet):
+def extract_basemasks(data_by_sample, runinfo, instrument):
     """
     creates a list of lists that contain masks
     that are compatible being run together in one demultiplexing
     instance, regardless of instrument; nextseq must run each different
     mask separately, while hiseq can handle different masks for different
-    lanes but not different masks for the same lane
+    lanes but if masks are different for same lane then it will require multiple
+    demultiplexing runs
     """
     rundata_by_read = get_readinfo_from_runinfo(runinfo)
-    data_by_sample = sheet_parse(sample_sheet)['Data']
     universal_mask=make_universal_mask(rundata_by_read)
-    sample_masks=OrderedDict() # keep for figuring out which basemask runs to send to which clients ?
-    unique_masks = Set()
-
-    if 'Lane' in data_by_sample[data_by_sample.keys()[0]]:
-        instrument = 'hiseq'
-        for sample in data_by_sample.keys():
-            lane,mask = make_hiseq_mask(universal_mask,sample,data_by_sample[sample])
-            sample_masks[sample] = ':'.join([lane,mask])
-            unique_masks.add(sample_masks[sample]) 
-           
-        if len(Set([mask.split(':')[1] for mask in unique_masks])) == 1:
-            queue_lists = [list(list(Set([mask.split(':')[1] for mask in unique_masks])))]
-        else:
-            mask_lanes_dict = defaultdict(list)
-            for mask in unique_masks:
-                mask_lanes_dict[mask.split(':')[1]].append(mask.split(':')[0])
-            queues = []
-            queue_lists = collapse_hiseq_masks(mask_lanes_dict,queues)
-                
+    mask_list = []
+    mask_samples = {}
+    mask_lists = {}
+    if instrument == 'hiseq':
+        # get mask per sample
+        lane_masks=OrderedDict()
+        for sample, row in data_by_sample.items():
+            mask = make_mask(universal_mask, sample, row)
+            lane = row['Lane']
+            if lane not in lane_masks:
+                lane_masks[lane] = set()
+            lane_masks[lane].add(mask)
+            if mask not in mask_samples:
+                mask_samples[mask] = []
+            mask_samples[mask].append(row)
+            logging.info('adding mask %s for lane %s' % (mask, lane))
+        for lane, masks in lane_masks.items():
+            for mask in list(masks):
+                if mask not in mask_lists:
+                    mask_lists[mask] = OrderedDict()
+                mask_lists[mask][lane] = mask
+        for mask, lane_masks in mask_lists.items():
+            mask_lists[mask] = [lane + ':' + mask for lane, mask in lane_masks.items()]
     else:
-        instrument = 'nextseq'
-        for sample in data_by_sample.keys():
-            sample_mask = make_nextseq_mask(universal_mask,data_by_sample[sample])    
-            sample_masks[sample] = sample_mask
-            unique_masks.add(sample_masks[sample])
-        
-            queue_lists = []
-            for mask in unique_masks:
-                queue_lists.append([mask])
-                
-    """deal with odd case where the run info has index settings
-       but the hiseq run has recipe == 0, i.e. the instrument is forced
-       to look for indices but there is truly no multiplexing
-    """
-
-    if instrument == 'hiseq' and len(queue_lists) == 1 and 'i0' in queue_lists[0][0]:
-        removed_mask = queue_lists.pop() 
-        print('WARNING: index length of zero detected for hiseq sample, removing associated mask: %s' % removed_mask)          
-    return queue_lists,instrument                
+        for sample, row in data_by_sample.items():
+            mask = make_mask(universal_mask, sample, row)
+            if not mask_list:
+                mask_list = [mask]
+            elif mask not in mask_list:
+                raise UserException('nextseq sample mask for %s differs from another sample %s vs %s' % (sample, mask, mask_list[0]))
+            if mask not in mask_samples:
+                mask_samples[mask] = []
+            mask_samples[mask].append(row)
+        mask_lists[mask] = mask_list
+    logging.info('instrument is %s' % instrument)
+    logging.info('masks: %s' % json.dumps(mask_lists))
+    return mask_lists, mask_samples

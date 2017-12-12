@@ -2,32 +2,21 @@
 {% block title %}{{subject}}{% endblock title %}
 {% block content %}
     <h3>{{run}}</h3>
-    <p>Anaylses {{lanes|length}}</p>
+    <h3>{{instrument|title}}
+    {% if lanes|length > 1 %}
+         Total Anaylses {{lanes|length}}
+    {% endif %}
+    </h3>
     {% for name, lane in lanes.items() %}
-        <h3>Analysis: {{name}}</h3>
+        <h4>Analysis: {{name}}</h4>
         <p>Reads (R1+R2): {{lane['reads']}}<br>
-        Number of samples: {{lane['sample_num']}}</p>
-        {% if lane['lane_summary'] %}
+        Number of samples: {{lane['sam_num']}}</p>
+        {% if lane['samples'] %}
             <table cellspacing="0" cellpadding="10" border="1px">
-            {% for h in lane['lane_summary'][0].keys() %}
-            <th>{{h|title}}</th>
-            {% endfor %}
-            {% for row in lane['lane_summary'] %}
-            <tr>
-                {% for v in row.values() %}
-                <td>{{v}}</td>
-                {% endfor %}
-            </tr>
-            {% endfor %}
-            </table>
-            <br><br>
-        {% endif %}
-        {% if lane['sample_summary'] %}
-            <table cellspacing="0" cellpadding="10" border="1px">
-            {% for h in lane['sample_summary'][0].keys() %}
+            {% for h in lane['samples'].itervalues().next().keys() %}
                 <th>{{h|title}}</th>
             {% endfor %}
-            {% for row in lane['sample_summary'] %}
+            {% for row in lane['samples'].values() %}
             <tr>
                 {% for v in row.values() %}
                     <td>{{v}}</td>
@@ -38,6 +27,14 @@
             <br><br>
         {% endif %}
     {% endfor %}
+    {% if undetermined %}
+    <h4>Top undetermined indices (count > 1,000,000)</h4>
+    <table>
+        {% for index, cnt in undetermined.items() %}
+        <tr><td>{{index}}</td><td>{{cnt}}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
     <h3>Letter</h3>
     <p>
     Hi all,<br><br>
