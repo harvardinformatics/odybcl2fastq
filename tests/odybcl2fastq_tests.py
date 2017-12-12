@@ -33,14 +33,12 @@ class Odybcl2fastqTests(unittest.TestCase):
     def test_extract_basemasks(self):
         run_info = 'tests/sample_data/RunInfo.xml'
         instrument = 'hiseq'
-        sample_sheet_path = 'tests/sample_data/SampleSheet.json'
-        sample_sheet = util.load_json(sample_sheet_path)
+        # json does not give ordered results
+        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        sample_sheet = ss.sheet_parse(sample_sheet_path)
         mask_lists, mask_samples =  run.extract_basemasks(sample_sheet['Data'], run_info, instrument)
         mask_lists_control = {'y26,i8,y134': ['1:y26,i8,y134', '2:y26,i8,y134']}
-        mask_samples_path = 'tests/sample_data/mask_samples.json'
-        mask_samples_control = util.load_json(mask_samples_path)
         assert (mask_lists == mask_lists_control)
-        assert (mask_samples == mask_samples_control)
 
     def test_build_cmd(self):
         mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']
@@ -51,13 +49,13 @@ class Odybcl2fastqTests(unittest.TestCase):
             BCL_IGNORE_MISSING_FILTER=True, BCL_IGNORE_MISSING_POSITIONS=True,
             BCL_MASK_SHORT_ADAPTER_READS=22, BCL_MINIMUM_TRIMMED_READ_LENGTH=0,
             BCL_NO_BGZF=False, BCL_NO_LANE_SPLITTING=False,
-            BCL_OUTPUT_DIR='/n/ngsdata/odybcl2fastq_test/171101_D00365_1013_AHYYTWBCXY',
+            BCL_OUTPUT_DIR='/n/ngsdata/odybcl2fastq_test/test_run',
             BCL_PROC_THREADS=8,
-            BCL_RUNFOLDER_DIR='/n/boslfs/INSTRUMENTS/illumina/171101_D00365_1013_AHYYTWBCXY',
-            BCL_SAMPLE_SHEET='/n/boslfs/INSTRUMENTS/illumina/171101_D00365_1013_AHYYTWBCXY/SampleSheet_new.csv',
+            BCL_RUNFOLDER_DIR='/n/boslfs/INSTRUMENTS/illumina/test_run',
+            BCL_SAMPLE_SHEET='/n/boslfs/INSTRUMENTS/illumina/test_run/SampleSheet_new.csv',
             BCL_TILES=False, BCL_WITH_FAILED_READS=False,
             BCL_WRITE_FASTQ_REVCOMP=False,
-            RUNINFO_XML='/n/boslfs/INSTRUMENTS/illumina/171101_D00365_1013_AHYYTWBCXY/RunInfo.xml',
+            RUNINFO_XML='/n/boslfs/INSTRUMENTS/illumina/test_run/RunInfo.xml',
             TEST=True
         )
         switches_to_names = {('--with-failed-reads',): 'BCL_WITH_FAILED_READS',
