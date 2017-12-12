@@ -2,6 +2,7 @@ import os
 import stat
 import logging
 import shutil
+import json
 
 def chmod_rec(path, d_permissions, f_permissions):
     '''
@@ -37,4 +38,8 @@ def copy(src, dest):
         print('copyfile')
     logging.info('Successfully copied %s to %s' % (src, dest))
 
-
+def load_json(path):
+    obj = {}
+    with open(path, 'r') as data:
+        obj = json.load(data)
+    return obj

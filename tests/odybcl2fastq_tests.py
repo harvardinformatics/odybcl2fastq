@@ -3,7 +3,8 @@ import os
 import csv
 import json
 from argparse import Namespace
-import odybcl2fastq.odybcl2fastq as odybcl2fastq
+import odybcl2fastq.util as util
+import odybcl2fastq.odybcl2fastq_run as odybcl2fastq_run
 import odybcl2fastq.parsers.parse_sample_sheet as ss
 
 class Odybcl2fastqTests(unittest.TestCase):
@@ -25,7 +26,7 @@ class Odybcl2fastqTests(unittest.TestCase):
     def test_get_instrument(self):
         run_info = 'tests/sample_data/RunInfo.xml'
         sample_sheet_path = 'tests/sample_data/SampleSheet.json'
-        sample_sheet = self._load_json(sample_sheet_path)
+        sample_sheet = util.load_json(sample_sheet_path)
         instrument =  ss.get_instrument(sample_sheet['Data'])
         assert instrument == 'hiseq'
 
@@ -33,19 +34,13 @@ class Odybcl2fastqTests(unittest.TestCase):
         run_info = 'tests/sample_data/RunInfo.xml'
         instrument = 'hiseq'
         sample_sheet_path = 'tests/sample_data/SampleSheet.json'
-        sample_sheet = self._load_json(sample_sheet_path)
-        mask_lists, mask_samples =  odybcl2fastq.extract_basemasks(sample_sheet['Data'], run_info, instrument)
+        sample_sheet = util.load_json(sample_sheet_path)
+        mask_lists, mask_samples =  odybcl2fastq_run.extract_basemasks(sample_sheet['Data'], run_info, instrument)
         mask_lists_control = {'y26,i8,y134': ['1:y26,i8,y134', '2:y26,i8,y134']}
         mask_samples_path = 'tests/sample_data/mask_samples.json'
-        mask_samples_control = self._load_json(mask_samples_path)
+        mask_samples_control = util.load_json(mask_samples_path)
         assert (mask_lists == mask_lists_control)
         assert (mask_samples == mask_samples_control)
-
-    def _load_json(self, path):
-        obj = {}
-        with open(path, 'r') as data:
-            obj = json.load(data)
-        return obj
 
     def test_build_cmd(self):
         mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']
@@ -92,8 +87,8 @@ class Odybcl2fastqTests(unittest.TestCase):
         }
         run_type = None
         cmd_path = 'tests/sample_data/cmd.json'
-        cmd_control = self._load_json(cmd_path)
-        cmd = odybcl2fastq.bcl2fastq_build_cmd(args,
+        cmd_control = util.load_json(cmd_path)
+        cmd = odybcl2fastq_run.bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type)
         assert cmd == cmd_control
 
