@@ -17,13 +17,12 @@ import subprocess
 import json
 from datetime import datetime
 from multiprocessing import Pool
+from odybcl2fastq import config
+from odybcl2fastq import constants as const
 import odybcl2fastq.odybcl2fastq as odybcl2fastq
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 
-SOURCE_DIR = '/n/boslfs/INSTRUMENTS/illumina/'
-OUTPUT_DIR = '/n/regal/informatics/mportermahoney/odytest/'
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOG_FILE = ROOT_DIR + '/odybcl2fastq.log'
+LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
@@ -57,8 +56,8 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
 
 def send_email(message, subject):
     logging.warning(message)
-    fromaddr = 'afreedman@fas.harvard.edu'
-    toemaillist=['mportermahoney@g.harvard.edu']
+    fromaddr = config.EMAIL['from_email']
+    toemaillist=config.EMAIL['to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
 
 def touch(run_dir, file):
@@ -107,7 +106,7 @@ def run_is_incomplete(dir):
 
 def find_runs(filter):
     # get all subdirectories
-    dirs = sorted(glob.glob(SOURCE_DIR + '*/'))
+    dirs = sorted(glob.glob(config.SOURCE_DIR + '*/'))
     runs = []
     for dir in dirs:
         if filter(dir):
@@ -124,7 +123,7 @@ def get_odybcl2fastq_cmd(run_dir):
     run = os.path.basename(os.path.normpath(run_dir))
     params = {
         'runfolder': os.path.dirname(run_dir),
-        'output-dir': OUTPUT_DIR + run,
+        'output-dir': congig.OUTPUT_DIR + run,
         'sample-sheet': run_dir + 'SampleSheet_new.csv',
         'runinfoxml': run_dir + 'RunInfo.xml'
     }
@@ -134,7 +133,7 @@ def get_odybcl2fastq_cmd(run_dir):
         args.append(opt_flag +  opt)
         if val:
             args.append(val)
-    return 'python ' + ROOT_DIR + '/odybcl2fastq/odybcl2fastq.py ' + ' '.join(args)
+    return 'python ' + ROOT_DIR + '/odybcl2fastq/run.py ' + ' '.join(args)
 
 def run_odybcl2fastq(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,

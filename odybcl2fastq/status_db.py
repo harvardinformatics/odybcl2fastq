@@ -2,22 +2,15 @@ import os
 import json
 import time
 import MySQLdb
-import odybcl2fastq.const as const
-
-DATA_URL = 'https://software.rc.fas.harvard.edu/ngsdata/'
+from odybcl2fastq import config
 
 class StatusDB(object):
     def __init__(self):
-        curr_dir = os.path.dirname(os.path.realpath(__file__))
-        secret_path= curr_dir + '/secret.json'
-        with open(secret_path) as f:
-            conn = json.load(f)
-        conn = conn['StatusDB']
         self.db = MySQLdb.connect(
-                host = conn['host'],
-                user = conn['user'],
-                passwd = conn['password'],
-                db = conn['database']
+                host = config.STATUSDB['host'],
+                user = config.STATUSDB['user'],
+                passwd = config.STATUSDB['password'],
+                db = config.STATUSDB['database']
         )
 
     def minilims_select(self, thing = None, name = None, property = None, value
@@ -72,7 +65,7 @@ class StatusDB(object):
         if row_cnt == 0:
             name = self.minilims_get_new_name(analysis_table, 'ILL')
             data = {
-                'Data_Directory': const.DATA_DIR + run,
+                'Data_Directory': config.MOUNT_DIR + run,
                 'Date_Created': now,
                 'Date_Modified': now,
                 'Illumina_BclConversion_Analysis': name,
@@ -80,7 +73,7 @@ class StatusDB(object):
                 'Name': name,
                 'Status': 'COMPLETE',
                 'Submission': subs_str,
-                'Web_Link': DATA_URL + run
+                'Web_Link': config.FASTQ_URL + run
             }
             self.minilims_insert(data, 'Illumina_Bcl_Conversion_Analysis', name)
         else:

@@ -9,6 +9,7 @@ import logging
 def fastqc_runner(output_dir,numthreads = 1,batch = False):
     errors = []
     badfiles = []
+    out = []
     # get fastq files except undetermined
     files = ' '.join(glob('%s/*/[!Undetermined]*fastq*.gz' % output_dir))
     print 'files are', files
@@ -25,7 +26,7 @@ def fastqc_runner(output_dir,numthreads = 1,batch = False):
             errors.append(fastqc_err)
             for file in files.split():
                 badfiles.append(os.pathbasename(file))
-            out.append(fastqc_out)
+        out.append(fastqc_out)
     else:
         for file in files.split():
             print 'file is', os.path.basename(file)
@@ -39,8 +40,6 @@ def fastqc_runner(output_dir,numthreads = 1,batch = False):
                     logging.info("FASTQC failed for: " + file)
                 else:
                     logging.info("FASTQC complete successfully for: " + file)
-                    print(fastqc_out)
-                    print(fastqc_err)
                 badfiles.append(os.path.basename(file))
                 errors.append(fastqc_err)
                 out.append(fastqc_out)
