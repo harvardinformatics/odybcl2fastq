@@ -1,0 +1,21 @@
+{
+    "SOURCE_DIR": "",
+    "OUTPUT_DIR": "",
+    "FINAL_DIR": "",
+    "FASTQ_URL": "",
+    "MOUNT_DIR": "",
+    "LOG_DIR": "",
+
+    "EMAIL": {
+        "to_email": [""],
+        "from_email": [""],
+        "smtp": ""
+    },
+
+    "STATUSDB": {
+        "host": "",
+        "user": "",
+        "password": "",
+        "database": ""
+    }
+}
