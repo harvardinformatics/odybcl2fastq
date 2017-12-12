@@ -15,7 +15,7 @@ def generateMessageId():
 
 def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemaillist=[], bccemaillist=[], server=None):
     if not server:
-        server = config.EMAIL['smpt']
+        server = config.EMAIL['smtp']
     msg = MIMEMultipart()
     msg['Message-ID'] = generateMessageId()
     msg['From'] = fromaddr

@@ -37,7 +37,7 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
             'stats_file': stats_path,
             'sample_sheet': get_sample_sheet(sample_sheet_dir),
             'fastq_url': config.FASTQ_URL,
-            'fastq_dir': config.FASTQ_DIR,
+            'fastq_dir': config.MOUNT_DIR,
             'undetermined': undetermined
     }
     logging.info("summary_data for email: %s\n" % json.dumps(summary_data))
