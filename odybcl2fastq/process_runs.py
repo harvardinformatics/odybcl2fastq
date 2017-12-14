@@ -30,9 +30,7 @@ DAYS_TO_SEARCH = 2
 INCOMPLETE_AFTER_DAYS = 1
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
-SEARCH_AFTER_DATE = datetime.strptime('Nov 1 2017', '%b %d %Y')
-# TODO: seqprep looks for required file runParameters.xml or RunParameters.xml,
-# do we need to check for that?
+SEARCH_AFTER_DATE = datetime.strptime('Dec 13 2017', '%b %d %Y')
 REQUIRED_FILES = ['SampleSheet.csv', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = 1
 FREQUENCY = 60
@@ -154,7 +152,6 @@ def notify_incomplete_runs():
 def process_runs(pool, proc_num):
     runs_found = runs_to_process()
     run_dirs = runs_found[:proc_num]
-    print(run_dirs)
     if run_dirs:
         logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
             json.dumps(run_dirs)))
@@ -196,6 +193,6 @@ if __name__ == "__main__":
             if frequency != FREQUENCY:
                 logging.info("Frequency is not default: %i\n" % frequency)
             time.sleep(frequency)
-            pool.close()
+        pool.close()
     except Exception as e:
         logging.exception(e)
