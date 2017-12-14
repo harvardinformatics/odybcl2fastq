@@ -122,7 +122,7 @@ def get_odybcl2fastq_cmd(run_dir):
     params = {
         'runfolder': os.path.dirname(run_dir),
         'output-dir': config.OUTPUT_DIR + run,
-        'sample-sheet': run_dir + 'SampleSheet_new.csv',
+        'sample-sheet': run_dir + 'SampleSheet_odybcl2fastq.csv',
         'runinfoxml': run_dir + 'RunInfo.xml'
     }
     args = []
