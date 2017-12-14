@@ -447,6 +447,7 @@ def bcl2fastq_process_runs():
             buildmessage(message, run, summary_data, fromaddr, toemaillist)
         job_cnt += 1
     logging.info("***** END Odybcl2fastq *****\n\n")
+    return success
 
 def get_output_log(run):
     return config.LOG_DIR + run + '.log'
