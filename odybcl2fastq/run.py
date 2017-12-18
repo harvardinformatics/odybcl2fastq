@@ -244,10 +244,12 @@ def get_submissions(sample_sheet, instrument):
     return list(subs)
 
 def update_lims_db(run, sample_sheet, instrument):
+    logging.info('Start db update for %s\n' % run)
     subs = get_submissions(sample_sheet, instrument)
     stdb = StatusDB()
     analysis = stdb.insert_analysis(run, ', '.join(subs))
     stdb.link_run_and_subs(run, subs)
+    logging.info('End db update for %s\n' % analysis)
 
 def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     # copy important source files to the output dir they will then be moved to

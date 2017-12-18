@@ -31,7 +31,7 @@ INCOMPLETE_AFTER_DAYS = 1
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Dec 13 2017', '%b %d %Y')
-REQUIRED_FILES = ['SampleSheet.csv', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
+REQUIRED_FILES = ['SampleSheet_odybcl2fastq.csv', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = 1
 FREQUENCY = 60
 
@@ -172,7 +172,6 @@ def process_runs(pool, proc_num):
                 touch(run_dir, COMPLETE_FILE)
             else:
                 failed_runs.append(run)
-                failure_email(run, cmd, ret_code, std_out, std_err)
         logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
                 (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
 
