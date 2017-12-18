@@ -151,7 +151,7 @@ def initArgs():
             'switches'  : ['--no-lane-splitting'],
             'required'  : False,
             'help'      : 'do not split fastq by lane',
-            'default'   : False,
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -332,8 +332,6 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
             else:
                 cmdstrings.append(' '.join([switch,argvalue]))
     fout.close()
-    if instrument == 'hiseq':
-        cmdstrings.append('--no-lane-split')
     if run_type == 'indrop':
         cmdstrings.append('--create-fastq-for-index-reads')
     cmdstring=' '.join(cmdstrings)
@@ -449,7 +447,7 @@ def bcl2fastq_process_runs():
             buildmessage(message, run, summary_data, fromaddr, toemaillist)
         job_cnt += 1
     logging.info("***** END Odybcl2fastq *****\n\n")
-    return success
+    return (0 if success else 1)
 
 def get_output_log(run):
     return config.LOG_DIR + run + '.log'
