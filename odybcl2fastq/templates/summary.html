@@ -7,6 +7,21 @@
          Total Anaylses {{lanes|length}}
     {% endif %}
     </h3>
+    {% if lane_sum %}
+        <table cellspacing="0" cellpadding="10" border="1px">
+        {% for h in lane_sum[0].keys() %}
+            <th>{{h|title}}</th>
+        {% endfor %}
+        {% for row in lane_sum %}
+        <tr>
+            {% for v in row.values() %}
+                <td>{{v}}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+        </table>
+        <br><br>
+    {% endif %}
     {% for name, lane in lanes.items() %}
         <h4>Analysis: {{name}}</h4>
         <p>Reads (R1+R2): {{lane['reads']}}<br>

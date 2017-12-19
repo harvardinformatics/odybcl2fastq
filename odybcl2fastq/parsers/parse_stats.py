@@ -23,8 +23,12 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
         raise UserException('Stats file empty: %s' % stats_path)
     # parse stats for both hiseq and nextseq
     lanes = get_stats(data)
+    lane_sum = []
     if instrument == 'nextseq':
         # no real lanes in nextseq, aggregate the stats
+
+        print(lanes[1])
+        lane_sum = get_lane_sum(lanes)
         lanes = aggregate_nextseq_lanes(lanes)
     elif instrument != 'hiseq':
         raise Exception('instrument unknonw: ' + instrument)
@@ -32,6 +36,7 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
     lanes = format_lane_table(lanes)
     undetermined = format_undetermined(data['UnknownBarcodes'])
     summary_data = {
+            'lane_sum': lane_sum,
             'lanes': lanes,
             'instrument': instrument,
             'stats_file': stats_path,
@@ -98,6 +103,22 @@ def get_sam_stats(sam, sam_summary, row):
         sam_stats['yield'].append(float(r['Yield']))
         sam_stats['yield_q30'].append(float(r['YieldQ30']))
     return sam_stats
+
+def get_lane_sum(lanes):
+    print(lanes[1])
+    lane_sum = []
+    for lane_num, info in lanes.items():
+        reads = 0
+        q = []
+        for sam in info['samples'].values():
+            reads += sam['reads']
+        lane_sum.append(OrderedDict({
+                'lane': lane_num,
+                'reads': locale.format('%d', reads, True),
+                '% Bases >= Q30': 'test'
+        }))
+    print(lane_sum)
+    return lane_sum
 
 def format_lane_table(lanes):
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
