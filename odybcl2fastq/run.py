@@ -26,6 +26,7 @@ from subprocess import Popen,PIPE
 from odybcl2fastq.status_db import StatusDB
 import odybcl2fastq.parsers.parse_sample_sheet as ss
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
+from tests.compare_fastq import compare_fastq
 
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
@@ -441,6 +442,9 @@ def bcl2fastq_process_runs():
                 # get data from run to put in the email
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
+                fastq_diff = compare_fastq(args.BCL_OUTPUT_DIR, instrument, run)
+                if fastq_diff:
+                    logging.warn('Fastq diff: %s' % json.dumps(fastq_diff))
             fromaddr = config.EMAIL['from_email']
             toemaillist = config.EMAIL['to_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
