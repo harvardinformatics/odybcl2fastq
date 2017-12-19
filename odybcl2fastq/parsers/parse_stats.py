@@ -26,8 +26,6 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
     lane_sum = []
     if instrument == 'nextseq':
         # no real lanes in nextseq, aggregate the stats
-
-        print(lanes[1])
         lane_sum = get_lane_sum(lanes)
         lanes = aggregate_nextseq_lanes(lanes)
     elif instrument != 'hiseq':
@@ -88,8 +86,7 @@ def get_sam_stats(sam, sam_summary, row):
         sam_stats = {
                 'sample': sam,
                 'index': [],
-                'yield': [],
-                'yield_q30': []
+                'q30': []
         }
         if 'IndexMetrics' in row:
             for i in row['IndexMetrics']:
@@ -100,24 +97,22 @@ def get_sam_stats(sam, sam_summary, row):
         sam_stats = sam_summary[sam]
     sam_stats['reads'] = float(row['NumberReads'])
     for r in row['ReadMetrics']:
-        sam_stats['yield'].append(float(r['Yield']))
-        sam_stats['yield_q30'].append(float(r['YieldQ30']))
+        sam_stats['q30'].append(float(r['YieldQ30']) / float(r['Yield']))
     return sam_stats
 
 def get_lane_sum(lanes):
-    print(lanes[1])
     lane_sum = []
     for lane_num, info in lanes.items():
         reads = 0
         q = []
         for sam in info['samples'].values():
             reads += sam['reads']
-        lane_sum.append(OrderedDict({
-                'lane': lane_num,
-                'reads': locale.format('%d', reads, True),
-                '% Bases >= Q30': 'test'
-        }))
-    print(lane_sum)
+            q.extend(sam['q30'])
+        lane_row = OrderedDict()
+        lane_row['lane'] = lane_num
+        lane_row['reads'] = locale.format('%d', reads, True)
+        lane_row['% Bases >= Q30'] = locale.format('%.2f', numpy.mean(q) * 100, True)
+        lane_sum.append(lane_row)
     return lane_sum
 
 def format_lane_table(lanes):
@@ -129,7 +124,7 @@ def format_lane_table(lanes):
             row['sample'] = sam_info['sample']
             row['index'] = ', '.join(sam_info['index'])
             row['reads'] = locale.format('%d', sam_info['reads'], True)
-            row['% >= Q30'] = locale.format('%.2f',numpy.sum(sam_info['yield_q30'])/numpy.sum(sam_info['yield']) * 100, True)
+            row['% >= Q30'] = locale.format('%.2f',numpy.mean(sam_info['q30']) * 100, True)
             lanes[lane_num]['samples'][sam_name] = row
     return lanes
 
@@ -145,13 +140,11 @@ def aggregate_nextseq_lanes(lanes):
                         'sample': sam_info['sample'],
                         'index': sam_info['index'],
                         'reads': 0,
-                        'yield': [],
-                        'yield_q30': []
+                        'q30': []
                 }
             agg[sam_name]['reads'] += sam_info['reads']
             agg_reads += sam_info['reads']
-            agg[sam_name]['yield'].extend(sam_info['yield'])
-            agg[sam_name]['yield_q30'].extend(sam_info['yield_q30'])
+            agg[sam_name]['q30'].extend(sam_info['q30'])
     # since nextseq has no lanes put aggregated results in a single "lane"
     lanes_new[1] = {
             'sam_num': lanes[1]['sam_num'],

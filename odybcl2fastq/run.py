@@ -448,7 +448,7 @@ def bcl2fastq_process_runs():
             fromaddr = config.EMAIL['from_email']
             toemaillist = config.EMAIL['to_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
-            buildmessage(message, run, summary_data, fromaddr, toemaillist)
+            buildmessage(message, 'Demultiplex Summary for ' + run, summary_data, fromaddr, toemaillist)
         job_cnt += 1
     logging.info("***** END Odybcl2fastq *****\n\n")
     return (0 if success else 1)
