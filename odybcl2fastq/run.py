@@ -382,6 +382,15 @@ def get_run_type(run_dir):
             return 'indrop'
     return 'standard'
 
+def check_sample_sheet(sample_sheet, run, run_folder):
+    # if sample sheet is not already there then copy the one from run_folder named
+    # for flowcell
+    if not os.path.exists(sample_sheet):
+        flowcell = run.split('_')[-1][1:]
+        path = run_folder + flowcell + '.csv'
+        if os.path.exists(path):
+            util.copy(path, sample_sheet)
+
 def bcl2fastq_process_runs():
     args, switches_to_names = initArgs()
     test = ('TEST' in args and args.TEST)
@@ -389,6 +398,7 @@ def bcl2fastq_process_runs():
     setup_logging(run, test)
     test = False
     logging.info("***** START Odybcl2fastq *****\n\n")
+    check_sample_sheet(args.BCL_SAMPLE_SHEET, run, args.BCL_RUNFOLDER_DIR)
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
     instrument = ss.get_instrument(sample_sheet['Data'])
@@ -443,8 +453,7 @@ def bcl2fastq_process_runs():
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
                 fastq_diff = compare_fastq(args.BCL_OUTPUT_DIR, instrument, run)
-                if fastq_diff:
-                    logging.warn('Fastq diff: %s' % json.dumps(fastq_diff))
+                logging.info('Fastq diff: %s' % json.dumps(fastq_diff))
             fromaddr = config.EMAIL['from_email']
             toemaillist = config.EMAIL['to_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))

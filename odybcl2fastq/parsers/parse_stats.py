@@ -97,7 +97,11 @@ def get_sam_stats(sam, sam_summary, row):
         sam_stats = sam_summary[sam]
     sam_stats['reads'] = float(row['NumberReads'])
     for r in row['ReadMetrics']:
-        sam_stats['q30'].append(float(r['YieldQ30']) / float(r['Yield']))
+        if float(r['Yield']) > 0.0:
+            q30 = float(r['YieldQ30']) / float(r['Yield'])
+        else:
+            q30 = 0
+        sam_stats['q30'].append(q30)
     return sam_stats
 
 def get_lane_sum(lanes):

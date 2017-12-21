@@ -48,7 +48,7 @@ class Odybcl2fastqTests(unittest.TestCase):
             BCL_FIND_ADAPTERS_SLIDING_WINDOW=False, BCL_IGNORE_MISSING_BCLS=True,
             BCL_IGNORE_MISSING_FILTER=True, BCL_IGNORE_MISSING_POSITIONS=True,
             BCL_MASK_SHORT_ADAPTER_READS=22, BCL_MINIMUM_TRIMMED_READ_LENGTH=0,
-            BCL_NO_BGZF=False, BCL_NO_LANE_SPLITTING=False,
+            BCL_NO_BGZF=False, BCL_NO_LANE_SPLITTING=True,
             BCL_OUTPUT_DIR='/n/ngsdata/odybcl2fastq_test/test_run',
             BCL_PROC_THREADS=8,
             BCL_RUNFOLDER_DIR='/n/boslfs/INSTRUMENTS/illumina/test_run',
