@@ -31,7 +31,7 @@ INCOMPLETE_AFTER_DAYS = 1
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Dec 13 2017', '%b %d %Y')
-REQUIRED_FILES = ['SampleSheet_odybcl2fastq.csv', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
+REQUIRED_FILES = ['odybcl2fastq.ready', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = 1
 FREQUENCY = 60
 
@@ -111,12 +111,6 @@ def find_runs(filter):
             runs.append(dir)
     return runs
 
-def runs_to_process():
-    return find_runs(need_to_process)
-
-def incomplete_runs():
-    return find_runs(run_is_incomplete)
-
 def get_odybcl2fastq_cmd(run_dir):
     run = os.path.basename(os.path.normpath(run_dir))
     params = {
@@ -140,7 +134,7 @@ def run_odybcl2fastq(cmd):
     return (proc.returncode, std_out, std_err, cmd)
 
 def notify_incomplete_runs():
-    run_dirs = incomplete_runs()
+    run_dirs = find_runs(run_is_incomplete)
     run_dirs_str = "\n".join(run_dirs)
     if run_dirs:
         message = "The following runs failed to complete %s or more days ago:\n\n%s" % (INCOMPLETE_AFTER_DAYS, run_dirs_str)
@@ -150,7 +144,7 @@ def notify_incomplete_runs():
 
 
 def process_runs(pool, proc_num):
-    runs_found = runs_to_process()
+    runs_found = find_runs(need_to_process)
     run_dirs = runs_found[:proc_num]
     if run_dirs:
         logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),

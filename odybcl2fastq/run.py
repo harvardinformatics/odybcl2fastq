@@ -382,12 +382,12 @@ def get_run_type(run_dir):
             return 'indrop'
     return 'standard'
 
-def check_sample_sheet(sample_sheet, run, run_folder):
+def check_sample_sheet(sample_sheet, run):
     # if sample sheet is not already there then copy the one from run_folder named
     # for flowcell
     if not os.path.exists(sample_sheet):
         flowcell = run.split('_')[-1][1:]
-        path = run_folder + flowcell + '.csv'
+        path = config.SAMPLE_SHEET_DIR + flowcell + '.csv'
         if os.path.exists(path):
             util.copy(path, sample_sheet)
 
