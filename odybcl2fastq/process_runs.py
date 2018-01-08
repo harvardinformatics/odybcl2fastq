@@ -26,13 +26,13 @@ LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
-DAYS_TO_SEARCH = 2
+DAYS_TO_SEARCH = 10
 INCOMPLETE_AFTER_DAYS = 1
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Dec 13 2017', '%b %d %Y')
 REQUIRED_FILES = ['odybcl2fastq.ready', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
-PROC_NUM = 1
+PROC_NUM = 2
 FREQUENCY = 60
 
 def setup_logging():
@@ -166,6 +166,8 @@ def process_runs(pool, proc_num):
                 touch(run_dir, COMPLETE_FILE)
             else:
                 failed_runs.append(run)
+        if failed_runs:
+            send_email(('The following runs failed: ' + json.dumps(failed_runs)), 'Odybcl2fastq failed runs')
         logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
                 (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
 
