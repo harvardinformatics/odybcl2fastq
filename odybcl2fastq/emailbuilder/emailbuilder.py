@@ -32,8 +32,9 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
         msg.attach(MIMEText(message.encode('utf-8'),'plain'))
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
-    smtp.sendmail(fromaddr,emails,msg.as_string())
+    success = smtp.sendmail(fromaddr,emails,msg.as_string())
     smtp.close()
+    return success
 
 def get_html(summary_data):
     # create html message with jinja

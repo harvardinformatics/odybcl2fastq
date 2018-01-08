@@ -398,7 +398,7 @@ def bcl2fastq_process_runs():
     setup_logging(run, test)
     test = False
     logging.info("***** START Odybcl2fastq *****\n\n")
-    check_sample_sheet(args.BCL_SAMPLE_SHEET, run, args.BCL_RUNFOLDER_DIR)
+    check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
     instrument = ss.get_instrument(sample_sheet['Data'])
@@ -457,7 +457,8 @@ def bcl2fastq_process_runs():
             fromaddr = config.EMAIL['from_email']
             toemaillist = config.EMAIL['to_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
-            buildmessage(message, 'Demultiplex Summary for ' + run, summary_data, fromaddr, toemaillist)
+            sent = buildmessage(message, 'Demultiplex Summary for ' + run, summary_data, fromaddr, toemaillist)
+            logging.info('Email sent: %s\n' % str(sent))
         job_cnt += 1
     logging.info("***** END Odybcl2fastq *****\n\n")
     return (0 if success else 1)
