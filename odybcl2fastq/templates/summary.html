@@ -4,7 +4,7 @@
     <h3>{{run}}</h3>
     <h3>{{instrument|title}}
     {% if lanes|length > 1 %}
-         Total Anaylses {{lanes|length}}
+         Total Analyses {{lanes|length}}
     {% endif %}
     </h3>
     {% if lane_sum %}
@@ -24,7 +24,7 @@
     {% endif %}
     {% for name, lane in lanes.items() %}
         <h4>Analysis: {{name}}</h4>
-        <p>Reads (R1+R2): {{lane['reads']}}<br>
+        <p>Clusters: {{lane['clusters']}}<br>
         Number of samples: {{lane['sam_num']}}</p>
         {% if lane['samples'] %}
             <table cellspacing="0" cellpadding="10" border="1px">
@@ -41,15 +41,15 @@
             </table>
             <br><br>
         {% endif %}
+        {% if name in undetermined and undetermined[name]%}
+            <h4>Top undetermined indices (count > 1,000,000)</h4>
+            <table>
+                {% for index, cnt in undetermined[name].items() %}
+                <tr><td>{{index}}</td><td>{{cnt}}</td></tr>
+                {% endfor %}
+            </table>
+        {% endif %}
     {% endfor %}
-    {% if undetermined %}
-    <h4>Top undetermined indices (count > 1,000,000)</h4>
-    <table>
-        {% for index, cnt in undetermined.items() %}
-        <tr><td>{{index}}</td><td>{{cnt}}</td></tr>
-        {% endfor %}
-    </table>
-    {% endif %}
     <h3>Letter</h3>
     <p>
     Hi all,<br><br>
@@ -65,7 +65,7 @@
 
     For more information, please see our
     <a href="http://informatics.fas.harvard.edu/faq">FAQ Page</a>.
-    </p><br><br>
+    </p><br>
 
     <p>Please acknowledge our support when publishing your work by referring to us
     as "The Bauer Core Facility at Harvard University."</p>
