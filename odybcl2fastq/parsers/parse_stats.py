@@ -14,6 +14,8 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
     """
     parse summary from Stats.json
     """
+    # set locale so numeric formating works
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
     stats_path = output_dir + '/Stats/Stats.json'
     if not os.path.exists(stats_path):
         raise UserException('Stats path does not exist: %s' % stats_path)
@@ -63,11 +65,10 @@ def get_stats(data):
     # get data on from each lane and samples in the lane
     for lane_info in data['ConversionResults']:
         lane = lane_info['LaneNumber']
-        sam_num = 0
         lane_stats = {
                 'samples': OrderedDict(),
                 'clusters': lane_info['TotalClustersPF'],
-                'reads': lane_info['Yield'],
+                'yield': lane_info['Yield'],
                 'sam_num': len(lane_info['DemuxResults'])
         }
         # loop through samples and collect sam_data
@@ -86,7 +87,8 @@ def get_sam_stats(sam, sam_summary, row):
         sam_stats = {
                 'sample': sam,
                 'index': [],
-                'q30': []
+                'yield': [],
+                'yieldq30': []
         }
         if 'IndexMetrics' in row:
             for i in row['IndexMetrics']:
@@ -97,38 +99,40 @@ def get_sam_stats(sam, sam_summary, row):
         sam_stats = sam_summary[sam]
     sam_stats['reads'] = float(row['NumberReads'])
     for r in row['ReadMetrics']:
+        # ignore 0s
         if float(r['Yield']) > 0.0:
-            q30 = float(r['YieldQ30']) / float(r['Yield'])
-        else:
-            q30 = 0
-        sam_stats['q30'].append(q30)
+            sam_stats['yield'].append(float(r['Yield']))
+            sam_stats['yieldq30'].append(float(r['YieldQ30']))
     return sam_stats
 
 def get_lane_sum(lanes):
     lane_sum = []
     for lane_num, info in lanes.items():
         reads = 0
-        q = []
+        lane_yield = []
+        lane_yieldq30 = []
         for sam in info['samples'].values():
             reads += sam['reads']
-            q.extend(sam['q30'])
+            lane_yield.extend(sam['yield'])
+            lane_yieldq30.extend(sam['yieldq30'])
+        q30 = numpy.sum(lane_yieldq30) / numpy.sum(lane_yield) * 100
         lane_row = OrderedDict()
         lane_row['lane'] = lane_num
-        lane_row['reads'] = locale.format('%d', reads, True)
-        lane_row['% Bases >= Q30'] = locale.format('%.2f', numpy.mean(q) * 100, True)
+        lane_row['clusters'] = locale.format('%d', reads, True)
+        lane_row['% Bases >= Q30'] = locale.format('%.2f',  q30, True)
         lane_sum.append(lane_row)
     return lane_sum
 
 def format_lane_table(lanes):
-    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
     for lane_num, lane_info in lanes.items():
-        lanes[lane_num]['reads'] = locale.format('%d', lane_info['reads'], True)
+        lanes[lane_num]['clusters'] = locale.format('%d', lane_info['clusters'], True)
         for sam_name, sam_info in lane_info['samples'].items():
             row = OrderedDict()
             row['sample'] = sam_info['sample']
             row['index'] = ', '.join(sam_info['index'])
-            row['reads'] = locale.format('%d', sam_info['reads'], True)
-            row['% >= Q30'] = locale.format('%.2f',numpy.mean(sam_info['q30']) * 100, True)
+            row['clusters'] = locale.format('%d', sam_info['reads'], True)
+            q30 = numpy.sum(sam_info['yieldq30']) / numpy.sum(sam_info['yield']) * 100
+            row['% >= Q30'] = locale.format('%.2f', q30, True)
             lanes[lane_num]['samples'][sam_name] = row
     return lanes
 
@@ -144,25 +148,27 @@ def aggregate_nextseq_lanes(lanes):
                         'sample': sam_info['sample'],
                         'index': sam_info['index'],
                         'reads': 0,
-                        'q30': []
+                        'yield': [],
+                        'yieldq30': []
                 }
             agg[sam_name]['reads'] += sam_info['reads']
             agg_reads += sam_info['reads']
-            agg[sam_name]['q30'].extend(sam_info['q30'])
+            agg[sam_name]['yield'].extend(sam_info['yield'])
+            agg[sam_name]['yieldq30'].extend(sam_info['yieldq30'])
     # since nextseq has no lanes put aggregated results in a single "lane"
     lanes_new[1] = {
             'sam_num': lanes[1]['sam_num'],
             'samples': agg,
-            'reads': agg_reads
+            'clusters': agg_reads
     }
     return lanes_new
 
 def format_undetermined(undeter):
     top = OrderedDict()
     for lane in undeter:
+        top[lane['Lane']] = OrderedDict()
         sorted_undeter = sorted(lane['Barcodes'].items(), key=operator.itemgetter(1), reverse = True)
         for (index, cnt) in sorted_undeter:
             if cnt > MIN_UNDETER_CNT:
-                locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-                top[index] = locale.format('%d', cnt, True)
+                top[lane['Lane']][index] = locale.format('%d', cnt, True)
     return dict(top)
