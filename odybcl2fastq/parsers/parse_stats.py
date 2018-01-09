@@ -16,6 +16,8 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
     """
     # set locale so numeric formating works
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+    run_path = '/'.join(output_dir.split('/')[4:])
+    stats_url = config.FASTQ_URL + run_path + '/Reports/html'
     stats_path = output_dir + '/Stats/Stats.json'
     if not os.path.exists(stats_path):
         raise UserException('Stats path does not exist: %s' % stats_path)
@@ -30,16 +32,18 @@ def get_summary(output_dir, instrument, sample_sheet_dir):
         # no real lanes in nextseq, aggregate the stats
         lane_sum = get_lane_sum(lanes)
         lanes = aggregate_nextseq_lanes(lanes)
-    elif instrument != 'hiseq':
+        undetermined = format_undetermined_nextseq(data['UnknownBarcodes'])
+    elif instrument == 'hiseq':
+        undetermined = format_undetermined(data['UnknownBarcodes'])
+    else:
         raise Exception('instrument unknonw: ' + instrument)
     # format lane summary tables
     lanes = format_lane_table(lanes)
-    undetermined = format_undetermined(data['UnknownBarcodes'])
     summary_data = {
             'lane_sum': lane_sum,
             'lanes': lanes,
             'instrument': instrument,
-            'stats_file': stats_path,
+            'stats_file': stats_url,
             'sample_sheet': get_sample_sheet(sample_sheet_dir),
             'fastq_url': config.FASTQ_URL,
             'fastq_dir': config.MOUNT_DIR,
@@ -163,6 +167,22 @@ def aggregate_nextseq_lanes(lanes):
     }
     return lanes_new
 
+def format_undetermined_nextseq(undeter):
+    all = {}
+    top = OrderedDict()
+    for lane in undeter:
+        for index, cnt in lane['Barcodes'].items():
+            if index not in all:
+                all[index] = 0
+            all[index] += cnt
+    sorted_undeter = OrderedDict(sorted(all.items(), key=lambda kv: kv[1], reverse = True))
+    for index, cnt in sorted_undeter.items():
+        if cnt > MIN_UNDETER_CNT:
+                top[index] = locale.format('%d', cnt, True)
+        else:
+            break
+    return {1: top}
+
 def format_undetermined(undeter):
     top = OrderedDict()
     for lane in undeter:
@@ -171,4 +191,4 @@ def format_undetermined(undeter):
         for (index, cnt) in sorted_undeter:
             if cnt > MIN_UNDETER_CNT:
                 top[lane['Lane']][index] = locale.format('%d', cnt, True)
-    return dict(top)
+    return top
