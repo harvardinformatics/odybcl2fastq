@@ -4,7 +4,7 @@
     <h3>{{run}}</h3>
     <h3>{{instrument|title}}
     {% if lanes|length > 1 %}
-         Total Analyses {{lanes|length}}
+         Total Lanes {{lanes|length}}
     {% endif %}
     </h3>
     {% if lane_sum %}
@@ -23,7 +23,7 @@
         <br><br>
     {% endif %}
     {% for name, lane in lanes.items() %}
-        <h4>Analysis: {{name}}</h4>
+        <h4>Lane: {{name}}</h4>
         <p>Clusters: {{lane['clusters']}}<br>
         Number of samples: {{lane['sam_num']}}</p>
         {% if lane['samples'] %}
@@ -57,7 +57,7 @@
     <a href="{{fastq_url}}{{run}}">{{fastq_url}}{{run}}</a><br>
     or under {{fastq_dir}}{{run}} on the cluster.<br><br>
     Summary statistics can be found in
-    {{stats_file}}<br><br>
+    <a href="{{stats_file}}">{{stats_file}}</a><br><br>
     Reads with indices not in {{sample_sheet_file}} are in the fastq
     {{undetermined_files}}<br><br>
     We encourage users to download a local copy of their data,
@@ -70,6 +70,8 @@
     <p>Please acknowledge our support when publishing your work by referring to us
     as "The Bauer Core Facility at Harvard University."</p>
     <p>
+    <p>Demultiplexing software version: {{version}}</p>
+    <p>Command line run:<br> {{cmd}}</p>
     <h3>Sample Sheet:</h3>
     {{sample_sheet}}
     </p>

@@ -452,10 +452,15 @@ def bcl2fastq_process_runs():
                 # get data from run to put in the email
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
+                summary_data['cmd'] = cmd
+                summary_data['version'] = 'bcl2fastq2 v2.19'
                 fastq_diff = compare_fastq(args.BCL_OUTPUT_DIR, instrument, run)
                 logging.info('Fastq diff: %s' % json.dumps(fastq_diff))
             fromaddr = config.EMAIL['from_email']
-            toemaillist = config.EMAIL['to_email']
+            if success:
+                toemaillist = config.EMAIL['to_email']
+            else:
+                toemaillist = config.EMAIL['admin_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             sent = buildmessage(message, 'Demultiplex Summary for ' + run, summary_data, fromaddr, toemaillist)
             logging.info('Email sent: %s\n' % str(sent))
