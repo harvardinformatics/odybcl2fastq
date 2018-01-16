@@ -152,7 +152,7 @@ def initArgs():
             'switches'  : ['--no-lane-splitting'],
             'required'  : False,
             'help'      : 'do not split fastq by lane',
-            'default'   : True,
+            'default'   : False,
             'action'    : 'store_true',
         },
         {
@@ -333,6 +333,8 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
             else:
                 cmdstrings.append(' '.join([switch,argvalue]))
     fout.close()
+    if instrument == 'nextseq':
+        cmdstrings.append('--no-lane-splitting')
     if run_type == 'indrop':
         cmdstrings.append('--create-fastq-for-index-reads')
     cmdstring=' '.join(cmdstrings)
@@ -460,7 +462,7 @@ def bcl2fastq_process_runs():
             if success:
                 toemaillist = config.EMAIL['to_email']
             else:
-                toemaillist = config.EMAIL['admin_email']
+                toemaillist = config.EMAIL['to_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             sent = buildmessage(message, 'Demultiplex Summary for ' + run, summary_data, fromaddr, toemaillist)
             logging.info('Email sent: %s\n' % str(sent))
