@@ -23,6 +23,7 @@ from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 
 LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
+LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
@@ -141,7 +142,23 @@ def notify_incomplete_runs():
         send_email(message, 'Odybcl2fastq incomplete runs')
         for run in run_dirs:
             touch(run, INCOMPLETE_NOTIFIED_FILE)
+def tail(f, n):
+    proc = subprocess.Popen("tail -n %i %s | grep returned" % (n, f), shell=True, stdout=subprocess.PIPE)
+    std_out, std_err = proc.communicate()
+    return std_out.splitlines(True)
 
+def copy_log():
+    # last line is the tail command
+    lines = tail(LOG_FILE, 500)[:-1]
+    # show max of 100 lines
+    end = len(lines)
+    if end > 100:
+        end = 100
+    lines = lines[end::-1]
+    with open(LOG_HTML, 'w') as f:
+        f.write('<pre>')
+        f.writelines(lines)
+        f.write('</pre>')
 
 def process_runs(pool, proc_num):
     runs_found = find_runs(need_to_process)
@@ -160,16 +177,19 @@ def process_runs(pool, proc_num):
         success_runs = []
         for run, result in results.items():
             ret_code, std_out, std_err, cmd = result.get()
-            logging.info("Odybcl2fastq for %s returned %i\n" % (run, ret_code))
             if ret_code == 0:
                 success_runs.append(run)
                 touch(run_dir, COMPLETE_FILE)
+                status = 'success'
             else:
                 failed_runs.append(run)
+                status = 'failure'
+            logging.info("Odybcl2fastq for %s returned %s\n" % (run, status))
         if failed_runs:
             send_email(('The following runs failed: ' + json.dumps(failed_runs)), 'Odybcl2fastq failed runs')
         logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
                 (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
+    copy_log()
 
 if __name__ == "__main__":
     try:
