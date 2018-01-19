@@ -27,12 +27,12 @@ LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
-DAYS_TO_SEARCH = 10
-INCOMPLETE_AFTER_DAYS = 1
+DAYS_TO_SEARCH = 7
+INCOMPLETE_AFTER_DAYS = 2
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
-SEARCH_AFTER_DATE = datetime.strptime('Dec 13 2017', '%b %d %Y')
-REQUIRED_FILES = ['odybcl2fastq.ready', 'InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
+SEARCH_AFTER_DATE = datetime.strptime('Jan 15 2017', '%b %d %Y')
+REQUIRED_FILES = ['InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = 2
 FREQUENCY = 60
 
@@ -117,7 +117,7 @@ def get_odybcl2fastq_cmd(run_dir):
     params = {
         'runfolder': os.path.dirname(run_dir),
         'output-dir': config.OUTPUT_DIR + run,
-        'sample-sheet': run_dir + 'SampleSheet_odybcl2fastq.csv',
+        'sample-sheet': run_dir + 'SampleSheet.csv',
         'runinfoxml': run_dir + 'RunInfo.xml'
     }
     args = []
