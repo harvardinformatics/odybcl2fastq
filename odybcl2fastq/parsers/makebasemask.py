@@ -20,7 +20,7 @@ def make_universal_mask(rundata_by_read):
 
 def update_mask_index(index, mask, sample):
     if 'i' in mask:
-        bases = len(index)
+        bases = len(index.strip())
         if bases <= 0:
             raise UserException('sample %s index has zero bases' % sample)
         prev_bases = int(mask.replace('i', ''))
