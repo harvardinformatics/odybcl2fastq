@@ -149,7 +149,7 @@ def tail(f, n):
 
 def copy_log():
     # last line is the tail command
-    lines = tail(LOG_FILE, 500)[:-1]
+    lines = tail(LOG_FILE, 5000)[:-1]
     # show max of 100 lines
     end = len(lines)
     if end > 100:
