@@ -435,7 +435,6 @@ def bcl2fastq_process_runs():
             args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type)
-        write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
@@ -445,6 +444,8 @@ def bcl2fastq_process_runs():
             logging.info('message = %s' % message)
             summary_data = {}
             if success:
+                # write bcl2fastq cmd
+                write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
                 # update lims db
                 update_lims_db(run, sample_sheet, instrument)
                 # run  qc, TODO: consider a seperate job for this

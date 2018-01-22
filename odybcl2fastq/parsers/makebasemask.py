@@ -3,6 +3,7 @@ from odybcl2fastq import UserException
 from collections import OrderedDict,defaultdict
 from copy import copy
 import json
+import re
 import logging
 
 NUTRAL_BASE = 'n'
@@ -20,7 +21,8 @@ def make_universal_mask(rundata_by_read):
 
 def update_mask_index(index, mask, sample):
     if 'i' in mask:
-        bases = len(index.strip())
+        index = re.sub('[^A-Z]+', '', index)
+        bases = len(index)
         if bases <= 0:
             raise UserException('sample %s index has zero bases' % sample)
         prev_bases = int(mask.replace('i', ''))
