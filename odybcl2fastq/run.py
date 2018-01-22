@@ -281,9 +281,9 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
         src = src_root + file
         util.copy(src, dest)
 
-def copy_output_to_final(output_dir, run, suffix):
+def copy_output_to_final(output_dir, run_folder, suffix):
     # determine dest_dir
-    dest_dir = config.FINAL_DIR + run
+    dest_dir = config.FINAL_DIR + run_folder
     if suffix: # runs with multiple indexing strategies have a subdir
         dest_dir += '/' + suffix
     # check size of output_dir
@@ -457,12 +457,13 @@ def bcl2fastq_process_runs():
                 copy_source_to_output(args.BCL_RUNFOLDER_DIR,
                         args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
                         instrument)
+                run_folder = args.BCL_OUTPUT_DIR.split('/').pop()
                 # copy output to final dest where users will access
-                copy_output_to_final(args.BCL_OUTPUT_DIR, run,
-                output_suffix)
+                copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_suffix)
                 # get data from run to put in the email
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
+                summary_data['run_folder'] = run_folder
                 summary_data['cmd'] = cmd
                 summary_data['version'] = 'bcl2fastq2 v2.19'
                 fastq_diff = compare_fastq(args.BCL_OUTPUT_DIR, instrument, run)
