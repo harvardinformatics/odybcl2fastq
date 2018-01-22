@@ -200,6 +200,13 @@ def initArgs():
             'type'      : str,
             'help'      : 'path to runinfo xml file',
         },
+        {
+            'name'      : 'BCL_USE_BASES_MASK',
+            'switches'  : '--use-bases-mask',
+            'required'  : False,
+            'type'      : str,
+            'help'      : 'base mask to use in demultiplexing, exp: y61,i8,i8,y14',
+        },
 
     ]
 
@@ -317,22 +324,18 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     # each mask should be prefaced by the switch
     mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
     cmdstrings=['bcl2fastq', mask_opt]
-    runname = 'test' #TODO: call default? when is it overwritten?
-    fout=open('%s.opts' % runname,'w')
     # keeps consistent order of writing
     switch_list=switches_to_names.keys()
     switch_list.sort()
     for switches in switch_list:
         switch=[switch for switch in switches if '--' in switch][0]
         argvalue=str(argdict[switches_to_names[switches]])
-        fout.write('%s\t%s\n' % (switch,argvalue))
         # the bit below prevents boolean flags from having values in the cmd
         if argvalue != 'False':
             if argvalue == 'True':
                 cmdstrings.append(switch)
             else:
                 cmdstrings.append(' '.join([switch,argvalue]))
-    fout.close()
     if instrument == 'nextseq':
         cmdstrings.append('--no-lane-splitting')
     if run_type == 'indrop':
@@ -393,6 +396,11 @@ def check_sample_sheet(sample_sheet, run):
         if os.path.exists(path):
             util.copy(path, sample_sheet)
 
+def write_cmd(cmd, output_dir, run):
+    path = '%s/%s.opts' % (output_dir, run)
+    with open(path, 'w') as fout:
+        fout.write(cmd)
+
 def bcl2fastq_process_runs():
     args, switches_to_names = initArgs()
     test = ('TEST' in args and args.TEST)
@@ -404,7 +412,8 @@ def bcl2fastq_process_runs():
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
     instrument = ss.get_instrument(sample_sheet['Data'])
-    mask_lists, mask_samples = extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML, instrument)
+    run_type = get_run_type(args.BCL_RUNFOLDER_DIR)
+    mask_lists, mask_samples = extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML, instrument, args, run_type)
     # skip everything but billing if run folder flagged
     if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
         logging.info("This run is flagged for billing only %s" % run)
@@ -416,7 +425,6 @@ def bcl2fastq_process_runs():
     job_cnt = 1
     sample_sheet_dir = args.BCL_SAMPLE_SHEET
     output_dir = args.BCL_OUTPUT_DIR
-    run_type = get_run_type(args.BCL_RUNFOLDER_DIR)
     # run bcl2fatq per indexing strategy on run
     for mask, mask_list in mask_lists.items():
         output_suffix = None
@@ -427,6 +435,7 @@ def bcl2fastq_process_runs():
             args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type)
+        write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
