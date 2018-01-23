@@ -204,6 +204,7 @@ def initArgs():
             'name'      : 'BCL_USE_BASES_MASK',
             'switches'  : '--use-bases-mask',
             'required'  : False,
+            'default'   : False,
             'type'      : str,
             'help'      : 'base mask to use in demultiplexing, exp: y61,i8,i8,y14',
         },
