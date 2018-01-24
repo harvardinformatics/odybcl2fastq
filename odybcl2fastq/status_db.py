@@ -84,7 +84,7 @@ class StatusDB(object):
 
     def link_run_and_subs(self, run, subs):
         for sub in subs:
-            self.minilims_insert({'Illumina_run': run}, 'Submission',  sub)
+            self.minilims_insert({'Illumina_Run': run}, 'Submission',  sub)
             self.minilims_insert({'Submission': sub}, 'Illumina_Run', run)
 
 
