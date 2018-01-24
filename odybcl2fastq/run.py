@@ -112,7 +112,7 @@ def initArgs():
             'switches'  : ['--mask-short-adapter-reads'],
             'required'  : False,
             'help'      : 'controls adapter base masking if read below min length post trimming',
-            'default'   : 22,
+            'default'   : False,
             'type'      : int,
         },
         {
@@ -319,7 +319,7 @@ def run_cmd(cmd):
     out, err = proc.communicate()
     return (proc.returncode, out, err)
 
-def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument):
+def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type):
     argdict = vars(args)
     mask_switch = '--use-bases-mask'
     # each mask should be prefaced by the switch
@@ -339,6 +339,9 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument):
                 cmdstrings.append(' '.join([switch,argvalue]))
     if instrument == 'nextseq':
         cmdstrings.append('--no-lane-splitting')
+    if run_type == 'indrop':
+        cmdstrings.append('--mask-short-adapter-reads')
+        cmdstrings.append('0')
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
@@ -433,7 +436,7 @@ def bcl2fastq_process_runs():
             args.BCL_OUTPUT_DIR = output_dir + '/' + output_suffix
             args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
-                switches_to_names, mask_list, instrument)
+                switches_to_names, mask_list, instrument, run_type)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
