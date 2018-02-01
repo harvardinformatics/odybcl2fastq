@@ -469,8 +469,6 @@ def bcl2fastq_process_runs():
                 summary_data['run_folder'] = run_folder
                 summary_data['cmd'] = cmd
                 summary_data['version'] = 'bcl2fastq2 v2.19'
-                fastq_diff = compare_fastq(args.BCL_OUTPUT_DIR, instrument, run)
-                logging.info('Fastq diff: %s' % json.dumps(fastq_diff))
             fromaddr = config.EMAIL['from_email']
             if success:
                 toemaillist = config.EMAIL['to_email']

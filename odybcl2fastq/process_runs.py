@@ -152,9 +152,10 @@ def copy_log():
     lines = tail(LOG_FILE, 5000)[:-1]
     # show max of 100 lines
     end = len(lines)
-    if end > 100:
-        end = 100
-    lines = lines[end::-1]
+    max = 100
+    if end > max:
+        end = end - max
+    lines = lines[-1:end:-1]
     with open(LOG_HTML, 'w') as f:
         f.write('<pre>')
         f.writelines(lines)
