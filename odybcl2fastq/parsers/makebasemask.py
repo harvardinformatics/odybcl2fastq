@@ -89,7 +89,10 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
     mask_samples = {}
     mask_lists = {}
     if run_type == 'indrop':
-        mask = 'y*,y*,y*,y*'
+        mask = []
+        for read in universal_mask:
+            mask.append('y*')
+        mask = ','.join(mask)
         mask_lists, mask_samples = lists_from_mask(mask, data_by_sample)
     # base mask passed in will be used instead of deriving from the sample sheet
     elif 'BCL_USE_BASES_MASK' in args and args.BCL_USE_BASES_MASK:

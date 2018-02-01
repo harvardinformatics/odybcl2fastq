@@ -433,7 +433,7 @@ def bcl2fastq_process_runs():
         # if more than one bcl2fastq cmd needed suffix output dir and sample sheet
         if jobs_tot > 1:
             output_suffix = mask.replace(',', '_')
-            args.BCL_OUTPUT_DIR = output_dir + '/' + output_suffix
+            args.BCL_OUTPUT_DIR = output_dir + '-' + output_suffix
             args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type)
