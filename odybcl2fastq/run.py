@@ -48,6 +48,13 @@ def initArgs():
             'action'    : 'store_true',
         },
         {
+            'name'      : 'NO_DEMULTIPLEX',
+            'switches'  : ['--no-demultiplex'],
+            'required'  : False,
+            'help'      : 'run without demultiplexing, assumes fastq files are already in output dir',
+            'action'    : 'store_true',
+        },
+        {
             'name'      : 'BCL_PROC_THREADS',
             'switches'  : ['-p','--processing-threads'],
             'required'  : False,
@@ -345,22 +352,26 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
-def bcl2fastq_runner(cmd,args):
+def bcl2fastq_runner(cmd,args, no_demultiplex = False):
     logging.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     output_log = get_output_log(run)
-    code, demult_out, demult_err = run_cmd(cmd)
-    # append to output to log for the run
-    with open(output_log, 'a+') as f:
-        f.write(demult_err + "\n\n")
-    logging.info("***** END bcl2fastq *****\n\n")
-    if code!=0:
-        message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
-                demult_err)
-        success = False
-    else:
+    if no_demultiplex:
         message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
         success = True
+    else:
+        code, demult_out, demult_err = run_cmd(cmd)
+        # append to output to log for the run
+        with open(output_log, 'a+') as f:
+            f.write(demult_err + "\n\n")
+        logging.info("***** END bcl2fastq *****\n\n")
+        if code!=0:
+            message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
+                    demult_err)
+            success = False
+        else:
+            message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
+            success = True
     return success, message
 
 def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
@@ -406,6 +417,7 @@ def write_cmd(cmd, output_dir, run):
 def bcl2fastq_process_runs():
     args, switches_to_names = initArgs()
     test = ('TEST' in args and args.TEST)
+    no_demultiplex = ('NO_DEMULTIPLEX' in args and args.NO_DEMULTIPLEX)
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     setup_logging(run, test)
     test = False
@@ -442,7 +454,7 @@ def bcl2fastq_process_runs():
             logging.info("Test run, command not run: %s" % cmd)
         else:
             logging.info('Launching bcl2fastq...%s\n' % cmd)
-            success, message = bcl2fastq_runner(cmd,args)
+            success, message = bcl2fastq_runner(cmd,args, no_demultiplex)
             logging.info('message = %s' % message)
             summary_data = {}
             if success:
