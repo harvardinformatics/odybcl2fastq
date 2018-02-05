@@ -19,6 +19,7 @@ from datetime import datetime
 from multiprocessing import Pool
 from odybcl2fastq import config
 from odybcl2fastq import constants as const
+import odybcl2fastq.util as util
 from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 
@@ -58,12 +59,6 @@ def send_email(message, subject):
     fromaddr = config.EMAIL['from_email']
     toemaillist=config.EMAIL['admin_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
-
-def touch(run_dir, file):
-    # touch a processed file in the run_dir
-    path = run_dir + file
-    with open(path, 'w+'):
-        os.utime(path, None)
 
 def need_to_process(dir):
     now = datetime.now()
@@ -141,7 +136,7 @@ def notify_incomplete_runs():
         message = "The following runs failed to complete %s or more days ago:\n\n%s" % (INCOMPLETE_AFTER_DAYS, run_dirs_str)
         send_email(message, 'Odybcl2fastq incomplete runs')
         for run in run_dirs:
-            touch(run, INCOMPLETE_NOTIFIED_FILE)
+            util.touch(run, INCOMPLETE_NOTIFIED_FILE)
 def tail(f, n):
     proc = subprocess.Popen("tail -n %i %s | grep returned" % (n, f), shell=True, stdout=subprocess.PIPE)
     std_out, std_err = proc.communicate()
@@ -173,21 +168,18 @@ def process_runs(pool, proc_num):
             cmd = get_odybcl2fastq_cmd(run_dir)
             logging.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
             results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
-            touch(run_dir, PROCESSED_FILE) # mark so it doesn't get reprocessed
         failed_runs = []
         success_runs = []
         for run, result in results.items():
             ret_code, std_out, std_err, cmd = result.get()
             if ret_code == 0:
                 success_runs.append(run)
-                touch(run_dir, COMPLETE_FILE)
                 status = 'success'
             else:
                 failed_runs.append(run)
                 status = 'failure'
+                failure_email(run, cmd, ret_code, std_out, std_err)
             logging.info("Odybcl2fastq for %s returned %s\n" % (run, status))
-        if failed_runs:
-            send_email(('The following runs failed: ' + json.dumps(failed_runs)), 'Odybcl2fastq failed runs')
         logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
                 (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
     copy_log()

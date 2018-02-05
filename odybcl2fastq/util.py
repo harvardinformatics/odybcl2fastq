@@ -43,3 +43,9 @@ def load_json(path):
     with open(path, 'r') as data:
         obj = json.load(data)
     return obj
+
+def touch(run_dir, file):
+    # touch a processed file in the run_dir
+    path = run_dir + file
+    with open(path, 'w+'):
+        os.utime(path, None)

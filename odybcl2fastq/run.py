@@ -9,6 +9,7 @@ and email reporting
 Created on  2017-04-19
 
 @author: Adam Freedman <adamfreedman@fas.harvard.edu>
+@author: Meghan Correa <mportermahoney@g.harvard.edu>
 @copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
@@ -28,6 +29,8 @@ import odybcl2fastq.parsers.parse_sample_sheet as ss
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
 from tests.compare_fastq import compare_fastq
 
+PROCESSED_FILE = 'odybcl2fastq.processed'
+COMPLETE_FILE = 'odybcl2fastq.complete'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
 INDROP_FILE = 'indrop.txt'
@@ -418,6 +421,7 @@ def write_cmd(cmd, output_dir, run):
 
 def bcl2fastq_process_runs():
     args, switches_to_names = initArgs()
+    util.touch(args.BCL_RUNFOLDER_DIR + '/', PROCESSED_FILE)
     test = ('TEST' in args and args.TEST)
     no_demultiplex = ('NO_DEMULTIPLEX' in args and args.NO_DEMULTIPLEX)
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
@@ -493,7 +497,14 @@ def bcl2fastq_process_runs():
             logging.info('Email sent: %s\n' % str(sent))
         job_cnt += 1
     logging.info("***** END Odybcl2fastq *****\n\n")
-    return (0 if success else 1)
+    if success:
+        ret_code = 0
+        util.touch(args.BCL_RUNFOLDER_DIR + '/', COMPLETE_FILE)
+    else:
+        ret_code = 1
+        # print err to std_out
+        print(message)
+    return ret_code
 
 def get_output_log(run):
     return config.LOG_DIR + run + '.log'
