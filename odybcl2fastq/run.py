@@ -310,7 +310,9 @@ def copy_output_to_final(output_dir, run_folder, suffix):
     used = int(dest_space[2])
     capacity = (used + output_space) / float(tot_space)
     if capacity > 0.8:
-        logging.warning('%s near capacity copying %s: %s, used: %s, tot: %s' % (config.FINAL_DIR, output_dir, output_space, used, tot_space))
+        message = '%s near capacity copying %s: %s, used: %s, tot: %s' % (config.FINAL_DIR, output_dir, output_space, used, tot_space)
+        logging.warning(message)
+        sent = buildmessage(message, 'NGSDATA is 80% full', [], config.EMAIL['from_email'], config.EMAIL['admin_email'])
     if capacity > 0.9:
         msg = 'Could not copy %s to  %s: %s' % (output_dir, config.FINAL_DIR, capacity)
         raise Exception(msg)
