@@ -179,7 +179,8 @@ def process_runs(pool, proc_num):
                 failed_runs.append(run)
                 status = 'failure'
                 failure_email(run, cmd, ret_code, std_out, std_err)
-            logging.info("Odybcl2fastq for %s returned %s\n" % (run, status))
+            # success or failure of individual run will be logged from run.py to capture
+            # manual runs for the status log
         logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
                 (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
     copy_log()

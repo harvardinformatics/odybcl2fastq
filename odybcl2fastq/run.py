@@ -19,6 +19,7 @@ import json
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 import odybcl2fastq.util as util
+from odybcl2fastq import constants as const
 from odybcl2fastq import config
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
@@ -34,6 +35,7 @@ COMPLETE_FILE = 'odybcl2fastq.complete'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
 INDROP_FILE = 'indrop.txt'
+SUMMARY_LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 
 def initArgs():
     '''
@@ -426,7 +428,6 @@ def bcl2fastq_process_runs():
     no_demultiplex = ('NO_DEMULTIPLEX' in args and args.NO_DEMULTIPLEX)
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     setup_logging(run, test)
-    test = False
     logging.info("***** START Odybcl2fastq *****\n\n")
     check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
@@ -458,6 +459,8 @@ def bcl2fastq_process_runs():
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
+            success = True
+            message = 'TEST'
         else:
             logging.info('Launching bcl2fastq...%s\n' % cmd)
             success, message = bcl2fastq_runner(cmd,args, no_demultiplex)
@@ -496,18 +499,28 @@ def bcl2fastq_process_runs():
             sent = buildmessage(message, 'Demultiplex Summary for ' + run, summary_data, fromaddr, toemaillist)
             logging.info('Email sent: %s\n' % str(sent))
         job_cnt += 1
-    logging.info("***** END Odybcl2fastq *****\n\n")
     if success:
         ret_code = 0
+        status = 'success'
         util.touch(args.BCL_RUNFOLDER_DIR + '/', COMPLETE_FILE)
     else:
         ret_code = 1
+        status = 'failure'
         # print err to std_out
         print(message)
+    get_summary_logger().info("Odybcl2fastq for %s returned %s\n" % (run, status))
+    logging.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
 
 def get_output_log(run):
     return config.LOG_DIR + run + '.log'
+
+def get_summary_logger():
+    handler = logging.FileHandler(SUMMARY_LOG_FILE)
+    handler.setFormatter(logging.Formatter('%(asctime)s %(filename)s %(message)s'))
+    summary_logger = logging.getLogger('summary_log')
+    summary_logger.addHandler(handler)
+    return summary_logger
 
 def setup_logging(run, test):
     # take level from env or INFO
