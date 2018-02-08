@@ -75,7 +75,7 @@ class StatusDB(object):
                 'Submission': subs_str,
                 'Web_Link': config.FASTQ_URL + run
             }
-            self.minilims_insert(data, 'Illumina_Bcl_Conversion_Analysis', name)
+            self.minilims_insert(data, analysis_table, name)
         else:
             name = rows[0]['name']
             if row_cnt > 1: # dups exists
