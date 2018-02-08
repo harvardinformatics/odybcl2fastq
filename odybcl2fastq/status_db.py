@@ -2,6 +2,7 @@ import os
 import json
 import time
 import MySQLdb
+import logging
 from odybcl2fastq import config
 
 class StatusDB(object):
@@ -79,8 +80,9 @@ class StatusDB(object):
         else:
             name = rows[0]['name']
             if row_cnt > 1: # dups exists
-                logging.warning("duplicate analysis: %s\n", name)
+                logging.info("duplicate analysis: %s\n", name)
         self.analysis_name = name
+        return self.analysis_name
 
     def link_run_and_subs(self, run, subs):
         for sub in subs:
