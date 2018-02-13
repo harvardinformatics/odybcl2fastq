@@ -400,12 +400,12 @@ def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
     input.close()
     return new_sample_sheet
 
-def get_run_type(run_dir):
-    # flag files will be used for some special run types
-    indrop_path = run_dir + '/' + INDROP_FILE
-    if os.path.isfile(run_dir + '/' + INDROP_FILE):
-            return 'indrop'
-    return 'standard'
+def get_run_type(header):
+    # chemistry field will be used for some special run types
+    if 'Chemistry' in header and header['Chemistry']:
+        return header['Chemistry'].strip()
+    else:
+        return 'standard'
 
 def check_sample_sheet(sample_sheet, run):
     # if sample sheet is not already there then copy the one from run_folder named
@@ -433,7 +433,7 @@ def bcl2fastq_process_runs():
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
     instrument = ss.get_instrument(sample_sheet['Data'])
-    run_type = get_run_type(args.BCL_RUNFOLDER_DIR)
+    run_type = get_run_type(sample_sheet['Header'])
     mask_lists, mask_samples = extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML, instrument, args, run_type)
     # skip everything but billing if run folder flagged
     if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
