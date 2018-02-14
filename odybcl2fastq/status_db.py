@@ -61,26 +61,23 @@ class StatusDB(object):
     def insert_analysis(self, run, subs_str):
         analysis_table = 'Illumina_BclConversion_Analysis'
         rows = self.minilims_select(thing=analysis_table, property='Illumina_Run', value=run)
-        row_cnt = len(rows)
+        if len(rows) > 0:
+            name = rows[0][0]
+            logging.info("This run already has an analysis, %s this must be a rerun and an additional entry for this run will be created\n", name)
         now = time.time()
-        if row_cnt == 0:
-            name = self.minilims_get_new_name(analysis_table, 'ILL')
-            data = {
-                'Data_Directory': config.MOUNT_DIR + run,
-                'Date_Created': now,
-                'Date_Modified': now,
-                'Illumina_BclConversion_Analysis': name,
-                'Illumina_Run': run,
-                'Name': name,
-                'Status': 'COMPLETE',
-                'Submission': subs_str,
-                'Web_Link': config.FASTQ_URL + run
-            }
-            self.minilims_insert(data, analysis_table, name)
-        else:
-            name = rows[0]['name']
-            if row_cnt > 1: # dups exists
-                logging.info("duplicate analysis: %s\n", name)
+        name = self.minilims_get_new_name(analysis_table, 'ILL')
+        data = {
+            'Data_Directory': config.MOUNT_DIR + run,
+            'Date_Created': now,
+            'Date_Modified': now,
+            'Illumina_BclConversion_Analysis': name,
+            'Illumina_Run': run,
+            'Name': name,
+            'Status': 'COMPLETE',
+            'Submission': subs_str,
+            'Web_Link': config.FASTQ_URL + run
+        }
+        self.minilims_insert(data, analysis_table, name)
         self.analysis_name = name
         return self.analysis_name
 
