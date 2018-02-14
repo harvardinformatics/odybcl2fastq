@@ -24,7 +24,7 @@ from odybcl2fastq import config
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_stats
-from subprocess import Popen,PIPE
+from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq.status_db import StatusDB
 import odybcl2fastq.parsers.parse_sample_sheet as ss
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
@@ -294,20 +294,20 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
         src = src_root + file
         util.copy(src, dest)
 
-def copy_output_to_final(output_dir, run_folder, suffix):
+def copy_output_to_final(output_dir, run_folder, output_log, suffix):
     # determine dest_dir
     dest_dir = config.FINAL_DIR + run_folder
     if suffix: # runs with multiple indexing strategies have a subdir
         dest_dir += '/' + suffix
     # check size of output_dir
     cmd = 'du -s %s' % output_dir
-    code, out, err = run_cmd(cmd)
+    code, out = run_cmd(cmd, output_log)
     if code != 0:
         raise Exception('Could not check size of output_dir, files not copied to %s: %s' % (config.FINAL_DIR, cmd))
     output_space = int(out.split()[0])
     # check capacity of final dir
     cmd = 'df -P %s | grep  -v Filesystem' % config.FINAL_DIR
-    code, out, err = run_cmd(cmd)
+    code, out = run_cmd(cmd, output_log)
     if code != 0:
         raise Exception('Could not check capacity of %s, files not copied %s: %s' % (config.FINAL_DIR, output_dir, cmd))
     dest_space = out.split()
@@ -327,11 +327,30 @@ def copy_output_to_final(output_dir, run_folder, suffix):
     # change permissions on dest_dir
     util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
 
-def run_cmd(cmd):
+def run_cmd(cmd, output_log):
     # run unix cmd, return out and error
-    proc = Popen(cmd,shell=True,stderr=PIPE,stdout=PIPE)
-    out, err = proc.communicate()
-    return (proc.returncode, out, err)
+    with open(output_log, 'a+') as writer:
+        with open(output_log, 'r') as reader:
+            proc = Popen(cmd, shell=True, stderr=STDOUT, stdout=writer)
+            lines = []
+            # stream output to log, std out
+            while proc.poll() is None:
+                line = reader.readline()
+                # save last 40 lines for email
+                if line:
+                    lines.append(line)
+                    if len(lines) > 40:
+                        lines.pop(0)
+                sys.stdout.write(line)
+            # write any remaining output
+            try:
+                line = reader.readline()
+                lines.append(line)
+                sys.stdout.write(line)
+            except Exception:
+                pass
+            code = proc.wait()
+    return code, ''.join(lines)
 
 def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type):
     argdict = vars(args)
@@ -359,27 +378,24 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
-def bcl2fastq_runner(cmd,args, no_demultiplex = False):
+def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
     logging.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
-    output_log = get_output_log(run)
+    last_output = ''
     if no_demultiplex:
         message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
         success = True
     else:
-        code, demult_out, demult_err = run_cmd(cmd)
-        # append to output to log for the run
-        with open(output_log, 'a+') as f:
-            f.write(demult_err + "\n\n")
+        code, last_output = run_cmd(cmd, output_log)
         logging.info("***** END bcl2fastq *****\n\n")
         if code!=0:
-            message = 'run %s failed\n see logs here: %s\n%s\n' % (run, output_log,
-                    demult_err)
+            message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
             success = False
         else:
             message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
             success = True
-    return success, message
+    logging.info('message = %s' % message)
+    return success, message + last_output
 
 def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
     new_sample_sheet = sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
@@ -463,8 +479,8 @@ def bcl2fastq_process_runs():
             message = 'TEST'
         else:
             logging.info('Launching bcl2fastq...%s\n' % cmd)
-            success, message = bcl2fastq_runner(cmd,args, no_demultiplex)
-            logging.info('message = %s' % message)
+            output_log = get_output_log(run)
+            success, message = bcl2fastq_runner(cmd, output_log, args, no_demultiplex)
             summary_data = {}
             if success:
                 # write bcl2fastq cmd
@@ -483,7 +499,7 @@ def bcl2fastq_process_runs():
                         instrument)
                 run_folder = args.BCL_OUTPUT_DIR.split('/').pop()
                 # copy output to final dest where users will access
-                copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_suffix)
+                copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log, output_suffix)
                 # get data from run to put in the email
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
@@ -506,8 +522,6 @@ def bcl2fastq_process_runs():
     else:
         ret_code = 1
         status = 'failure'
-        # print err to std_out
-        print(message)
     get_summary_logger().info("Odybcl2fastq for %s returned %s\n" % (run, status))
     logging.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
