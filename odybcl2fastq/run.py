@@ -60,6 +60,14 @@ def initArgs():
             'action'    : 'store_true',
         },
         {
+            'name'      : 'BCL_MIN_LOG_LEVEL',
+            'switches'  : ['--min-log-level'],
+            'required'  : False,
+            'help'      : 'logging level: none, fatal, error, warning, info, debug, trace',
+            'default'   : 'DEBUG',
+            'type'      : str,
+        },
+        {
             'name'      : 'BCL_PROC_THREADS',
             'switches'  : ['-p','--processing-threads'],
             'required'  : False,
