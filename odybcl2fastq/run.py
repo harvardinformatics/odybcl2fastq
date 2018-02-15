@@ -16,6 +16,8 @@ Created on  2017-04-19
 import sys, os, traceback, stat
 import logging
 import json
+from glob import glob
+import hashlib
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 import odybcl2fastq.util as util
@@ -337,6 +339,19 @@ def copy_output_to_final(output_dir, run_folder, output_log, suffix):
     # change permissions on dest_dir
     util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
 
+def fastq_checksum(output_dir):
+    checksum_report = output_dir + '/md5dum.txt'
+    with open(checksum_report, 'w') as checksum_fh:
+        sample_proj_path = '%s/*/[!Undetermined]*fastq*.gz' % output_dir
+        file_path = '%s/[!Undetermined]*fastq*.gz' % output_dir
+        file_lst = glob(sample_proj_path)
+        file_lst.extend(glob(file_path))
+        checksums = []
+        for f in file_lst:
+            with open(f, 'rb') as fh:
+                checksums.append(os.path.basename(f) + '\t' + hashlib.md5(fh.read()).hexdigest() + '\n')
+        checksum_fh.writelines(checksums)
+
 def run_cmd(cmd):
     # run unix cmd, return out and error
     proc = Popen(cmd, shell=True, stderr=PIPE, stdout=PIPE)
@@ -513,6 +528,7 @@ def bcl2fastq_process_runs():
                 copy_source_to_output(args.BCL_RUNFOLDER_DIR,
                         args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
                         instrument)
+                fastq_checksum(args.BCL_OUTPUT_DIR)
                 run_folder = args.BCL_OUTPUT_DIR.split('/').pop()
                 # copy output to final dest where users will access
                 copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log, output_suffix)
