@@ -309,13 +309,15 @@ def copy_output_to_final(output_dir, run_folder, output_log, suffix):
         dest_dir += '/' + suffix
     # check size of output_dir
     cmd = 'du -s %s' % output_dir
-    code, out = run_cmd(cmd, output_log)
+    code, out, err = run_cmd(cmd)
+
     if code != 0:
         raise Exception('Could not check size of output_dir, files not copied to %s: %s' % (config.FINAL_DIR, cmd))
     output_space = int(out.split()[0])
+
     # check capacity of final dir
     cmd = 'df -P %s | grep  -v Filesystem' % config.FINAL_DIR
-    code, out = run_cmd(cmd, output_log)
+    code, out, err = run_cmd(cmd)
     if code != 0:
         raise Exception('Could not check capacity of %s, files not copied %s: %s' % (config.FINAL_DIR, output_dir, cmd))
     dest_space = out.split()
@@ -335,8 +337,14 @@ def copy_output_to_final(output_dir, run_folder, output_log, suffix):
     # change permissions on dest_dir
     util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
 
-def run_cmd(cmd, output_log):
+def run_cmd(cmd):
     # run unix cmd, return out and error
+    proc = Popen(cmd, shell=True, stderr=PIPE, stdout=PIPE)
+    out, err = proc.communicate()
+    return (proc.returncode, out, err)
+
+def run_bcl2fastq_cmd(cmd, output_log):
+    # run unix cmd, stream out and error, return last lines of out
     with open(output_log, 'a+') as writer:
         with open(output_log, 'r') as reader:
             proc = Popen(cmd, shell=True, stderr=STDOUT, stdout=writer)
@@ -394,7 +402,7 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
         message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
         success = True
     else:
-        code, last_output = run_cmd(cmd, output_log)
+        code, last_output = run_bcl2fastq_cmd(cmd, output_log)
         logging.info("***** END bcl2fastq *****\n\n")
         if code!=0:
             message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
