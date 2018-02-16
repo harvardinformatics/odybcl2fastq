@@ -239,7 +239,7 @@ def initArgs():
 
     # Setup argument parser
     parser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument('-V', '--version', action='version', version='bcl2fastq2.19')
+    parser.add_argument('-V', '--version', action='version', version='bcl2fastq2.2')
 
     # sets up dict with switches as keys and names as values
     switches_to_names={}
@@ -521,7 +521,7 @@ def bcl2fastq_process_runs():
                 summary_data['run'] = run
                 summary_data['run_folder'] = run_folder
                 summary_data['cmd'] = cmd
-                summary_data['version'] = 'bcl2fastq2 v2.19'
+                summary_data['version'] = 'bcl2fastq2 v2.2'
             fromaddr = config.EMAIL['from_email']
             if success:
                 toemaillist = config.EMAIL['to_email']
