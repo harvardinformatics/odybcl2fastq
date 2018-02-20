@@ -20,6 +20,7 @@ from glob import glob
 import hashlib
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+from collections import OrderedDict
 import odybcl2fastq.util as util
 from odybcl2fastq import constants as const
 from odybcl2fastq import config
@@ -392,25 +393,40 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
     cmdstrings=['bcl2fastq', mask_opt]
     # keeps consistent order of writing
-    switch_list=switches_to_names.keys()
+    switch_list = switches_to_names.keys()
     switch_list.sort()
+    bcl_params = []
+    cmd_dict = OrderedDict()
     for switches in switch_list:
-        switch=[switch for switch in switches if '--' in switch][0]
+        switch = [switch for switch in switches if '--' in switch][0]
+        bcl_params.append(switch)
         argvalue=str(argdict[switches_to_names[switches]])
         # the bit below prevents boolean flags from having values in the cmd
         if argvalue != 'False':
             if argvalue == 'True':
-                cmdstrings.append(switch)
+                cmd_dict[switch] = None
             else:
-                cmdstrings.append(' '.join([switch,argvalue]))
+                cmd_dict[switch] = argvalue
     if instrument == 'nextseq':
-        cmdstrings.append('--no-lane-splitting')
+        cmd_dict['--no-lane-splitting'] = None
     # check for short reads, do not mask
     if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MASK_SHORT_ADAPTER_READS:
-        cmdstrings.append('--mask-short-adapter-reads')
-        cmdstrings.append('0')
+        cmd_dict['--mask-short-adapter-reads'] = 0
+    # grab any manually added params from sample sheet
+    cmd_dict.update(get_params_from_sample_sheet(sample_sheet, bcl_params))
+    cmdstrings.extend([(k + ' ' + v) if v else k for k, v in cmd_dict.items()])
     cmdstring=' '.join(cmdstrings)
     return cmdstring
+
+def get_params_from_sample_sheet(sample_sheet, bcl_params):
+    # users can add params to the end of the HEADER section of the sample sheet
+    params = {}
+    for k, v in sample_sheet['Header'].items():
+        if k in bcl_params:
+            k = k.strip()
+            v = v.strip()
+            params[k] = v if v else None
+    return params
 
 def shortest_read(r):
     return int(r[min(r.keys(), key=(lambda k:int(r[k])))])
