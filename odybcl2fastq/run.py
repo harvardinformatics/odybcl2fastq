@@ -38,6 +38,8 @@ FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
 INDROP_FILE = 'indrop.txt'
 SUMMARY_LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
+MASK_SHORT_ADAPTER_READS = 22
+
 
 def initArgs():
     '''
@@ -383,7 +385,7 @@ def run_bcl2fastq_cmd(cmd, output_log):
             code = proc.wait()
     return code, ''.join(lines)
 
-def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type):
+def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type, sample_sheet):
     argdict = vars(args)
     mask_switch = '--use-bases-mask'
     # each mask should be prefaced by the switch
@@ -403,11 +405,15 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
                 cmdstrings.append(' '.join([switch,argvalue]))
     if instrument == 'nextseq':
         cmdstrings.append('--no-lane-splitting')
-    if run_type == 'indrop':
+    # check for short reads, do not mask
+    if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MASK_SHORT_ADAPTER_READS:
         cmdstrings.append('--mask-short-adapter-reads')
         cmdstrings.append('0')
     cmdstring=' '.join(cmdstrings)
     return cmdstring
+
+def shortest_read(r):
+    return int(r[min(r.keys(), key=(lambda k:int(r[k])))])
 
 def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
     logging.info("***** START bcl2fastq *****\n\n")
@@ -502,7 +508,7 @@ def bcl2fastq_process_runs():
             args.BCL_OUTPUT_DIR = output_dir + '-' + output_suffix
             args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
-                switches_to_names, mask_list, instrument, run_type)
+                switches_to_names, mask_list, instrument, run_type, sample_sheet)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
