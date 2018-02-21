@@ -542,7 +542,6 @@ def bcl2fastq_process_runs():
                 update_lims_db(run, sample_sheet, instrument)
                 # run  qc, TODO: consider a seperate job for this
                 error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR)
-                output_log = get_output_log(run)
                 with open(output_log, 'a+') as f:
                     f.write('\n'.join(fastqc_out) + "\n\n")
                     f.write('\n'.join(fastqc_err) + "\n\n")

@@ -137,20 +137,24 @@ def notify_incomplete_runs():
         send_email(message, 'Odybcl2fastq incomplete runs')
         for run in run_dirs:
             util.touch(run, INCOMPLETE_NOTIFIED_FILE)
+
 def tail(f, n):
-    proc = subprocess.Popen("tail -n %i %s | grep returned" % (n, f), shell=True, stdout=subprocess.PIPE)
+    cmd = "tail -n %i %s | grep returned" % (n, f)
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     std_out, std_err = proc.communicate()
     return std_out.splitlines(True)
 
 def copy_log():
     # last line is the tail command
-    lines = tail(LOG_FILE, 5000)[:-1]
+    lines = tail(LOG_FILE, 80000)
     # show max of 100 lines
     end = len(lines)
     max = 100
     if end > max:
         end = end - max
-    lines = lines[-1:end:-1]
+        lines = lines[-1:end:-1]
+    else:
+        lines = lines[::-1]
     with open(LOG_HTML, 'w') as f:
         f.write('<pre>')
         f.writelines(lines)
