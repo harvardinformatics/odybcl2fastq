@@ -414,7 +414,7 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
         cmd_dict['--mask-short-adapter-reads'] = 0
     # grab any manually added params from sample sheet
     cmd_dict.update(get_params_from_sample_sheet(sample_sheet, bcl_params))
-    cmdstrings.extend([(k + ' ' + v) if v else k for k, v in cmd_dict.items()])
+    cmdstrings.extend([(k + ' ' + str(v)) if v is not None else k for k, v in cmd_dict.items()])
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
