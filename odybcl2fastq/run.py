@@ -422,10 +422,10 @@ def get_params_from_sample_sheet(sample_sheet, bcl_params):
     # users can add params to the end of the HEADER section of the sample sheet
     params = {}
     for k, v in sample_sheet['Header'].items():
-        if k in bcl_params:
-            k = k.strip()
+        key = '--' + k.strip()
+        if key in bcl_params:
             v = v.strip()
-            params[k] = v if v else None
+            params[key] = v if v else None
     return params
 
 def shortest_read(r):
