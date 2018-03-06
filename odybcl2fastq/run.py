@@ -69,7 +69,7 @@ def initArgs():
             'switches'  : ['--min-log-level'],
             'required'  : False,
             'help'      : 'logging level: none, fatal, error, warning, info, debug, trace',
-            'default'   : 'DEBUG',
+            'default'   : 'INFO',
             'type'      : str,
         },
         {
