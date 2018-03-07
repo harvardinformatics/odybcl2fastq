@@ -345,8 +345,8 @@ def copy_output_to_final(output_dir, run_folder, output_log, suffix):
 def fastq_checksum(output_dir):
     checksum_report = output_dir + '/md5sum.txt'
     with open(checksum_report, 'w') as checksum_fh:
-        sample_proj_path = '%s/*/[!Undetermined]*fastq*.gz' % output_dir
-        file_path = '%s/[!Undetermined]*fastq*.gz' % output_dir
+        sample_proj_path = '%s/*/*.fastq.gz' % output_dir
+        file_path = '%s/*.fastq.gz' % output_dir
         file_lst = glob(sample_proj_path)
         file_lst.extend(glob(file_path))
         checksums = []
