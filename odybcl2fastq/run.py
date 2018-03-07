@@ -352,7 +352,9 @@ def fastq_checksum(output_dir):
         checksums = []
         for f in file_lst:
             with open(f, 'rb') as fh:
-                checksums.append(hashlib.md5(fh.read()).hexdigest() + '  ' +  os.path.basename(f) + '\n')
+                # put relative path in the checksum file so it can be run from
+                # the root even if the user copies the data somewhere else
+                checksums.append(hashlib.md5(fh.read()).hexdigest() + '  ' +  f.replace(output_dir + '/', '') + '\n')
         checksum_fh.writelines(checksums)
 
 def run_cmd(cmd):
