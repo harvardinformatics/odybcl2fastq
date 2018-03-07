@@ -6,16 +6,19 @@ from subprocess import call
 import gzip
 import logging
 import json
+import re
 
 def fastqc_runner(output_dir,numthreads = 1,batch = False):
     errors = []
     badfiles = []
     out = []
     # get fastq files except undetermined
-    sample_proj_path = '%s/*/[!Undetermined]*fastq*.gz' % output_dir
-    file_path = '%s/[!Undetermined]*fastq*.gz' % output_dir
+    sample_proj_path = '%s/*/*.fastq.gz' % output_dir
+    file_path = '%s/*.fastq.gz' % output_dir
     file_lst = glob(sample_proj_path)
     file_lst.extend(glob(file_path))
+    # exclude undetermined files
+    file_lst = [path for path in file_lst if not re.match(r'.*/Undetermined.*\.fastq\.gz', path)]
     files = ' '.join(file_lst)
     logging.info("start FASTQC on files: %s" % json.dumps(files))
     print 'files are', files
