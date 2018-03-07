@@ -343,7 +343,7 @@ def copy_output_to_final(output_dir, run_folder, output_log, suffix):
     util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
 
 def fastq_checksum(output_dir):
-    checksum_report = output_dir + '/md5dum.txt'
+    checksum_report = output_dir + '/md5sum.txt'
     with open(checksum_report, 'w') as checksum_fh:
         sample_proj_path = '%s/*/[!Undetermined]*fastq*.gz' % output_dir
         file_path = '%s/[!Undetermined]*fastq*.gz' % output_dir
@@ -352,7 +352,7 @@ def fastq_checksum(output_dir):
         checksums = []
         for f in file_lst:
             with open(f, 'rb') as fh:
-                checksums.append(os.path.basename(f) + '\t' + hashlib.md5(fh.read()).hexdigest() + '\n')
+                checksums.append(hashlib.md5(fh.read()).hexdigest() + '  ' +  os.path.basename(f) + '\n')
         checksum_fh.writelines(checksums)
 
 def run_cmd(cmd):
