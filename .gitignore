@@ -1,2 +1,4 @@
 *.pyc
 config.json
+odybcl2fastq.log
+storage_mgmt.log
