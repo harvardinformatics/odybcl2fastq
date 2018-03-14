@@ -454,25 +454,6 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
     logging.info('message = %s' % message)
     return success, message + last_output
 
-def write_new_sample_sheet(new_samples, sample_sheet, output_suffix):
-    new_sample_sheet = sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
-    input = open(sample_sheet, 'r')
-    output = open(new_sample_sheet, 'wb')
-    for line in input:
-        if not line.startswith('[Data]'):
-            output.write(line)
-        else:
-            output.write(line)
-            break
-    # print data headers
-    output.write(next(input))
-    # write new samples to sheet
-    new_lines = [(','.join(row.values()) + "\r\n") for row in new_samples]
-    output.writelines(new_lines)
-    output.close()
-    input.close()
-    return new_sample_sheet
-
 def get_run_type(header):
     # chemistry field will be used for some special run types
     if 'Chemistry' in header and header['Chemistry']:
@@ -505,6 +486,8 @@ def bcl2fastq_process_runs():
     check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
+    # TODO: make sample sheet a class
+    sample_sheet = ss.validate_sample_sheet(sample_sheet, args.BCL_SAMPLE_SHEET)
     instrument = ss.get_instrument(sample_sheet['Data'])
     run_type = get_run_type(sample_sheet['Header'])
     mask_lists, mask_samples = extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML, instrument, args, run_type)
@@ -526,7 +509,7 @@ def bcl2fastq_process_runs():
         if jobs_tot > 1:
             output_suffix = mask.replace(',', '_')
             args.BCL_OUTPUT_DIR = output_dir + '-' + output_suffix
-            args.BCL_SAMPLE_SHEET = write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
+            args.BCL_SAMPLE_SHEET = ss.write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type, sample_sheet)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))

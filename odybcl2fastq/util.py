@@ -3,6 +3,7 @@ import stat
 import logging
 import shutil
 import json
+import re
 
 def chmod_rec(path, d_permissions, f_permissions):
     '''
@@ -49,3 +50,12 @@ def touch(run_dir, file):
     path = run_dir + file
     with open(path, 'w+'):
         os.utime(path, None)
+
+def alphanumeric(str):
+    if str:
+        return re.match(r"^[\w-]+$", str)
+    else:
+        return True
+
+def contains_whitespace(str):
+    return (str and re.search(r"\s", str))
