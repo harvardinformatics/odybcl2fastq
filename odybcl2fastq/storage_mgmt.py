@@ -40,16 +40,17 @@ def init_args():
                 'action'    : 'store_true',
                 'default'   : False,
             },
-        'path':
+        'seq_storage':
             {
                 'required'  : True,
-                'help'      : 'location to check storage',
+                'choices'  : ['ngsdata', 'boslfs'],
+                'help'      : 'either ngsdata or boslfs',
                 'type'      : str,
             },
         'expired_after':
             {
                 'required'  : True,
-                'help'      : 'number of days after which runs can be deleted from the location given in path',
+                'help'      : 'number of days after which runs can be deleted from the location given in seq_storage',
                 'type'      : int,
             },
         'max_delete':
@@ -90,12 +91,19 @@ def setup_logging():
     # add to standard out for testing purposes
     logging.getLogger().addHandler(logging.StreamHandler())
 
-def get_runs(path):
+def get_runs(seq_storage):
+    # hard code paths as a safety measure so job cannot be used to delete
+    # from unintended directories
+    if seq_storage == 'ngsdata':
+        path = '/n/ngsdata/'
+    elif seq_storage == 'boslfs':
+        path = '/n/boslfs/ANALYSIS/'
+
     # get all the run folders
     cmd = 'find %s -maxdepth 1 -mindepth 1 -type d' % path
     code, out, err = run_cmd(cmd)
     if code != 0:
-        raise Exception('Could not fine directories at path %s: %s' % (cmd, err))
+        raise Exception('Could not find directories at path %s: %s' % (cmd, err))
     return out.split()
 
 def find_expired_runs(runs, oldest_str):
@@ -114,7 +122,7 @@ def find_expired_runs(runs, oldest_str):
 def manage_storage():
     setup_logging()
     args = init_args()
-    runs = get_runs(args.path)
+    runs = get_runs(args.seq_storage)
 
     # calculate expire date
     today = datetime.date.today()
@@ -125,16 +133,20 @@ def manage_storage():
 
     # exit if we found more to delete than we planned as the max
     if delete_cnt > args.max_delete:
-        raise Exception('Runs to delete (%i) exceeds max_delete (%i).  No runs will be deleted.  You can override by passing in a higher max_delete parameter' % (delete_cnt, args.max_delete))
+        raise Exception('Runs to delete (%i) exceeds max_delete (%i).  No runs will be deleted.  You can override by passing in a higher max_delete parameter:\n%s' % (delete_cnt, args.max_delete, to_delete))
 
     # print out expired runs and delete if option is true
+    to_delete_str = json.dumps(to_delete)
+    cmds = []
+    for dir in to_delete:
+        cmds.append('rm -rf %s' % dir)
+    logging.info('Delete cmds:\n%s' % json.dumps(cmds))
     if args.delete:
-        to_delete_str = json.dumps(to_delete)
         logging.info('Deleting %i runs:\n%s' % (delete_cnt, to_delete_str))
-        cmd = 'rm -rf {%s}' % ','.join(to_delete)
-        code, out, err = run_cmd(cmd)
-        if code != 0:
-            raise Exception('Error deleting runs %s: %s' % (cmd, err))
+        for cmd in cmds:
+            code, out, err = run_cmd(cmd)
+            if code != 0:
+                raise Exception('Error deleting runs %s: %s' % (cmd, err))
         logging.info('Successfully deleted runs %s' % to_delete_str)
     else:
         logging.info('Found %i runs for deletion.  To delete pass in the parameter --delete:\n%s' % (delete_cnt, json.dumps(to_delete)))
