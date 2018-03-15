@@ -107,12 +107,25 @@ def find_runs(filter):
             runs.append(dir)
     return runs
 
+def get_sample_sheet_path(run_dir):
+    # set default
+    sample_sheet_path = run_dir + 'SampleSheet.csv'
+    # see if a txt file indicates a specific, existing sample sheet
+    sample_sheet_txt = glob.glob(run_dir + 'SampleSheet*txt')
+    # if there are more than one then just use default
+    if len(sample_sheet_txt) == 1:
+        sample_sheet_path_tmp = sample_sheet_txt[0].replace('.txt', '.csv')
+        # override with this path if it exists
+        if os.path.exists(sample_sheet_path_tmp):
+            sample_sheet_path = sample_sheet_path_tmp
+    return sample_sheet_path
+
 def get_odybcl2fastq_cmd(run_dir):
     run = os.path.basename(os.path.normpath(run_dir))
     params = {
         'runfolder': os.path.dirname(run_dir),
         'output-dir': config.OUTPUT_DIR + run,
-        'sample-sheet': run_dir + 'SampleSheet.csv',
+        'sample-sheet': get_sample_sheet_path(run_dir),
         'runinfoxml': run_dir + 'RunInfo.xml'
     }
     args = []
