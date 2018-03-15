@@ -296,22 +296,24 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
         run_params_file = 'RunParameters.xml'
     # get filename part of sample_sheet
     sample_sheet = sample_sheet.replace(src_root, '')
-    files_to_copy = [
-            sample_sheet,
-            'RunInfo.xml',
-            run_params_file,
-            'InterOp'
-    ]
-    for file in files_to_copy:
-        dest = dest_root  + file
+    files_to_copy = {
+            'sample_sheet': sample_sheet,
+            'run_info': 'RunInfo.xml',
+            'run_params': run_params_file,
+            'interop': 'InterOp'
+    }
+    for name, file in files_to_copy.items():
+        new_file = file
+        if name == 'sample_sheet':
+            # needs to be called this for lims billing
+            new_file = 'SampleSheet.csv'
+        dest = dest_root  + new_file
         src = src_root + file
         util.copy(src, dest)
 
-def copy_output_to_final(output_dir, run_folder, output_log, suffix):
+def copy_output_to_final(output_dir, run_folder, output_log):
     # determine dest_dir
     dest_dir = config.FINAL_DIR + run_folder
-    if suffix: # runs with multiple indexing strategies have a subdir
-        dest_dir += '/' + suffix
     # check size of output_dir
     cmd = 'du -s %s' % output_dir
     code, out, err = run_cmd(cmd)
@@ -554,7 +556,7 @@ def bcl2fastq_process_runs():
                 fastq_checksum(args.BCL_OUTPUT_DIR)
                 run_folder = args.BCL_OUTPUT_DIR.split('/').pop()
                 # copy output to final dest where users will access
-                copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log, output_suffix)
+                copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log)
                 # get data from run to put in the email
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
                 summary_data['run'] = run
