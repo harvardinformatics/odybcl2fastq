@@ -49,12 +49,17 @@ class StatusDB(object):
             next_num = '0' + next_num
         return prefix + next_num
 
-    def minilims_insert(self, data, table, name):
+    def minilims_insert(self, data, table, name, allow_dup = True):
         cur = self.db.cursor()
         for k, v in data.items():
-            sql = """insert into semantic_data (name, thing, property, value) values ('%s',
-            '%s', '%s', '%s')""" % (name, table, k, v)
-            cur.execute(sql)
+            if allow_dup:
+                dup = False
+            else:
+                dup = self.minilims_select(thing=table, name=name, property=k, value=v)
+            if not dup:
+                sql = """insert into semantic_data (name, thing, property, value) values ('%s',
+                '%s', '%s', '%s')""" % (name, table, k, v)
+                cur.execute(sql)
         self.db.commit()
         cur.close()
 
@@ -83,7 +88,10 @@ class StatusDB(object):
 
     def link_run_and_subs(self, run, subs):
         for sub in subs:
-            self.minilims_insert({'Illumina_Run': run}, 'Submission',  sub)
-            self.minilims_insert({'Submission': sub}, 'Illumina_Run', run)
+            allow_dup = False
+            self.minilims_insert({'Illumina_Run': run}, 'Submission',  sub,
+                    allow_dup)
+            self.minilims_insert({'Submission': sub}, 'Illumina_Run', run,
+                    allow_dup)
 
 
