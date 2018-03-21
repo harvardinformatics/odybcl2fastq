@@ -195,7 +195,12 @@ def process_runs(pool, proc_num):
             else:
                 failed_runs.append(run)
                 status = 'failure'
-                failure_email(run, cmd, ret_code, std_out, std_err)
+                # failures from bcl2fastq will be emailed from inner job
+                # inner job passes ret code 9 on fail from bcl2fastq
+                # only email from outer job if error is from inner job itself
+                # not the bcl2fastq subprocess
+                if ret_code != 9:
+                    failure_email(run, cmd, ret_code, std_out, std_err)
             # success or failure of individual run will be logged from run.py to capture
             # manual runs for the status log
         logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %

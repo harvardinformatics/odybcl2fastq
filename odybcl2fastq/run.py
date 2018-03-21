@@ -539,6 +539,8 @@ def bcl2fastq_process_runs():
             output_log = get_output_log(run)
             success, message = bcl2fastq_runner(cmd, output_log, args, no_demultiplex)
             summary_data = {}
+            # run folder will contain any suffix that was applied
+            run_folder = args.BCL_OUTPUT_DIR.split('/').pop()
             if success:
                 # write bcl2fastq cmd
                 write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
@@ -554,7 +556,6 @@ def bcl2fastq_process_runs():
                         args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
                         instrument)
                 fastq_checksum(args.BCL_OUTPUT_DIR)
-                run_folder = args.BCL_OUTPUT_DIR.split('/').pop()
                 # copy output to final dest where users will access
                 copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log)
                 # get data from run to put in the email
@@ -563,13 +564,13 @@ def bcl2fastq_process_runs():
                 summary_data['run_folder'] = run_folder
                 summary_data['cmd'] = cmd
                 summary_data['version'] = 'bcl2fastq2 v2.2'
-            fromaddr = config.EMAIL['from_email']
-            if success:
-                toemaillist = config.EMAIL['to_email']
+                subject = 'Demultiplex Summary for ' + run_folder
             else:
-                toemaillist = config.EMAIL['to_email']
+                subject = 'Run Failed: ' + run_folder
+            toemaillist = config.EMAIL['to_email']
+            fromaddr = config.EMAIL['from_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
-            sent = buildmessage(message, 'Demultiplex Summary for ' + run_folder, summary_data, fromaddr, toemaillist)
+            sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)
             logging.info('Email sent: %s\n' % str(sent))
         job_cnt += 1
     if success:
@@ -577,7 +578,8 @@ def bcl2fastq_process_runs():
         status = 'success'
         util.touch(args.BCL_RUNFOLDER_DIR + '/', COMPLETE_FILE)
     else:
-        ret_code = 1
+        # pass a special ret_code to avoid double email on error
+        ret_code = 9
         status = 'failure'
     get_summary_logger().info("Odybcl2fastq for %s returned %s\n" % (run, status))
     logging.info("***** END Odybcl2fastq *****\n\n")
