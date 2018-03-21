@@ -27,6 +27,7 @@ LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
+SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
 DAYS_TO_SEARCH = 7
 INCOMPLETE_AFTER_DAYS = 2
@@ -71,6 +72,9 @@ def need_to_process(dir):
         return False
     # filter out if tagged as processed
     if os.path.isfile(dir + PROCESSED_FILE):
+        return False
+    # filter out if tagged as skip
+    if os.path.isfile(dir + SKIP_FILE):
         return False
     # filter out if any required files are missing
     for req in REQUIRED_FILES:
