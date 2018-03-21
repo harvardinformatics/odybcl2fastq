@@ -10,14 +10,13 @@ import logging
 
 MIN_UNDETER_CNT = 1000000
 
-def get_summary(output_dir, instrument, sample_sheet_dir):
+def get_summary(output_dir, instrument, sample_sheet_dir, run_folder):
     """
     parse summary from Stats.json
     """
     # set locale so numeric formating works
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-    run_path = '/'.join(output_dir.split('/')[4:])
-    stats_url = config.FASTQ_URL + run_path + '/Reports/html'
+    stats_url = config.FASTQ_URL + run_folder + '/Reports/html'
     stats_path = output_dir + '/Stats/Stats.json'
     if not os.path.exists(stats_path):
         raise UserException('Stats path does not exist: %s' % stats_path)

@@ -558,7 +558,7 @@ def bcl2fastq_process_runs():
                 # copy output to final dest where users will access
                 copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log)
                 # get data from run to put in the email
-                summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET)
+                summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET, run_folder)
                 summary_data['run'] = run
                 summary_data['run_folder'] = run_folder
                 summary_data['cmd'] = cmd
@@ -569,7 +569,7 @@ def bcl2fastq_process_runs():
             else:
                 toemaillist = config.EMAIL['to_email']
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
-            sent = buildmessage(message, 'Demultiplex Summary for ' + run, summary_data, fromaddr, toemaillist)
+            sent = buildmessage(message, 'Demultiplex Summary for ' + run_folder, summary_data, fromaddr, toemaillist)
             logging.info('Email sent: %s\n' % str(sent))
         job_cnt += 1
     if success:
