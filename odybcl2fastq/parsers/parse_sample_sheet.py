@@ -106,6 +106,7 @@ def validate_sample_sheet(sample_sheet, sample_sheet_path):
         corrected_sample_sheet = write_new_sample_sheet(sample_sheet['Data'].values(), sample_sheet_path, 'corrected')
         # copy corrected to sample sheet path, leave corrected file as record
         util.copy(corrected_sample_sheet, sample_sheet_path)
+    return sample_sheet
 
 def validate_sample_names(data):
     corrected = False
