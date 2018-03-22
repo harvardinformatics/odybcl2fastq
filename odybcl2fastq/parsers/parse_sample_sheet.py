@@ -99,12 +99,13 @@ def get_instrument(sample_data):
 
 def validate_sample_sheet(sample_sheet, sample_sheet_path):
     corrected, sample_sheet['Data'] = validate_sample_names(sample_sheet['Data'])
-    # copy orig sample sheet as backup and record
-    util.copy(sample_sheet_path, sample_sheet_path.replace('.csv', '_orig.csv'))
-    # write a corrected sheet
-    corrected_sample_sheet = write_new_sample_sheet(sample_sheet['Data'].values(), sample_sheet_path, 'corrected')
-    # copy corrected to sample sheet path, leave corrected file as record
-    util.copy(corrected_sample_sheet, sample_sheet_path)
+    if corrected:
+        # copy orig sample sheet as backup and record
+        util.copy(sample_sheet_path, sample_sheet_path.replace('.csv', '_orig.csv'))
+        # write a corrected sheet
+        corrected_sample_sheet = write_new_sample_sheet(sample_sheet['Data'].values(), sample_sheet_path, 'corrected')
+        # copy corrected to sample sheet path, leave corrected file as record
+        util.copy(corrected_sample_sheet, sample_sheet_path)
 
 def validate_sample_names(data):
     corrected = False
@@ -129,8 +130,8 @@ def validate_sample_names(data):
         # if sample project is used, each sample id must belong to only one
         if line['Sample_Project']:
             if not line['Sample_ID'] in proj_by_sample:
-                proj_by_sample[line['Sample_ID']] = []
-            proj_by_sample[line['Sample_ID']].append(line['Sample_Project'])
+                proj_by_sample[line['Sample_ID']] = set()
+            proj_by_sample[line['Sample_ID']].add(line['Sample_Project'])
         data[sam] = line
     # rename samples that belong to multiple projects
     for id, projs in proj_by_sample.items():

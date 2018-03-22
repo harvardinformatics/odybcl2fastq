@@ -35,6 +35,11 @@ def copy(src, dest):
         shutil.copytree(src, dest)
         print('copytree')
     else:
+        if os.path.exists(dest):
+            logging.warn('%s exists, overwritting with copy of %s' % (dest,
+                src))
+            print('deleting' + dest)
+            os.remove(dest)
         shutil.copy(src, dest)
         print('copyfile')
     logging.info('Successfully copied %s to %s' % (src, dest))
