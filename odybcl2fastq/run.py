@@ -392,10 +392,7 @@ def run_bcl2fastq_cmd(cmd, output_log):
 
 def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type, sample_sheet):
     argdict = vars(args)
-    mask_switch = '--use-bases-mask'
-    # each mask should be prefaced by the switch
-    mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
-    cmdstrings=['bcl2fastq', mask_opt]
+    cmdstrings=['bcl2fastq']
     # keeps consistent order of writing
     switch_list = switches_to_names.keys()
     switch_list.sort()
@@ -419,6 +416,12 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     # grab any manually added params from sample sheet
     cmd_dict.update(get_params_from_sample_sheet(sample_sheet, bcl_params))
     cmdstrings.extend([(k + ' ' + str(v)) if v is not None else k for k, v in cmd_dict.items()])
+    # add the basemask generated from sample sheet if none was manually provided
+    mask_switch = '--use-bases-mask'
+    if mask_switch not in cmd_dict:
+        # each mask should be prefaced by the switch
+        mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
+        cmdstrings.append(mask_opt)
     cmdstring=' '.join(cmdstrings)
     return cmdstring
 
