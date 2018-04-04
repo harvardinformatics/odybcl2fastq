@@ -513,6 +513,7 @@ def bcl2fastq_process_runs():
             output_suffix = mask.replace(',', '_')
             args.BCL_OUTPUT_DIR = output_dir + '-' + output_suffix
             args.BCL_SAMPLE_SHEET = ss.write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
+            sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type, sample_sheet)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
@@ -531,7 +532,7 @@ def bcl2fastq_process_runs():
                 # write bcl2fastq cmd
                 write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
                 # update lims db
-                update_lims_db(run, sample_sheet, instrument)
+                update_lims_db(run_folder, sample_sheet, instrument)
                 # run  qc, TODO: consider a seperate job for this
                 error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR)
                 with open(output_log, 'a+') as f:
