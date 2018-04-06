@@ -43,7 +43,7 @@ def init_args():
         'seq_storage':
             {
                 'required'  : True,
-                'choices'  : ['ngsdata', 'boslfs'],
+                'choices'  : ['ngsdata', 'boslfs', 'raw'],
                 'help'      : 'either ngsdata or boslfs',
                 'type'      : str,
             },
@@ -98,6 +98,8 @@ def get_runs(seq_storage):
         path = '/n/ngsdata/'
     elif seq_storage == 'boslfs':
         path = '/n/boslfs/ANALYSIS/'
+    elif seq_storage == 'raw':
+        path = '/n/boslfs/INSTRUMENTS/illumina/'
 
     # get all the run folders
     cmd = 'find %s -maxdepth 1 -mindepth 1 -type d' % path
