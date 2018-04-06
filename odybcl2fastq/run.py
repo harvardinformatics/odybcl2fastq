@@ -37,7 +37,6 @@ PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
-INDROP_FILE = 'indrop.txt'
 SUMMARY_LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 MASK_SHORT_ADAPTER_READS = 22
 
@@ -460,7 +459,7 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
 def get_run_type(header):
     # chemistry field will be used for some special run types
     if 'Chemistry' in header and header['Chemistry']:
-        return header['Chemistry'].strip()
+        return header['Chemistry'].strip().lower()
     else:
         return 'standard'
 
