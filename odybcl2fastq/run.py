@@ -39,6 +39,8 @@ FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
 SUMMARY_LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 MASK_SHORT_ADAPTER_READS = 22
+STORAGE_CAPACITY_WARN = 0.9
+STORAGE_CAPACITY_ERROR = 0.95
 
 
 def initArgs():
@@ -330,11 +332,13 @@ def copy_output_to_final(output_dir, run_folder, output_log):
     tot_space = int(dest_space[1])
     used = int(dest_space[2])
     capacity = (used + output_space) / float(tot_space)
-    if capacity > 0.8:
+    storage_capacity_warn = float(os.getenv('ODY_STORAGE_CAPACITY_WARN', STORAGE_CAPACITY_WARN))
+    storage_capacity_error = float(os.getenv('ODY_STORAGE_CAPACITY_ERROR', STORAGE_CAPACITY_ERROR))
+    if capacity > storage_capacity_warn:
         message = '%s near capacity copying %s: %s, used: %s, tot: %s' % (config.FINAL_DIR, output_dir, output_space, used, tot_space)
         logging.warning(message)
-        sent = buildmessage(message, 'NGSDATA is 80% full', [], config.EMAIL['from_email'], config.EMAIL['admin_email'])
-    if capacity > 0.9:
+        sent = buildmessage(message, 'NGSDATA is near capacity', [], config.EMAIL['from_email'], config.EMAIL['admin_email'])
+    if capacity > storage_capacity_error:
         msg = 'Could not copy %s to  %s: %s' % (output_dir, config.FINAL_DIR, capacity)
         raise Exception(msg)
     logging.info('Copying %s: %s, to %s at capacity: %s' % (output_dir, output_space,
