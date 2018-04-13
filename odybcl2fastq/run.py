@@ -66,6 +66,20 @@ def initArgs():
             'action'    : 'store_true',
         },
         {
+            'name'      : 'NO_POST_PROCESS',
+            'switches'  : ['--no-post-process'],
+            'required'  : False,
+            'help'      : 'run without fastqc or other post processing',
+            'action'    : 'store_true',
+        },
+        {
+            'name'      : 'NO_FILE_COPY',
+            'switches'  : ['--no-file-copy'],
+            'required'  : False,
+            'help'      : 'run without copying files to final',
+            'action'    : 'store_true',
+        },
+        {
             'name'      : 'BCL_MIN_LOG_LEVEL',
             'switches'  : ['--min-log-level'],
             'required'  : False,
@@ -486,6 +500,8 @@ def bcl2fastq_process_runs():
     util.touch(args.BCL_RUNFOLDER_DIR + '/', PROCESSED_FILE)
     test = ('TEST' in args and args.TEST)
     no_demultiplex = ('NO_DEMULTIPLEX' in args and args.NO_DEMULTIPLEX)
+    no_post_process = ('NO_POST_PROCESS' in args and args.NO_POST_PROCESS)
+    no_file_copy = ('NO_FILE_COPY' in args and args.NO_FILE_COPY)
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     setup_logging(run, test)
     logging.info("***** START Odybcl2fastq *****\n\n")
@@ -532,22 +548,24 @@ def bcl2fastq_process_runs():
             # run folder will contain any suffix that was applied
             run_folder = args.BCL_OUTPUT_DIR.split('/').pop()
             if success:
-                # write bcl2fastq cmd
-                write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
-                # update lims db
-                update_lims_db(run_folder, sample_sheet, instrument)
-                # run  qc, TODO: consider a seperate job for this
-                error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR)
-                with open(output_log, 'a+') as f:
-                    f.write('\n'.join(fastqc_out) + "\n\n")
-                    f.write('\n'.join(fastqc_err) + "\n\n")
-                # copy run files to final
-                copy_source_to_output(args.BCL_RUNFOLDER_DIR,
-                        args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
-                        instrument)
-                fastq_checksum(args.BCL_OUTPUT_DIR)
-                # copy output to final dest where users will access
-                copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log)
+                if not no_post_process:
+                    # write bcl2fastq cmd
+                    write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
+                    # update lims db
+                    update_lims_db(run_folder, sample_sheet, instrument)
+                    # run  qc, TODO: consider a seperate job for this
+                    error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR)
+                    with open(output_log, 'a+') as f:
+                        f.write('\n'.join(fastqc_out) + "\n\n")
+                        f.write('\n'.join(fastqc_err) + "\n\n")
+                    # copy run files to final
+                if not no_file_copy:
+                    copy_source_to_output(args.BCL_RUNFOLDER_DIR,
+                            args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
+                            instrument)
+                    fastq_checksum(args.BCL_OUTPUT_DIR)
+                    # copy output to final dest where users will access
+                    copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log)
                 # get data from run to put in the email
                 summary_data = parse_stats.get_summary(args.BCL_OUTPUT_DIR, instrument, args.BCL_SAMPLE_SHEET, run_folder)
                 summary_data['run'] = run
