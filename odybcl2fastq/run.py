@@ -431,7 +431,8 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MASK_SHORT_ADAPTER_READS:
         cmd_dict['--mask-short-adapter-reads'] = 0
     # grab any manually added params from sample sheet
-    cmd_dict.update(get_params_from_sample_sheet(sample_sheet, bcl_params))
+    ss_params = get_params_from_sample_sheet(sample_sheet, bcl_params)
+    cmd_dict.update(ss_params)
     cmdstrings.extend([(k + ' ' + str(v)) if v is not None else k for k, v in cmd_dict.items()])
     # add the basemask generated from sample sheet if none was manually provided
     mask_switch = '--use-bases-mask'
@@ -508,6 +509,10 @@ def bcl2fastq_process_runs():
     check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
+    # if output-dir was added to the sample sheet we need to set the
+    # BCL_OUTPUT_DIR
+    if 'output-dir' in sample_sheet['Header']:
+        args.BCL_OUTPUT_DIR = sample_sheet['Header']['output-dir']
     # TODO: make sample sheet a class
     sample_sheet = ss.validate_sample_sheet(sample_sheet, args.BCL_SAMPLE_SHEET)
     instrument = ss.get_instrument(sample_sheet['Data'])
