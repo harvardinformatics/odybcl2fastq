@@ -88,9 +88,18 @@ class StatusDB(object):
 
     def link_run_and_subs(self, run, subs):
         for sub in subs:
+            # check if this is a rerun and this run has already been linked to
+            # the submission
+            existing_runs = self.minilims_select(thing='Submission', name=sub, property='Illumina_Run')
+            exists = False
+            for exist in existing_runs:
+                if exist[3] in run:
+                    exists = True
             allow_dup = False
-            self.minilims_insert({'Illumina_Run': run}, 'Submission',  sub,
-                    allow_dup)
+            if not exists: # linking twice results in double billing
+                self.minilims_insert({'Illumina_Run': run}, 'Submission',  sub,
+                        allow_dup)
+            # it is ok to link the submission to the any run it applys to
             self.minilims_insert({'Submission': sub}, 'Illumina_Run', run,
                     allow_dup)
 
