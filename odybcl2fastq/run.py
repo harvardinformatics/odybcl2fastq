@@ -29,7 +29,7 @@ from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers import parse_stats
 from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq.status_db import StatusDB
-import odybcl2fastq.parsers.parse_sample_sheet as ss
+from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
 from tests.compare_fastq import compare_fastq
 
@@ -475,13 +475,6 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
     logging.info('message = %s' % message)
     return success, message + last_output
 
-def get_run_type(header):
-    # chemistry field will be used for some special run types
-    if 'Chemistry' in header and header['Chemistry']:
-        return header['Chemistry'].strip().lower()
-    else:
-        return 'standard'
-
 def check_sample_sheet(sample_sheet, run):
     # if sample sheet is not already there then copy the one from run_folder named
     # for flowcell
@@ -508,16 +501,16 @@ def bcl2fastq_process_runs():
     logging.info("***** START Odybcl2fastq *****\n\n")
     check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
     logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
-    sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
+    sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
+    sample_sheet.validate()
+    instrument = sample_sheet.get_instrument()
     # if output-dir was added to the sample sheet we need to set the
     # BCL_OUTPUT_DIR
-    if 'output-dir' in sample_sheet['Header']:
+    custom_output_dir = sample_sheet.get_output_dir()
+    if custom_output_dir:
         args.BCL_OUTPUT_DIR = sample_sheet['Header']['output-dir']
-    # TODO: make sample sheet a class
-    sample_sheet = ss.validate_sample_sheet(sample_sheet, args.BCL_SAMPLE_SHEET)
-    instrument = ss.get_instrument(sample_sheet['Data'])
-    run_type = get_run_type(sample_sheet['Header'])
-    mask_lists, mask_samples = extract_basemasks(sample_sheet['Data'], args.RUNINFO_XML, instrument, args, run_type)
+    run_type = sample_sheet.get_run_type()
+    mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
     # skip everything but billing if run folder flagged
     if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
         logging.info("This run is flagged for billing only %s" % run)
@@ -536,8 +529,8 @@ def bcl2fastq_process_runs():
         if jobs_tot > 1:
             output_suffix = mask.replace(',', '_')
             args.BCL_OUTPUT_DIR = output_dir + '-' + output_suffix
-            args.BCL_SAMPLE_SHEET = ss.write_new_sample_sheet(mask_samples[mask], sample_sheet_dir, output_suffix)
-            sample_sheet = ss.sheet_parse(args.BCL_SAMPLE_SHEET)
+            args.BCL_SAMPLE_SHEET = sample_sheet.write_new_sample_sheet(mask_samples[mask], output_suffix)
+            sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type, sample_sheet)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
