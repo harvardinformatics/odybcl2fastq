@@ -1,6 +1,17 @@
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 
+def get_runinfo(runinfo_xml_file):
+    tree = ET.parse(runinfo_xml_file)
+    root = tree.getroot()
+    runinfo = {
+        'name': root.find('Run').attrib['Id'],
+        'instrument': root.find('Run/Instrument').text,
+        'flowcell': root.find('Run/Flowcell').text
+    }
+    return runinfo
+
+
 def get_readinfo_from_runinfo(runinfo_xml_file):
     tree = ET.parse(runinfo_xml_file)
     root = tree.getroot()

@@ -1,4 +1,5 @@
 *.pyc
 config.json
 odybcl2fastq.log
+db.log
 storage_mgmt.log

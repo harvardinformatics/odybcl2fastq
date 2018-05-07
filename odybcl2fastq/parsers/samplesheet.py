@@ -6,6 +6,7 @@ import re
 class SampleSheet(object):
     def __init__(self, path):
         self.path = path
+        self.lanes = []
         self.sections = self.sheet_parse(path)
 
     def sheet_parse(self, samplesheet=None):
@@ -71,8 +72,12 @@ class SampleSheet(object):
                             data_dict=OrderedDict(zip(data_fields,linelist[:len(data_fields)]))
                             if 'Lane' in data_dict.keys():
                                 name = '%s:%s' % (data_dict['Lane'],data_dict['Sample_ID'])
+                                lane = data_dict['Lane']
                             else:
                                 name = '%s:%s' % (data_dict['Sample_Project'],data_dict['Sample_ID'])
+                                lane = 1
+                            if lane not in self.lanes:
+                                self.lanes.append(lane)
 
                             defaults_by_section['Data'][name] = data_dict
 

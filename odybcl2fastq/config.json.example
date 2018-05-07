@@ -12,10 +12,13 @@
         "smtp": ""
     },
 
-    "STATUSDB": {
+    "STATUS_DB": {
         "host": "",
         "user": "",
         "password": "",
         "database": ""
+    },
+    "BAUER_DB": {
+        "api": ""
     }
 }
