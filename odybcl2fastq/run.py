@@ -508,13 +508,13 @@ def bcl2fastq_process_runs():
     # BCL_OUTPUT_DIR
     custom_output_dir = sample_sheet.get_output_dir()
     if custom_output_dir:
-        args.BCL_OUTPUT_DIR = sample_sheet['Header']['output-dir']
+        args.BCL_OUTPUT_DIR = sample_sheet.sections['Header']['output-dir']
     run_type = sample_sheet.get_run_type()
     mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
     # skip everything but billing if run folder flagged
     if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
         logging.info("This run is flagged for billing only %s" % run)
-        update_lims_db(run, sample_sheet, instrument)
+        update_lims_db(run, sample_sheet.sections, instrument)
         return
     jobs_tot = len(mask_lists)
     if jobs_tot > 1:
@@ -532,7 +532,7 @@ def bcl2fastq_process_runs():
             args.BCL_SAMPLE_SHEET = sample_sheet.write_new_sample_sheet(mask_samples[mask], output_suffix)
             sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
         cmd = bcl2fastq_build_cmd(args,
-                switches_to_names, mask_list, instrument, run_type, sample_sheet)
+                switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
         logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             logging.info("Test run, command not run: %s" % cmd)
@@ -550,7 +550,7 @@ def bcl2fastq_process_runs():
                     # write bcl2fastq cmd
                     write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
                     # update lims db
-                    update_lims_db(run_folder, sample_sheet, instrument)
+                    update_lims_db(run_folder, sample_sheet.sections, instrument)
                     # run  qc, TODO: consider a seperate job for this
                     error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR)
                     with open(output_log, 'a+') as f:
