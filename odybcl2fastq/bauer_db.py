@@ -8,7 +8,10 @@ from odybcl2fastq.parsers.samplesheet import SampleSheet
 class BauerDB(object):
     def __init__(self, sample_sheet_path):
         self.api = config.BAUER_DB['api']
+        # use the seq app api for entering seq data
+        self.seq_api = self.api + 'sequencing/'
         self.sample_sheet_path = sample_sheet_path
+        self.token =  self.get_token()
 
     def insert_run(self, run):
         # insert run
@@ -53,9 +56,19 @@ class BauerDB(object):
             sample_data['lane'] = lane
             sample_id = self.post_data('samples', sample_data)
 
-    def post_data(self, endpoint, data):
-        url = self.api + endpoint + '/'
+    def get_token(self):
+        url = self.api + 'get_auth_token/'
+        data = {'username': config.BAUER_DB['user'], 'password':
+                config.BAUER_DB['password']}
         r = requests.post(url = url, data = data)
+        r.raise_for_status()
+        res = json.loads(r.text)
+        return res['token']
+
+    def post_data(self, endpoint, data):
+        url = self.seq_api + endpoint + '/'
+        headers = {'Authorization': 'Token %s' % self.token}
+        r = requests.post(url = url, data = data, headers=headers)
         r.raise_for_status()
         res = json.loads(r.text)
         item_id = res['id']

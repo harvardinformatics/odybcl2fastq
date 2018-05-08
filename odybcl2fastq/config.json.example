@@ -19,6 +19,7 @@
         "database": ""
     },
     "BAUER_DB": {
-        "api": ""
+        "api": "",
+        "token": ""
     }
 }
