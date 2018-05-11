@@ -24,6 +24,8 @@ from odybcl2fastq.bauer_db import BauerDB
 LOG_FILE = const.ROOT_DIR + 'db.log'
 PROCESSED_FILE = 'bauer.processed'
 COMPLETE_FILE = 'bauer.complete'
+INCOMPLETE_NOTIFIED_FILE = 'bauer.incomplete_notified'
+INCOMPLETE_AFTER_DAYS = 1
 DAYS_TO_SEARCH = 7
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
@@ -54,6 +56,26 @@ def send_email(message, subject):
     fromaddr = config.EMAIL['from_email']
     toemaillist=config.EMAIL['to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
+
+def run_is_incomplete(dir):
+    now = datetime.now()
+    m_time = datetime.fromtimestamp(os.stat(dir).st_mtime)
+    # filter out if modified before cutover to odybcl2fastq
+    if m_time < SEARCH_AFTER_DATE:
+        return False
+    # filter out if modified after reasonable delay to allow for completion
+    if ((now - m_time).days) <= INCOMPLETE_AFTER_DAYS:
+        return False
+    # filter out if tagged as complete
+    if os.path.isfile(dir + COMPLETE_FILE):
+        return False
+    # filter out if never tagged for processing
+    if not os.path.isfile(dir + PROCESSED_FILE):
+        return False
+    # filter out already notified
+    if os.path.isfile(dir + INCOMPLETE_NOTIFIED_FILE):
+        return False
+    return True
 
 def need_to_process(dir):
     now = datetime.now()
@@ -95,6 +117,15 @@ def get_sample_sheet_path(run_dir):
             sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
 
+def notify_incomplete_runs():
+    run_dirs = find_runs(run_is_incomplete)
+    run_dirs_str = "\n".join(run_dirs)
+    if run_dirs:
+        message = "The following runs failed be entered into bauer db %s or more days ago:\n\n%s" % (INCOMPLETE_AFTER_DAYS, run_dirs_str)
+        send_email(message, 'BauerDB incomplete runs')
+        for run in run_dirs:
+            util.touch(run, INCOMPLETE_NOTIFIED_FILE)
+
 def load_runs(proc_num):
     runs_found = find_runs(need_to_process)
     run_dirs = runs_found[:proc_num]
@@ -103,6 +134,7 @@ def load_runs(proc_num):
             json.dumps(run_dirs)))
         results = {}
         for run_dir in run_dirs:
+            util.touch(run_dir, PROCESSED_FILE)
             run = os.path.basename(os.path.normpath(run_dir))
             sample_sheet_path = get_sample_sheet_path(run_dir)
             bauer = BauerDB(sample_sheet_path)
@@ -114,6 +146,7 @@ def load_runs(proc_num):
             if result:
                 success_runs.append(run)
                 status = 'success'
+                util.touch(run_dir, COMPLETE_FILE)
             else:
                 failed_runs.append(run)
                 status = 'failure'
@@ -131,6 +164,7 @@ if __name__ == "__main__":
         while True:
             # search for new runs
             load_runs(proc_num)
+            notify_incomplete_runs()
             # wait before checking for more runs to process
             frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
             if frequency != FREQUENCY:
