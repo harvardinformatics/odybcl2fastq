@@ -55,6 +55,7 @@ class BauerDB(object):
                 lane = lane_ids[0]
             sample_data['lane'] = lane
             sample_id = self.post_data('samples', sample_data)
+        return True
 
     def get_token(self):
         url = self.api + 'get_auth_token/'
@@ -69,7 +70,12 @@ class BauerDB(object):
         url = self.seq_api + endpoint + '/'
         headers = {'Authorization': 'Token %s' % self.token}
         r = requests.post(url = url, data = data, headers=headers)
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logging.error('Api Error at %s: %s' % (url, e.response.text))
+            raise e
+
         res = json.loads(r.text)
         item_id = res['id']
         logging.info('Loaded data for %s into id %d with data: %s' % (endpoint, item_id, json.dumps(data)))
