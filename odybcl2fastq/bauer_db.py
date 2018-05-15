@@ -53,8 +53,8 @@ class BauerDB(object):
                     'index1': sample_row['index'],
                     'index2': sample_row['index2']
             }
-            if 'Lane' in sample_row:
-                lane = lane_ids[sample_row['Lane']]
+            if 'Lane' in sample_row and sample_row['Lane'].isdigit():
+                lane = lane_ids[int(sample_row['Lane'])-1]
             else:
                 lane = lane_ids[0]
             sample_data['lane'] = lane
