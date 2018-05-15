@@ -196,4 +196,8 @@ class SampleSheet(object):
         else:
             return 'standard'
 
-
+    def get_assay(self):
+        if 'Assay' in self.sections['Header'] and self.sections['Header']['Assay']:
+            return self.sections['Header']['Assay'].strip().lower()
+        else:
+            return None
