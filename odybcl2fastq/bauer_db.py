@@ -16,12 +16,7 @@ class BauerDB(object):
     def insert_run(self, run):
         # insert run
         runinfo_file = run + 'RunInfo.xml'
-        sample_sheet = SampleSheet(self.sample_sheet_path)
         run_data = get_runinfo(runinfo_file)
-        run_type = self.get_run_type(sample_sheet)
-        # enter the type of the run from sample sheet or leave null
-        if run_type:
-            run_data['run_type'] = run_type
         run_id = self.post_data('runs', run_data)
 
         # insert read
@@ -36,6 +31,7 @@ class BauerDB(object):
             read_id = self.post_data('reads', read_data)
 
         # insert lanes
+        sample_sheet = SampleSheet(self.sample_sheet_path)
         lane_ids = []
         for lane in sample_sheet.lanes:
             lane_data = {
@@ -53,6 +49,9 @@ class BauerDB(object):
                     'index1': sample_row['index'],
                     'index2': sample_row['index2']
             }
+            # add a type if one was entered into sample sheet
+            if 'Type' in sample_row and sample_row['Type']:
+                sample_data['sample_type'] = self.get_sample_type(sample_row['Type'])
             if 'Lane' in sample_row and sample_row['Lane'].isdigit():
                 lane = lane_ids[int(sample_row['Lane'])-1]
             else:
@@ -99,13 +98,13 @@ class BauerDB(object):
         logging.info('Retreived data for %s: %s' % (endpoint, json.dumps(res)))
         return res
 
-    def get_run_type(self, sample_sheet):
-        run_type = sample_sheet.get_assay().lower()
-        # get valid runtypes
-        run_types = self.get_data('run_types')
-        valid_run_types = [t['name'].lower() for t in run_types]
-        # return valid run_type or null
-        if run_type in valid_run_types:
-            return run_type
+    def get_sample_type(self, sample_type):
+        sample_type = sample_type.lower()
+        # get valid sample_types
+        sample_types = self.get_data('sample_types')
+        valid_sample_types = [t['name'].lower() for t in sample_types]
+        # return valid sample_type or null
+        if sample_type in valid_sample_types:
+            return sample_type
         else:
             return None
