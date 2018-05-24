@@ -29,9 +29,9 @@ INCOMPLETE_AFTER_DAYS = 1
 DAYS_TO_SEARCH = 7
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
-SEARCH_AFTER_DATE = datetime.strptime('May 07 2018', '%b %d %Y')
+SEARCH_AFTER_DATE = datetime.strptime('May 10 2018', '%b %d %Y')
 REQUIRED_FILES = ['SampleSheet.csv', 'RunInfo.xml']
-PROC_NUM = 2
+PROC_NUM = 1
 FREQUENCY = 60
 
 def setup_logging():
@@ -107,14 +107,6 @@ def find_runs(filter):
 def get_sample_sheet_path(run_dir):
     # set default
     sample_sheet_path = run_dir + 'SampleSheet.csv'
-    # see if a txt file indicates a specific, existing sample sheet
-    sample_sheet_txt = glob.glob(run_dir + 'SampleSheet*txt')
-    # if there are more than one then just use default
-    if len(sample_sheet_txt) == 1:
-        sample_sheet_path_tmp = sample_sheet_txt[0].replace('.txt', '.csv')
-        # override with this path if it exists
-        if os.path.exists(sample_sheet_path_tmp):
-            sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
 
 def notify_incomplete_runs():
