@@ -9,7 +9,7 @@ class BauerDB(object):
     def __init__(self, sample_sheet_path):
         self.api = config.BAUER_DB['api']
         # use the seq app api for entering seq data
-        self.seq_api = self.api + 'sequencing/'
+        self.seq_api = self.api + 'sequencing/api/'
         self.sample_sheet_path = sample_sheet_path
         self.token =  self.get_token()
 
