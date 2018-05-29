@@ -116,17 +116,14 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
                 mask_lists[mask][lane] = mask
         for mask, lane_masks in mask_lists.items():
             mask_lists[mask] = [lane + ':' + mask for lane, mask in lane_masks.items()]
-    else:
+    else: # nextseq
         for sample, row in data_by_sample.items():
             mask = make_mask(universal_mask, sample, row)
-            if not mask_list:
-                mask_list = [mask]
-            elif mask not in mask_list:
-                raise UserException('nextseq sample mask for %s differs from another sample %s vs %s' % (sample, mask, mask_list[0]))
+            if mask not in mask_lists:
+                mask_lists[mask] = [mask]
             if mask not in mask_samples:
                 mask_samples[mask] = []
             mask_samples[mask].append(row)
-        mask_lists[mask] = mask_list
     logging.info('instrument is %s' % instrument)
     logging.info('masks: %s' % json.dumps(mask_lists))
     return mask_lists, mask_samples
