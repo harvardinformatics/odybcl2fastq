@@ -1,9 +1,11 @@
 from collections import OrderedDict
 import logging
 import odybcl2fastq.util as util
-import re
+import re, os
 
 class SampleSheet(object):
+    SAMPLE_SHEET_FILE = 'SampleSheet.csv'
+
     def __init__(self, path):
         self.path = path
         self.lanes = []
@@ -165,7 +167,8 @@ class SampleSheet(object):
         return corrected
 
     def write_new_sample_sheet(self, new_samples, output_suffix):
-        new_sample_sheet = self.path.replace('.csv', ('_' + output_suffix + '.csv'))
+        new_sample_sheet = os.path.dirname(self.path) + '/' + self.SAMPLE_SHEET_FILE
+        new_sample_sheet = new_sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
         input = open(self.path, 'r')
         output = open(new_sample_sheet, 'wb')
         for line in input:
