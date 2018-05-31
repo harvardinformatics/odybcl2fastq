@@ -363,18 +363,24 @@ def copy_output_to_final(output_dir, run_folder, output_log):
 
 def fastq_checksum(output_dir):
     checksum_report = output_dir + '/md5sum.txt'
-    with open(checksum_report, 'w') as checksum_fh:
+    with open(checksum_report, 'a') as checksum_fh:
+        checksum_fh.truncate(0)
         sample_proj_path = '%s/*/*.fastq.gz' % output_dir
         file_path = '%s/*.fastq.gz' % output_dir
         file_lst = glob(sample_proj_path)
         file_lst.extend(glob(file_path))
-        checksums = []
         for f in file_lst:
             with open(f, 'rb') as fh:
                 # put relative path in the checksum file so it can be run from
                 # the root even if the user copies the data somewhere else
-                checksums.append(hashlib.md5(fh.read()).hexdigest() + '  ' +  f.replace(output_dir + '/', '') + '\n')
-        checksum_fh.writelines(checksums)
+                checksum = hashlib.md5()
+                while True:
+                    data = fh.read(2**20)
+                    if not data:
+                        break
+                    checksum.update(data)
+                checksum = checksum.hexdigest() + '  ' +  f.replace(output_dir + '/', '') + '\n'
+                checksum_fh.write(checksum)
 
 def run_cmd(cmd):
     # run unix cmd, return out and error
