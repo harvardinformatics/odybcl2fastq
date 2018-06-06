@@ -231,3 +231,4 @@ if __name__ == "__main__":
         pool.close()
     except Exception as e:
         logging.exception(e)
+        send_email(str(e), 'Odybcl2fastq exception')
