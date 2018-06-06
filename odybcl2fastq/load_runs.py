@@ -164,3 +164,4 @@ if __name__ == "__main__":
             time.sleep(frequency)
     except Exception as e:
         logging.exception(e)
+        send_email(str(e), 'Odybcl2fastq load_runs.py exception')
