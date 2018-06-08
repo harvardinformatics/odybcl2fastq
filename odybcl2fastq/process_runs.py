@@ -215,7 +215,7 @@ def process_runs(pool, proc_num):
 if __name__ == "__main__":
     try:
         setup_logging()
-        proc_num = os.getenv('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
+        proc_num = PROC_NUM
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
         # run continuously
