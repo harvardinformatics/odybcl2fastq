@@ -35,7 +35,8 @@ INCOMPLETE_AFTER_DAYS = 2
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Jan 15 2017', '%b %d %Y')
 REQUIRED_FILES = ['InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
-PROC_NUM = 2
+PROC_NUM = os.getenv('ODYBCL2FASTQ_PROC_NUM', 2)
+
 FREQUENCY = 60
 
 def setup_logging():
