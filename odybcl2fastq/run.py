@@ -548,6 +548,7 @@ def bcl2fastq_process_runs():
             logging.info('Launching bcl2fastq...%s\n' % cmd)
             output_log = get_output_log(run)
             success, message = bcl2fastq_runner(cmd, output_log, args, no_demultiplex)
+            sent = False
             summary_data = {}
             # run folder will contain any suffix that was applied
             run_folder = args.BCL_OUTPUT_DIR.split('/').pop()

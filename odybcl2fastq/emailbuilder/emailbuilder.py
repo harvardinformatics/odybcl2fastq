@@ -34,11 +34,12 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
     smtp = smtplib.SMTP(server)
     # message sending can fail if msg is very large
     try:
-        success = smtp.sendmail(fromaddr,emails,msg.as_string())
+        smtp.sendmail(fromaddr,emails,msg.as_string())
+        sent = True
     except Exception as e:
-        success = False
+        sent = False
     smtp.close()
-    return success
+    return sent
 
 def get_html(summary_data):
     # create html message with jinja
