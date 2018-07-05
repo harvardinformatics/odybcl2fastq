@@ -6,9 +6,9 @@ Clone this git repository.  Set up an anaconda environment with python 2.7.11. I
 
 ### Dependencies
 
-jinja2: conda install jinja2
-bcl2fastq: this can be obtained from illumina, bcl2fastq2 version 2.2
-fastqc: fastqc version 0.11.5
+* jinja2: conda install jinja2
+* bcl2fastq: this can be obtained from illumina, bcl2fastq2 version 2.2
+* fastqc: fastqc version 0.11.5
 
 ### Config
 
@@ -21,16 +21,16 @@ values for all the variables and then save the file as config.json.
 ### Single Run
 Use the script odybcl2fastq/run.py
 Required arguments:
---runinfoxml: path to the run info file
---sample-sheet: path to the sample sheet file
---runfolder: path to the run folder
---output-dir: path to the output
+* --runinfoxml: path to the run info file
+* --sample-sheet: path to the sample sheet file
+* --runfolder: path to the run folder
+* --output-dir: path to the output
 
 Optional arguments:
---test: prints out the bcl2fastq cmd but does not run it, then exits
---no-demultiplex: skips the demultiplexing part of the script
---no-post-process: skips updating the lims db and running fastqc
---no-file-copy: skips copying from output dir to final dir
+* --test: prints out the bcl2fastq cmd but does not run it, then exits
+* --no-demultiplex: skips the demultiplexing part of the script
+* --no-post-process: skips updating the lims db and running fastqc
+* --no-file-copy: skips copying from output dir to final dir
 Many bcl2fastq parameters are options for a full list please see parameter defs
 in odybcl2fastq/run.py file
 
