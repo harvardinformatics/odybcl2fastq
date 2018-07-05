@@ -4,13 +4,13 @@ A python packages wrapping Illumina's bcl2fastq software to demultiplex HiSeq an
 
 Clone this git repository.  Set up an anaconda environment with python 2.7.11. Install the dependencies.
 
-###Dependencies
+### Dependencies
 
 jinja2: conda install jinja2
 bcl2fastq: this can be obtained from illumina, bcl2fastq2 version 2.2
 fastqc: fastqc version 0.11.5
 
-###Config
+### Config
 
 Set the variables in config.json.  See the example config.json.example, insert
 values for all the variables and then save the file as config.json.
@@ -18,7 +18,7 @@ values for all the variables and then save the file as config.json.
 
 ## Running Odybcl2fastq
 
-###Single Run
+### Single Run
 Use the script odybcl2fastq/run.py
 Required arguments:
 --runinfoxml: path to the run info file
@@ -35,7 +35,7 @@ Many bcl2fastq parameters are options for a full list please see parameter defs
 in odybcl2fastq/run.py file
 
 
-###Multiple Runs
+### Multiple Runs
 Use the script odybcl2fastq/process_runs.py
 This script will search the configured directory for runs which all the required
 files and will queue off a pool of odybcl2fastq/run.py calls for each run.
@@ -46,23 +46,23 @@ parellel runs to processs.
 
 ## Odybcl2fastq Logging
 
-###Multiple Runs Logging
+### Multiple Runs Logging
 odybcl2fastq/process_runs.py will log all the runs it queues to the
 odybcl2fastq.log.  This log also reports the sucess or failure of those runs.
 
 
-###Single Run Log
+### Single Run Log
 Each run also gets it's own log file, the location of these is configured in
 config.json.  This log will show the bcl2fastq cmd run as well as any output
 from that job and post process jobs.
 
 ## Odybcl2fastq Alerting
 
-###Multiple Run Alerting
+### Multiple Run Alerting
 An email is sent if a run fails, or an exception if encountered
 
 
-###Single Run Alerting
+### Single Run Alerting
 An email is sent for any failure.  A warning is sent if outputdir space is close
 to capacity.
 
