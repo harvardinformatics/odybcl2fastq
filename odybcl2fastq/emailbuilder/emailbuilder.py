@@ -32,7 +32,11 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
         msg.attach(MIMEText(message.encode('utf-8'),'plain'))
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
-    success = smtp.sendmail(fromaddr,emails,msg.as_string())
+    # message sending can fail if msg is very large
+    try:
+        success = smtp.sendmail(fromaddr,emails,msg.as_string())
+    except Exception as e:
+        success = False
     smtp.close()
     return success
 
