@@ -60,10 +60,7 @@ def send_email(message, subject):
     logging.warning(message)
     fromaddr = config.EMAIL['from_email']
     toemaillist=config.EMAIL['to_email']
-    sent = buildmessage(message, subject, None, fromaddr, toemaillist)
-    if not sent:
-        send_email('Check the logs, there was an email failure', 'Odybcl2fastq Email Failure')
-
+    buildmessage(message, subject, None, fromaddr, toemaillist)
 
 def need_to_process(dir):
     now = datetime.now()

@@ -585,7 +585,7 @@ def bcl2fastq_process_runs():
             sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)
             logging.info('Email sent: %s\n' % str(sent))
         job_cnt += 1
-    if success and sent:
+    if success:
         ret_code = 0
         status = 'success'
         util.touch(args.BCL_RUNFOLDER_DIR + '/', COMPLETE_FILE)
