@@ -5,6 +5,8 @@
     "FASTQ_URL": "",
     "MOUNT_DIR": "",
     "LOG_DIR": "",
+    "CONTROL_DIR": "",
+    "CENTRIFUGE_DIR": "",
 
     "EMAIL": {
         "to_email": [""],
