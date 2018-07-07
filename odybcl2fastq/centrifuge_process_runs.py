@@ -157,16 +157,20 @@ def process_runs(pool, proc_num):
         success_samples = []
         for sample, result in results.items():
             ret_code, std_out, std_err, cmd = result.get()
+            output = std_out + std_err
             if ret_code == 0:
                 success_samples.append(sample)
+                message = 'sample %s completed successfully\nsee logs here: %s\n' % (sample, output)
                 status = 'success'
             else:
                 failed_samples.append(sample)
+                message = 'sample %s failed\n see logs here: %s\n' % (sample, output)
                 status = 'failure'
                 # failures from bcl2fastq will be emailed from inner job
                 # inner job passes ret code 9 on fail from bcl2fastq
                 # only email from outer job if error is from inner job itself
                 # not the bcl2fastq subprocess
+            logging.info('message = %s' % message)
         if failed_samples:
             failure_email(run, cmd, ret_code, std_out, std_err)
             # success or failure of individual run will be logged from run.py to capture
