@@ -41,6 +41,12 @@ def setup_logging():
     )
     logging.getLogger().addHandler(logging.StreamHandler())
 
+def success_email(run, output_dir, cmd, ret_code, std_out, std_err):
+    subject =  "Centrifuge Completed: %s" % run
+    message = ("%s\nSee results: %s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
+            " error: %s\n" % (subject, output_dir, cmd, ret_code, std_out, std_err))
+    send_email(message, subject)
+
 def failure_email(run, cmd, ret_code, std_out, std_err):
     subject =  "Centrifuge Failed: %s" % run
     message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
@@ -102,9 +108,14 @@ def group_fastq_files(run_dir, files):
         if len(path_lst) > 1:
             raise Exception('fastq path deeper than expected: %s' % path)
         path_lst = path_lst[0].replace('.fastq.gz', '').split('_')
+
         path_lst.pop() # remove the 001
         read = int(path_lst.pop().replace('R', ''))
-        lane = int(path_lst.pop().replace('L', ''))
+        lane = path_lst.pop()
+        if 'L' in lane:
+            lane = int(lane.replace('L', ''))
+        else: # nextseq does not have lanes so group all in 1
+            lane = 1
         path_lst.pop() # remove the S
         sample = '_'.join(path_lst)
         grp += sample
@@ -123,9 +134,14 @@ def get_centrifuge_cmd(run_dir, grp, read1, read2):
     if not os.path.exists(centrifuge_dir):
         subprocess.call('mkdir %s' % (centrifuge_dir) ,shell=True)
     script = config.CENTRIFUGE_DIR + 'centrifuge.sh'
-    cmd_lst = ['bash -e', script, ','.join(read1), ','.join(read2),
-            outfile]
-    return ' '.join(cmd_lst)
+    cmd_lst = ['bash -e', script, ','.join(read1)]
+    if read2:
+        cmd_lst.append(','.join(read2))
+    else:
+        cmd_lst.append('None')
+    cmd_lst.append(outfile)
+    cmd =  ' '.join(cmd_lst)
+    return cmd, outfile
 
 def run_centrifuge(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
@@ -149,8 +165,11 @@ def process_runs(pool, proc_num):
         logging.info("Found %s samples to run on centrifuge\n" % (len(grps)))
         for sample, files in grps.items():
             read1 = [files[1][i] for i in sorted(files[1])]
-            read2 = [files[2][i] for i in sorted(files[2])]
-            cmd = get_centrifuge_cmd(run_dir, sample, read1, read2)
+            if 2 in files:
+                read2 = [files[2][i] for i in sorted(files[2])]
+            else:
+                read2 = None
+            cmd, output_dir = get_centrifuge_cmd(run_dir, sample, read1, read2)
             logging.info("Queueing centrifuge cmd for %s:\n%s\n" % (sample, cmd))
             results[sample] = pool.apply_async(run_centrifuge, (cmd,))
         failed_samples = []
@@ -177,6 +196,7 @@ def process_runs(pool, proc_num):
             # manual runs for the status log
         else:
             util.touch(run_dir, COMPLETE_FILE)
+            success_email(run, output_dir, cmd, ret_code, std_out, std_err)
         logging.info("Completed centrifuge for run %s with %i samples %i success %s and %i failures %s\n\n\n" %
                 (run, len(results), len(success_samples), json.dumps(success_samples), len(failed_samples), json.dumps(failed_samples)))
 
@@ -198,4 +218,4 @@ if __name__ == "__main__":
         pool.close()
     except Exception as e:
         logging.exception(e)
-        #send_email(str(e), 'Odybcl2fastq centrifuge exception')
+        send_email(str(e), 'Odybcl2fastq centrifuge exception')
