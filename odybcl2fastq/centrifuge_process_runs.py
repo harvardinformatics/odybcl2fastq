@@ -26,7 +26,7 @@ LOG_FILE = const.ROOT_DIR + 'centrifuge.log'
 PROCESSED_FILE = 'centrifuge.processed'
 COMPLETE_FILE = 'centrifuge.complete'
 SKIP_FILE = 'centrifuge.skip'
-DAYS_TO_SEARCH = 7
+DAYS_TO_SEARCH = 1
 PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
 FREQUENCY = 60
@@ -51,12 +51,15 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
     subject =  "Centrifuge Failed: %s" % run
     message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
             " error: %s\n" % (subject, cmd, ret_code, std_out, std_err))
-    send_email(message, subject)
+    send_email(message, subject, 'admin_email')
 
-def send_email(message, subject):
+def send_email(message, subject, to_email = None):
     logging.warning(message)
     fromaddr = config.EMAIL['from_email']
-    toemaillist=config.EMAIL['to_email']
+    if to_email:
+        toemaillist = config.EMAIL[to_email]
+    else:
+        toemaillist=config.EMAIL['to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
 
 def need_to_process(dir):
@@ -207,15 +210,15 @@ if __name__ == "__main__":
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
         # run continuously
-        #while True:
-        # queue new runs for demultiplexing with bcl2fastq2
-        process_runs(pool, proc_num)
-        # wait before checking for more runs to process
-        frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
-        if frequency != FREQUENCY:
-            logging.info("Frequency is not default: %i\n" % frequency)
-        #time.sleep(frequency)
+        while True:
+            # queue new runs for demultiplexing with bcl2fastq2
+            process_runs(pool, proc_num)
+            # wait before checking for more runs to process
+            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+            if frequency != FREQUENCY:
+                logging.info("Frequency is not default: %i\n" % frequency)
+            time.sleep(frequency)
         pool.close()
     except Exception as e:
         logging.exception(e)
-        send_email(str(e), 'Odybcl2fastq centrifuge exception')
+        send_email(str(e), 'Odybcl2fastq centrifuge exception', 'admin_email')
