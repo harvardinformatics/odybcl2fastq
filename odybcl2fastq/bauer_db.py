@@ -44,7 +44,7 @@ class BauerDB(object):
         for sample_name, sample_row in sample_sheet.sections['Data'].items():
             sample_data = {
                     'name': sample_name,
-                    'run': run_id,
+                    'run': run_data['name'],
                     'description': sample_row['Description'],
                     'index1': sample_row['index'],
                     'index2': sample_row['index2']
@@ -102,9 +102,9 @@ class BauerDB(object):
         sample_type = sample_type.lower()
         # get valid sample_types
         sample_types = self.get_data('sample_types')
-        valid_sample_types = [t['name'].lower() for t in sample_types]
+        valid_sample_types = {t['name'].lower(): t['id'] for t in sample_types}
         # return valid sample_type or null
         if sample_type in valid_sample_types:
-            return sample_type
+            return valid_sample_types[sample_type]
         else:
             return None
