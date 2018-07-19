@@ -61,13 +61,7 @@ class BauerDB(object):
         return True
 
     def get_token(self):
-        url = self.api + 'get_auth_token/'
-        data = {'username': config.BAUER_DB['user'], 'password':
-                config.BAUER_DB['password']}
-        r = requests.post(url = url, data = data)
-        r.raise_for_status()
-        res = json.loads(r.text)
-        return res['token']
+        return config.BAUER_DB['password']
 
     def post_data(self, endpoint, data):
         url = self.seq_api + endpoint + '/'
@@ -102,7 +96,7 @@ class BauerDB(object):
         sample_type = sample_type.lower()
         # get valid sample_types
         sample_types = self.get_data('sample_types')
-        valid_sample_types = {t['name'].lower(): t['id'] for t in sample_types}
+        valid_sample_types = dict((t['name'].lower(), t['id']) for t in sample_types)
         # return valid sample_type or null
         if sample_type in valid_sample_types:
             return valid_sample_types[sample_type]
