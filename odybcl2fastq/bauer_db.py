@@ -99,6 +99,6 @@ class BauerDB(object):
         valid_sample_types = dict((t['name'].lower(), t['id']) for t in sample_types)
         # return valid sample_type or null
         if sample_type in valid_sample_types:
-            return valid_sample_types[sample_type]
+            return sample_type
         else:
             return None
