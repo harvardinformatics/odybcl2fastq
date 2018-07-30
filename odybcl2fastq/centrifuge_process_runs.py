@@ -189,6 +189,11 @@ def process_runs(pool, proc_num):
             ret_code, std_out, std_err, cmd = result.get()
             output = std_out + std_err
             if ret_code == 0:
+                # copy folder to final dir
+                dest_dir = config.FINAL_DIR + run + '/centrifuge'
+                centrifuge_dir = run_dir + 'centrifuge'
+                util.copy(centrifuge_dir, dest_dir)
+
                 success_samples.append(sample)
                 message = 'sample %s completed successfully\nsee logs here: %s\n' % (sample, output)
                 status = 'success'
