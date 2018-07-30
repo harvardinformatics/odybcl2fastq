@@ -26,6 +26,7 @@ LOG_FILE = const.ROOT_DIR + 'centrifuge.log'
 PROCESSED_FILE = 'centrifuge.processed'
 COMPLETE_FILE = 'centrifuge.complete'
 SKIP_FILE = 'centrifuge.skip'
+FASTQLIST = 'centrifuge_fastqlist.txt'
 DAYS_TO_SEARCH = 1
 PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
@@ -41,10 +42,9 @@ def setup_logging():
     )
     logging.getLogger().addHandler(logging.StreamHandler())
 
-def success_email(run, output_dir, cmd, ret_code, std_out, std_err):
+def success_email(run, centrifuge_dir, cmd, ret_code, std_out, std_err):
     subject =  "Centrifuge Completed: %s" % run
-    message = ("%s\nSee results: %s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
-            " error: %s\n" % (subject, output_dir, cmd, ret_code, std_out, std_err))
+    message = ("%s\nSee results: %s\ncmd: %s\nreturn code: %i" % (subject, centrifuge_dir, cmd, ret_code))
     send_email(message, subject)
 
 def failure_email(run, cmd, ret_code, std_out, std_err):
@@ -90,6 +90,13 @@ def find_runs(filter):
     return runs
 
 def get_fastq_files(dir):
+    # check if we are limiting to a list of fastq files
+    if os.path.isfile(dir + FASTQLIST):
+        file_lst = []
+        with open(dir + FASTQLIST) as f:
+            file_lst = [line.strip() for line in f if os.path.isfile(line.strip())]
+        if file_lst:
+            return file_lst
     # get fastq files except undetermined
     sample_proj_path = '%s/*/*.fastq.gz' % dir
     file_path = '%s/*.fastq.gz' % dir
@@ -173,6 +180,7 @@ def process_runs(pool, proc_num):
             else:
                 read2 = None
             cmd, output_dir = get_centrifuge_cmd(run_dir, sample, read1, read2)
+            centrifuge_dir = run_dir + 'centrifuge'
             logging.info("Queueing centrifuge cmd for %s:\n%s\n" % (sample, cmd))
             results[sample] = pool.apply_async(run_centrifuge, (cmd,))
         failed_samples = []
@@ -199,7 +207,7 @@ def process_runs(pool, proc_num):
             # manual runs for the status log
         else:
             util.touch(run_dir, COMPLETE_FILE)
-            success_email(run, output_dir, cmd, ret_code, std_out, std_err)
+            success_email(run, centrifuge_dir, cmd, ret_code, std_out, std_err)
         logging.info("Completed centrifuge for run %s with %i samples %i success %s and %i failures %s\n\n\n" %
                 (run, len(results), len(success_samples), json.dumps(success_samples), len(failed_samples), json.dumps(failed_samples)))
 
