@@ -53,17 +53,20 @@
     <h3>Letter</h3>
     <p>
     Hi all,<br><br>
-    This run was processed through our new pipeline, you may notice the summary
-    looks different.  If you have any questions please don't hesitate to ask.<br><br>
     The fastq files with the read sequences of run {{run}} are available at:<br>
     <a href="{{fastq_url}}{{run_folder}}">{{fastq_url}}{{run_folder}}</a><br>
     or under {{fastq_dir}}{{run_folder}} on the cluster.<br><br>
     Summary statistics can be found in
     <a href="{{stats_file}}">{{stats_file}}</a><br><br>
+    Quality statistics can be found in
+    <a href="{{fastq_url}}{{run_folder}}/QC">{{fastq_url}}{{run_folder}}/QC</a><br><br>
+    Taxonomic classification can be found in
+    <a href="{{fastq_url}}{{run_folder}}/centrifuge">{{fastq_url}}{{run_folder}}/centrifuge</a>, information for interpreting the taxonomy
+    results can be found in the html files in that folder.  Please allow up to one day after receiving this email for that folder to be populated.<br><br>
     Reads with indices not in {{sample_sheet_file}} are in the fastq
     {{undetermined_file}}<br><br>
-    We encourage users to download a local copy of their data,
-    as run data will be DELETED AFTER 30 DAYS with no exceptions.<br><br>
+    Users must download a local copy of their data,
+    THIS RUN DATA WILL BE DELETED AFTER 30 DAYS from its current location with no exceptions.<br><br>
 
     For more information, please see our
     <a href="http://informatics.fas.harvard.edu/faq">FAQ Page</a>.
