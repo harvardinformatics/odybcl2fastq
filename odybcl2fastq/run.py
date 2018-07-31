@@ -13,7 +13,7 @@ Created on  2017-04-19
 @copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
-import sys, os, traceback, stat
+import sys, os, stat
 import logging
 import json
 from glob import glob
@@ -31,12 +31,11 @@ from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq.status_db import StatusDB
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
-from tests.compare_fastq import compare_fastq
 
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
-FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
-FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
+FINAL_DIR_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
+FINAL_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
 SUMMARY_LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 MASK_SHORT_ADAPTER_READS = 22
 STORAGE_CAPACITY_WARN = 0.96
@@ -53,7 +52,7 @@ def initArgs():
     parameterdefs = [
         {
             'name'      : 'TEST',
-            'switches'  : ['-t','--test'],
+            'switches'  : ['-t', '--test'],
             'required'  : False,
             'help'      : 'run in test mode, log to std out, no not run cmd',
             'action'    : 'store_true',
@@ -89,7 +88,7 @@ def initArgs():
         },
         {
             'name'      : 'BCL_PROC_THREADS',
-            'switches'  : ['-p','--processing-threads'],
+            'switches'  : ['-p', '--processing-threads'],
             'required'  : False,
             'help'      : 'number threads to process demultiplexed data',
             'default'   : 8,
@@ -285,12 +284,14 @@ def initArgs():
     args = parser.parse_args()
     return args, switches_to_names
 
+
 def get_submissions(sample_sheet, instrument):
     subs = set()
     for key, row in sample_sheet['Data'].items():
         if row['Description']:
             subs.add(row['Description'])
     return list(subs)
+
 
 def update_lims_db(run, sample_sheet, instrument):
     logging.info('Start db update for %s\n' % run)
@@ -300,6 +301,7 @@ def update_lims_db(run, sample_sheet, instrument):
     analysis = stdb.insert_analysis(run, ', '.join(subs))
     logging.info('End db update for %s\n' % analysis)
 
+
 def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     # copy important source files to the output dir they will then be moved to
     # final
@@ -307,15 +309,15 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     dest_root += '/'
     if instrument == 'hiseq':
         run_params_file = 'runParameters.xml'
-    else: # nextseq
+    else:  # nextseq
         run_params_file = 'RunParameters.xml'
     # get filename part of sample_sheet
     sample_sheet = sample_sheet.replace(src_root, '')
     files_to_copy = {
-            'sample_sheet': sample_sheet,
-            'run_info': 'RunInfo.xml',
-            'run_params': run_params_file,
-            'interop': 'InterOp'
+        'sample_sheet': sample_sheet,
+        'run_info': 'RunInfo.xml',
+        'run_params': run_params_file,
+        'interop': 'InterOp'
     }
     for name, file in files_to_copy.items():
         new_file = file
@@ -325,6 +327,7 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
         dest = dest_root  + new_file
         src = src_root + file
         util.copy(src, dest)
+
 
 def copy_output_to_final(output_dir, run_folder, output_log):
     # determine dest_dir
@@ -355,11 +358,16 @@ def copy_output_to_final(output_dir, run_folder, output_log):
     if capacity > storage_capacity_error:
         msg = 'Could not copy %s to  %s: %s' % (output_dir, config.FINAL_DIR, capacity)
         raise Exception(msg)
-    logging.info('Copying %s: %s, to %s at capacity: %s' % (output_dir, output_space,
-        dest_dir, capacity))
+    logging.info('Copying %s: %s, to %s at capacity: %s' % (
+        output_dir,
+        output_space,
+        dest_dir,
+        capacity)
+    )
     util.copy(output_dir, dest_dir)
     # change permissions on dest_dir
     util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
+
 
 def fastq_checksum(output_dir):
     checksum_report = output_dir + '/md5sum.txt'
@@ -379,14 +387,16 @@ def fastq_checksum(output_dir):
                     if not data:
                         break
                     checksum.update(data)
-                checksum = checksum.hexdigest() + '  ' +  f.replace(output_dir + '/', '') + '\n'
+                checksum = checksum.hexdigest() + '  ' + f.replace(output_dir + '/', '') + '\n'
                 checksum_fh.write(checksum)
+
 
 def run_cmd(cmd):
     # run unix cmd, return out and error
     proc = Popen(cmd, shell=True, stderr=PIPE, stdout=PIPE)
     out, err = proc.communicate()
     return (proc.returncode, out, err)
+
 
 def run_bcl2fastq_cmd(cmd, output_log):
     # run unix cmd, stream out and error, return last lines of out
@@ -412,6 +422,7 @@ def run_bcl2fastq_cmd(cmd, output_log):
                 pass
             code = proc.wait()
     return code, ''.join(lines)
+
 
 def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type, sample_sheet):
     argdict = vars(args)
@@ -446,8 +457,9 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
         # each mask should be prefaced by the switch
         mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
         cmdstrings.append(mask_opt)
-    cmdstring=' '.join(cmdstrings)
+    cmdstring = ' '.join(cmdstrings)
     return cmdstring
+
 
 def get_params_from_sample_sheet(sample_sheet, bcl_params):
     # users can add params to the end of the HEADER section of the sample sheet
@@ -459,10 +471,12 @@ def get_params_from_sample_sheet(sample_sheet, bcl_params):
             params[key] = v if v else None
     return params
 
+
 def shortest_read(r):
     return int(r[min(r.keys(), key=(lambda k:int(r[k])))])
 
-def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
+
+def bcl2fastq_runner(cmd, output_log, args, no_demultiplex=False):
     logging.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     last_output = ''
@@ -472,7 +486,7 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
     else:
         code, last_output = run_bcl2fastq_cmd(cmd, output_log)
         logging.info("***** END bcl2fastq *****\n\n")
-        if code!=0:
+        if code != 0:
             message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
             success = False
         else:
@@ -480,6 +494,7 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
             success = True
     logging.info('message = %s' % message)
     return success, message + last_output
+
 
 def check_sample_sheet(sample_sheet, run):
     # if sample sheet is not already there then copy the one from run_folder named
@@ -490,10 +505,12 @@ def check_sample_sheet(sample_sheet, run):
         if os.path.exists(path):
             util.copy(path, sample_sheet)
 
+
 def write_cmd(cmd, output_dir, run):
     path = '%s/%s.opts' % (output_dir, run)
     with open(path, 'w') as fout:
         fout.write(cmd)
+
 
 def bcl2fastq_process_runs():
     args, switches_to_names = initArgs()
@@ -564,9 +581,12 @@ def bcl2fastq_process_runs():
                         f.write('\n'.join(fastqc_err) + "\n\n")
                     # copy run files to final
                 if not no_file_copy:
-                    copy_source_to_output(args.BCL_RUNFOLDER_DIR,
-                            args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
-                            instrument)
+                    copy_source_to_output(
+                        args.BCL_RUNFOLDER_DIR,
+                        args.BCL_OUTPUT_DIR,
+                        args.BCL_SAMPLE_SHEET,
+                        instrument
+                    )
                     fastq_checksum(args.BCL_OUTPUT_DIR)
                     # copy output to final dest where users will access
                     copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log)
@@ -597,8 +617,10 @@ def bcl2fastq_process_runs():
     logging.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
 
+
 def get_output_log(run):
     return config.LOG_DIR + run + '.log'
+
 
 def get_summary_logger():
     handler = logging.FileHandler(SUMMARY_LOG_FILE)
@@ -607,16 +629,18 @@ def get_summary_logger():
     summary_logger.addHandler(handler)
     return summary_logger
 
+
 def setup_logging(run, test):
     # take level from env or INFO
     level = os.getenv('LOGGING_LEVEL', logging.INFO)
     logging.basicConfig(
-            filename=get_output_log(run),
-            level=level,
-            format='%(asctime)s %(filename)s %(message)s'
+        filename=get_output_log(run),
+        level=level,
+        format='%(asctime)s %(filename)s %(message)s'
     )
     if test:
         logging.getLogger().addHandler(logging.StreamHandler())
+
 
 if __name__ == "__main__":
     try:
