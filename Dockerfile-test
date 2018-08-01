@@ -1,0 +1,15 @@
+#
+# Docker container for testing odybcl2fastq
+#
+FROM centos:6.8
+
+RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel && \
+    wget https://bootstrap.pypa.io/2.6/get-pip.py && \
+    python get-pip.py
+
+WORKDIR /app
+
+ADD . /app
+
+RUN pip install .
+

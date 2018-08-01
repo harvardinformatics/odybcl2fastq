@@ -2,7 +2,7 @@ import unittest
 import os
 import json
 import gzip
-import odybcl2fastq.odybcl2fastq as odybcl2fastq
+from odybcl2fastq import run_cmd
 
 class DemultiplexTests(unittest.TestCase):
 

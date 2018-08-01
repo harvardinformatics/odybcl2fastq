@@ -5,7 +5,7 @@ import json
 from argparse import Namespace
 import odybcl2fastq.util as util
 import odybcl2fastq.run as run
-import odybcl2fastq.parsers.parse_sample_sheet as ss
+from  odybcl2fastq.parsers.samplesheet import SampleSheet
 
 class Odybcl2fastqTests(unittest.TestCase):
 
@@ -18,7 +18,7 @@ class Odybcl2fastqTests(unittest.TestCase):
 
     def test_sheet_parse(self):
         sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
-        sample_sheet = ss.sheet_parse(sample_sheet_path)
+        sample_sheet = SampleSheet(sample_sheet_path)
         parts = ['Header', 'Reads', 'Settings', 'Data']
         for part in parts:
             assert (part in sample_sheet and sample_sheet[part])

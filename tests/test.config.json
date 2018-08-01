@@ -1,0 +1,25 @@
+{
+    "SOURCE_DIR": "tests/sample_data",
+    "OUTPUT_DIR": "output",
+    "FINAL_DIR": "final",
+    "FASTQ_URL": "fastq",
+    "MOUNT_DIR": "mount",
+    "LOG_DIR": "logs",
+    "CONTROL_DIR": "mount",
+    "EMAIL": {
+        "to_email": [""],
+        "from_email": [""],
+        "smtp": ""
+    },
+
+    "STATUS_DB": {
+        "host": "",
+        "user": "",
+        "password": "",
+        "database": ""
+    },
+    "BAUER_DB": {
+        "api": "",
+        "token": ""
+    }
+}

@@ -21,7 +21,6 @@ import odybcl2fastq.util as util
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.bauer_db import BauerDB
 
-LOG_FILE = const.ROOT_DIR + 'db.log'
 PROCESSED_FILE = 'bauer.processed'
 COMPLETE_FILE = 'bauer.complete'
 INCOMPLETE_NOTIFIED_FILE = 'bauer.incomplete_notified'
@@ -34,15 +33,7 @@ REQUIRED_FILES = ['SampleSheet.csv', 'RunInfo.xml']
 PROC_NUM = 1
 FREQUENCY = 60
 
-def setup_logging():
-    # take level from env or INFO
-    level = os.getenv('ODYBCL2FASTQ_LOGGING_LEVEL', logging.INFO)
-    logging.basicConfig(
-            filename= LOG_FILE,
-            level=level,
-            format='%(asctime)s %(message)s'
-    )
-    logging.getLogger().addHandler(logging.StreamHandler())
+logger = logging.getLogger('db')
 
 def failure_email(run, cmd, ret_code, std_out, std_err):
     log = ody_run.get_output_log(run)
@@ -52,7 +43,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
     send_email(message, subject)
 
 def send_email(message, subject):
-    logging.warning(message)
+    logger.warning(message)
     fromaddr = config.EMAIL['from_email']
     toemaillist=config.EMAIL['to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
@@ -122,7 +113,7 @@ def load_runs(proc_num):
     runs_found = find_runs(need_to_process)
     run_dirs = runs_found[:proc_num]
     if run_dirs:
-        logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
+        logger.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
             json.dumps(run_dirs)))
         results = {}
         for run_dir in run_dirs:
@@ -130,7 +121,7 @@ def load_runs(proc_num):
             run = os.path.basename(os.path.normpath(run_dir))
             sample_sheet_path = get_sample_sheet_path(run_dir)
             bauer = BauerDB(sample_sheet_path)
-            logging.info("Loading run into bauer db:\n%s\n" % (run))
+            logger.info("Loading run into bauer db:\n%s\n" % (run))
             results[run] = bauer.insert_run(run_dir)
         failed_runs = []
         success_runs = []
@@ -145,13 +136,12 @@ def load_runs(proc_num):
 
             # success or failure of individual run will be logged from run.py to capture
             # manual runs for the status log
-        logging.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
+        logger.info("Completed %i runs %i success %s and %i failures %s\n\n\n" %
                 (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs)))
 
 if __name__ == "__main__":
     try:
         proc_num = os.getenv('ODYBCL2FASTQ_PROC_NUM', PROC_NUM)
-        setup_logging()
         # run continuously
         while True:
             # search for new runs
@@ -160,8 +150,8 @@ if __name__ == "__main__":
             # wait before checking for more runs to process
             frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
             if frequency != FREQUENCY:
-                logging.info("Frequency is not default: %i\n" % frequency)
+                logger.info("Frequency is not default: %i\n" % frequency)
             time.sleep(frequency)
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         send_email(str(e), 'Odybcl2fastq load_runs.py exception')

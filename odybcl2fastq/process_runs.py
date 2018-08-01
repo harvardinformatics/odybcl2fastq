@@ -23,7 +23,6 @@ import odybcl2fastq.util as util
 from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 
-LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
@@ -39,17 +38,7 @@ PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
 FREQUENCY = 60
 
-
-def setup_logging():
-    # take level from env or INFO
-    level = os.getenv('ODYBCL2FASTQ_LOGGING_LEVEL', logging.INFO)
-    logging.basicConfig(
-        filename=LOG_FILE,
-        level=level,
-        format='%(asctime)s %(message)s'
-    )
-    logging.getLogger().addHandler(logging.StreamHandler())
-
+logger = logging.getLogger('odybcl2fastq')
 
 def failure_email(run, cmd, ret_code, std_out, std_err):
     log = ody_run.get_output_log(run)
@@ -62,8 +51,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
 
 
 def send_email(message, subject):
-    logging.warning(message)
-    fromaddr = config.EMAIL['from_email']
+    logger = config.EMAIL['from_email']
     toemaillist = config.EMAIL['to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
 
@@ -200,13 +188,13 @@ def process_runs(pool, proc_num):
     runs_found = find_runs(need_to_process)
     run_dirs = runs_found[:proc_num]
     if run_dirs:
-        logging.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
+        logger.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
             json.dumps(run_dirs)))
         results = {}
         for run_dir in run_dirs:
             run = os.path.basename(os.path.normpath(run_dir))
             cmd = get_odybcl2fastq_cmd(run_dir)
-            logging.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
+            logger.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
             results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
         failed_runs = []
         success_runs = []
@@ -226,7 +214,7 @@ def process_runs(pool, proc_num):
                     failure_email(run, cmd, ret_code, std_out, std_err)
             # success or failure of individual run will be logged from run.py to capture
             # manual runs for the status log
-        logging.info(
+        logger.info(
             "Completed %i runs %i success %s and %i failures %s\n\n\n" %
             (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs))
         )
@@ -235,7 +223,6 @@ def process_runs(pool, proc_num):
 
 def main():
     try:
-        setup_logging()
         proc_num = PROC_NUM
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
@@ -248,7 +235,7 @@ def main():
             # wait before checking for more runs to process
             frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
             if frequency != FREQUENCY:
-                logging.info("Frequency is not default: %i\n" % frequency)
+                logger.info("Frequency is not default: %i\n" % frequency)
             time.sleep(frequency)
         pool.close()
     except Exception as e:

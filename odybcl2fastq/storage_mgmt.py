@@ -23,7 +23,7 @@ from odybcl2fastq import constants as const
 from odybcl2fastq import config
 from subprocess import Popen, PIPE, STDOUT
 
-LOG_FILE = const.ROOT_DIR + 'storage_mgmt.log'
+logger = logging.getLogger('storage_mgt')
 
 def init_args():
     '''
@@ -80,17 +80,6 @@ def run_cmd(cmd):
     return (proc.returncode, out, err)
 
 
-def setup_logging():
-    # take level from env or INFO
-    level = os.getenv('LOGGING_LEVEL', logging.INFO)
-    logging.basicConfig(
-            filename=LOG_FILE,
-            level=level,
-            format='%(asctime)s %(filename)s %(message)s'
-    )
-    # add to standard out for testing purposes
-    logging.getLogger().addHandler(logging.StreamHandler())
-
 def get_runs(seq_storage):
     # hard code paths as a safety measure so job cannot be used to delete
     # from unintended directories
@@ -114,15 +103,14 @@ def find_expired_runs(runs, oldest_str):
         run_parts = os.path.basename(run).split('_')
         run_date = run_parts[0]
         if len(run_parts) < 4 or len(run_date) != 6:
-            logging.info('Baddly formed run folder - ignoring %s' % run)
+            logger.info('Baddly formed run folder - ignoring %s' % run)
             continue
         if run_date < oldest_str:
             to_delete.append(run)
-            logging.info('Adding %s to delete' % run)
+            logger.info('Adding %s to delete' % run)
     return to_delete
 
 def manage_storage():
-    setup_logging()
     args = init_args()
     runs = get_runs(args.seq_storage)
 
@@ -142,20 +130,20 @@ def manage_storage():
     cmds = []
     for dir in to_delete:
         cmds.append('rm -rf %s' % dir)
-    logging.info('Delete cmds:\n%s' % json.dumps(cmds))
+    logger.info('Delete cmds:\n%s' % json.dumps(cmds))
     if args.delete:
-        logging.info('Deleting %i runs:\n%s' % (delete_cnt, to_delete_str))
+        logger.info('Deleting %i runs:\n%s' % (delete_cnt, to_delete_str))
         for cmd in cmds:
             code, out, err = run_cmd(cmd)
             if code != 0:
                 raise Exception('Error deleting runs %s: %s' % (cmd, err))
-        logging.info('Successfully deleted runs %s' % to_delete_str)
+        logger.info('Successfully deleted runs %s' % to_delete_str)
     else:
-        logging.info('Found %i runs for deletion.  To delete pass in the parameter --delete:\n%s' % (delete_cnt, json.dumps(to_delete)))
+        logger.info('Found %i runs for deletion.  To delete pass in the parameter --delete:\n%s' % (delete_cnt, json.dumps(to_delete)))
 
 if __name__ == "__main__":
     try:
         sys.exit(manage_storage())
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         raise

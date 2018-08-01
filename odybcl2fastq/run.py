@@ -36,11 +36,11 @@ PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
-SUMMARY_LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
 MASK_SHORT_ADAPTER_READS = 22
 STORAGE_CAPACITY_WARN = 0.96
 STORAGE_CAPACITY_ERROR = 0.99
 
+logger = logging.getLogger('odybcl2fastq')
 
 def initArgs():
     '''
@@ -294,12 +294,13 @@ def get_submissions(sample_sheet, instrument):
 
 
 def update_lims_db(run, sample_sheet, instrument):
-    logging.info('Start db update for %s\n' % run)
+    runlogger = logging.getLogger('run_logger')
+    runlogger.info('Start db update for %s\n' % run)
     subs = get_submissions(sample_sheet, instrument)
     stdb = StatusDB()
     stdb.link_run_and_subs(run, subs)
     analysis = stdb.insert_analysis(run, ', '.join(subs))
-    logging.info('End db update for %s\n' % analysis)
+    runlogger.info('End db update for %s\n' % analysis)
 
 
 def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
@@ -330,6 +331,8 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
 
 
 def copy_output_to_final(output_dir, run_folder, output_log):
+    runlogger = logging.getLogger('run_logger')
+
     # determine dest_dir
     dest_dir = config.FINAL_DIR + run_folder
     # check size of output_dir
@@ -353,12 +356,12 @@ def copy_output_to_final(output_dir, run_folder, output_log):
     storage_capacity_error = float(os.getenv('ODY_STORAGE_CAPACITY_ERROR', STORAGE_CAPACITY_ERROR))
     if capacity > storage_capacity_warn:
         message = '%s near capacity copying %s: %s, used: %s, tot: %s' % (config.FINAL_DIR, output_dir, output_space, used, tot_space)
-        logging.warning(message)
+        logger.warning(message)
         sent = buildmessage(message, 'NGSDATA is near capacity', [], config.EMAIL['from_email'], config.EMAIL['admin_email'])
     if capacity > storage_capacity_error:
         msg = 'Could not copy %s to  %s: %s' % (output_dir, config.FINAL_DIR, capacity)
         raise Exception(msg)
-    logging.info('Copying %s: %s, to %s at capacity: %s' % (
+    runlogger.info('Copying %s: %s, to %s at capacity: %s' % (
         output_dir,
         output_space,
         dest_dir,
@@ -477,7 +480,9 @@ def shortest_read(r):
 
 
 def bcl2fastq_runner(cmd, output_log, args, no_demultiplex=False):
-    logging.info("***** START bcl2fastq *****\n\n")
+    runlogger = logging.getLogger('run_logger')
+
+    runlogger.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     last_output = ''
     if no_demultiplex:
@@ -485,14 +490,14 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex=False):
         success = True
     else:
         code, last_output = run_bcl2fastq_cmd(cmd, output_log)
-        logging.info("***** END bcl2fastq *****\n\n")
+        logger.info("***** END bcl2fastq *****\n\n")
         if code != 0:
             message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
             success = False
         else:
             message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
             success = True
-    logging.info('message = %s' % message)
+    runlogger.info('message = %s' % message)
     return success, message + last_output
 
 
@@ -520,10 +525,11 @@ def bcl2fastq_process_runs():
     no_post_process = ('NO_POST_PROCESS' in args and args.NO_POST_PROCESS)
     no_file_copy = ('NO_FILE_COPY' in args and args.NO_FILE_COPY)
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
-    setup_logging(run, test)
-    logging.info("***** START Odybcl2fastq *****\n\n")
+
+    runlogger = setup_run_logger(run, test)
+    runlogger.info("***** START Odybcl2fastq *****\n\n")
     check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
-    logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
+    runlogger.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
     sample_sheet.validate()
     instrument = sample_sheet.get_instrument()
@@ -536,12 +542,12 @@ def bcl2fastq_process_runs():
     mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
     # skip everything but billing if run folder flagged
     if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
-        logging.info("This run is flagged for billing only %s" % run)
+        runlogger.info("This run is flagged for billing only %s" % run)
         update_lims_db(run, sample_sheet.sections, instrument)
         return
     jobs_tot = len(mask_lists)
     if jobs_tot > 1:
-        logging.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
+        runlogger.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
     job_cnt = 1
     sample_sheet_dir = args.BCL_SAMPLE_SHEET
     output_dir = args.BCL_OUTPUT_DIR
@@ -556,13 +562,13 @@ def bcl2fastq_process_runs():
             sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
         cmd = bcl2fastq_build_cmd(args,
                 switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
-        logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
+        runlogger.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
-            logging.info("Test run, command not run: %s" % cmd)
+            runlogger.info("Test run, command not run: %s" % cmd)
             success = True
             message = 'TEST'
         else:
-            logging.info('Launching bcl2fastq...%s\n' % cmd)
+            runlogger.info('Launching bcl2fastq...%s\n' % cmd)
             output_log = get_output_log(run)
             success, message = bcl2fastq_runner(cmd, output_log, args, no_demultiplex)
             summary_data = {}
@@ -601,9 +607,9 @@ def bcl2fastq_process_runs():
                 subject = 'Run Failed: ' + run_folder
             toemaillist = config.EMAIL['to_email']
             fromaddr = config.EMAIL['from_email']
-            logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
+            runlogger.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)
-            logging.info('Email sent: %s\n' % str(sent))
+            runlogger.info('Email sent: %s\n' % str(sent))
         job_cnt += 1
     if success:
         ret_code = 0
@@ -613,33 +619,25 @@ def bcl2fastq_process_runs():
         # pass a special ret_code to avoid double email on error
         ret_code = 9
         status = 'failure'
-    get_summary_logger().info("Odybcl2fastq for %s returned %s\n" % (run, status))
-    logging.info("***** END Odybcl2fastq *****\n\n")
+    logger.info("Odybcl2fastq for %s returned %s\n" % (run, status))
+    runlogger.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
 
 
 def get_output_log(run):
-    return config.LOG_DIR + run + '.log'
+    logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
+    return os.path.join(logdir, '%.log' % run)
 
 
-def get_summary_logger():
-    handler = logging.FileHandler(SUMMARY_LOG_FILE)
-    handler.setFormatter(logging.Formatter('%(asctime)s %(filename)s %(message)s'))
-    summary_logger = logging.getLogger('summary_log')
-    summary_logger.addHandler(handler)
-    return summary_logger
-
-
-def setup_logging(run, test):
+def setup_run_logger(run, test):
     # take level from env or INFO
-    level = os.getenv('LOGGING_LEVEL', logging.INFO)
-    logging.basicConfig(
-        filename=get_output_log(run),
-        level=level,
-        format='%(asctime)s %(filename)s %(message)s'
-    )
-    if test:
-        logging.getLogger().addHandler(logging.StreamHandler())
+    runlogger = logging.getLogger('run_logger')
+    level = logging.getLevelName(os.environ.get('ODYBCL2FASTQ_RUN_LOG_LEVEL', 'INFO'))
+    runlogger.setLevel(level)
+    handler = logging.FileHandler(get_output_log())
+    handler.setLevel(level)
+    runlogger.addHandler(handler)
+    return runlogger
 
 
 if __name__ == "__main__":
