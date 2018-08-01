@@ -21,24 +21,24 @@ class Odybcl2fastqTests(unittest.TestCase):
         sample_sheet = SampleSheet(sample_sheet_path)
         parts = ['Header', 'Reads', 'Settings', 'Data']
         for part in parts:
-            assert (part in sample_sheet and sample_sheet[part])
+            self.assertTrue(part in sample_sheet.sections and sample_sheet.sections[part])
 
     def test_get_instrument(self):
         run_info = 'tests/sample_data/RunInfo.xml'
         sample_sheet_path = 'tests/sample_data/SampleSheet.json'
-        sample_sheet = util.load_json(sample_sheet_path)
-        instrument =  ss.get_instrument(sample_sheet['Data'])
-        assert instrument == 'hiseq'
+        sample_sheet = SampleSheet(sample_sheet_path)
+        instrument =  sample_sheet.get_instrument()
+        self.assertTrue(instrument == 'hiseq')
 
     def test_extract_basemasks(self):
         run_info = 'tests/sample_data/RunInfo.xml'
         instrument = 'hiseq'
         # json does not give ordered results
         sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
-        sample_sheet = ss.sheet_parse(sample_sheet_path)
-        mask_lists, mask_samples =  run.extract_basemasks(sample_sheet['Data'], run_info, instrument)
+        sample_sheet = SampleSheet(sample_sheet_path)
+        mask_lists, mask_samples =  run.extract_basemasks(sample_sheet.sections['Data'], run_info, instrument)
         mask_lists_control = {'y26,i8,y134': ['1:y26,i8,y134', '2:y26,i8,y134']}
-        assert (mask_lists == mask_lists_control)
+        self.assertTrue(mask_lists == mask_lists_control)
 
     def test_build_cmd(self):
         mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']

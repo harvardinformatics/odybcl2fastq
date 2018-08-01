@@ -67,6 +67,7 @@ class SampleSheet(object):
                             defaults_by_section['Reads']['read2_length'] = linelist[0]
 
                     else:
+                        data_fields = []
                         if 'Sample_ID' in linelist or 'SampleID' in linelist:
                             # TODO: lowercase all fields?
                             data_fields=[field.replace('SampleID','Sample_ID').replace('Index', 'index') for field in linelist if field != '']
