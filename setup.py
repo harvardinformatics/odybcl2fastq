@@ -46,12 +46,13 @@ setup(
             'odybcl2fastqProcessRuns=odybcl2fastq.process_runs:main',
         ]
     },
-    scripts={
+    scripts=[
         'odybcl2fastqProcessRuns.sh'
-    },
+    ],
     install_requires=[
         'Jinja2>=2.2.1',
         'MySQL-python>=1.2.5',
         'argparse>=1.4.0',
+        'numpy==1.6.1',
     ],
 )
