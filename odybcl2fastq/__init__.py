@@ -1,6 +1,6 @@
 from odybcl2fastq.config import Config
 
-__version__ = '1.0.1'
+__version__ = '1.0.3'
 
 config = Config()
 
