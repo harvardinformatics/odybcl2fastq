@@ -27,6 +27,31 @@ class Odybcl2fastqTests(unittest.TestCase):
             RUNINFO_XML='/n/boslfs/INSTRUMENTS/illumina/test_run/RunInfo.xml',
             TEST=True
         )
+        self.switches_to_names = {('--with-failed-reads',): 'BCL_WITH_FAILED_READS',
+                ('--adapter-stringency',): 'BCL_ADAPTER_STRINGENCY', ('-p',
+                    '--processing-threads'): 'BCL_PROC_THREADS', ('-o',
+                        '--output-dir'): 'BCL_OUTPUT_DIR',
+                    ('--find-adapters-with-sliding-window',):
+                    'BCL_FIND_ADAPTERS_SLIDING_WINDOW',
+                    ('--barcode-mismatches',): 'BCL_BARCODE_MISMATCHES',
+                    ('--ignore-missing-positions',):
+                    'BCL_IGNORE_MISSING_POSITIONS', ('--no-bgzf-compression',):
+                    'BCL_NO_BGZF', ('--sample-sheet',): 'BCL_SAMPLE_SHEET',
+                    ('--mask-short-adapter-reads',):
+                    'BCL_MASK_SHORT_ADAPTER_READS',
+                    ('--minimum-trimmed-read-length',):
+                    'BCL_MINIMUM_TRIMMED_READ_LENGTH',
+                    ('--ignore-missing-bcls',): 'BCL_IGNORE_MISSING_BCLS',
+                    ('-R', '--runfolder-dir'): 'BCL_RUNFOLDER_DIR',
+                    ('--create-fastq-for-index-reads',):
+                    'BCL_CREATE_INDEXREAD_FASTQ',
+                    ('--write-fastq-reverse-complement',):
+                    'BCL_WRITE_FASTQ_REVCOMP', ('--no-lane-splitting',):
+                    'BCL_NO_LANE_SPLITTING', ('--tiles',): 'BCL_TILES',
+                    ('--ignore-missing-filter',): 'BCL_IGNORE_MISSING_FILTER',
+                    ('--fastq-compression-level',):
+                    'BCL_FASTQ_COMPRESSION_LEVEL'
+        }
 
     def tearDown(self):
         pass
@@ -59,39 +84,20 @@ class Odybcl2fastqTests(unittest.TestCase):
     def test_build_cmd(self):
         mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']
         instrument = 'hiseq'
-        switches_to_names = {('--with-failed-reads',): 'BCL_WITH_FAILED_READS',
-                ('--adapter-stringency',): 'BCL_ADAPTER_STRINGENCY', ('-p',
-                    '--processing-threads'): 'BCL_PROC_THREADS', ('-o',
-                        '--output-dir'): 'BCL_OUTPUT_DIR',
-                    ('--find-adapters-with-sliding-window',):
-                    'BCL_FIND_ADAPTERS_SLIDING_WINDOW',
-                    ('--barcode-mismatches',): 'BCL_BARCODE_MISMATCHES',
-                    ('--ignore-missing-positions',):
-                    'BCL_IGNORE_MISSING_POSITIONS', ('--no-bgzf-compression',):
-                    'BCL_NO_BGZF', ('--sample-sheet',): 'BCL_SAMPLE_SHEET',
-                    ('--mask-short-adapter-reads',):
-                    'BCL_MASK_SHORT_ADAPTER_READS',
-                    ('--minimum-trimmed-read-length',):
-                    'BCL_MINIMUM_TRIMMED_READ_LENGTH',
-                    ('--ignore-missing-bcls',): 'BCL_IGNORE_MISSING_BCLS',
-                    ('-R', '--runfolder-dir'): 'BCL_RUNFOLDER_DIR',
-                    ('--create-fastq-for-index-reads',):
-                    'BCL_CREATE_INDEXREAD_FASTQ',
-                    ('--write-fastq-reverse-complement',):
-                    'BCL_WRITE_FASTQ_REVCOMP', ('--no-lane-splitting',):
-                    'BCL_NO_LANE_SPLITTING', ('--tiles',): 'BCL_TILES',
-                    ('--ignore-missing-filter',): 'BCL_IGNORE_MISSING_FILTER',
-                    ('--fastq-compression-level',):
-                    'BCL_FASTQ_COMPRESSION_LEVEL'
-        }
         run_type = None
         sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
         sample_sheet = SampleSheet(sample_sheet_path)
         cmd_path = 'tests/sample_data/cmd.json'
         cmd_control = util.load_json(cmd_path)
         cmd = run.bcl2fastq_build_cmd(self.args,
-                switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
+                self.switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
         assert cmd == cmd_control
+
+    def test_process_runs(self):
+        run.bcl2fastq_process_runs(self.args,
+                self.switches_to_names)
+        #TODO: test logging output?
+        assert 1 == 1
 
 if __name__ == '__main__':
     unittest.main()

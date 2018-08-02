@@ -517,8 +517,10 @@ def write_cmd(cmd, output_dir, run):
         fout.write(cmd)
 
 
-def bcl2fastq_process_runs():
-    args, switches_to_names = initArgs()
+def bcl2fastq_process_runs(args = None, switches_to_names = None):
+    # these are only passed in for the test
+    if not args or not switches_to_names:
+        args, switches_to_names = initArgs()
     util.touch(args.BCL_RUNFOLDER_DIR + '/', PROCESSED_FILE)
     test = ('TEST' in args and args.TEST)
     no_demultiplex = ('NO_DEMULTIPLEX' in args and args.NO_DEMULTIPLEX)
@@ -626,7 +628,7 @@ def bcl2fastq_process_runs():
 
 def get_output_log(run):
     logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
-    return os.path.join(logdir, '%.log' % run)
+    return os.path.join(logdir, run + '.log')
 
 
 def setup_run_logger(run, test):
@@ -634,7 +636,7 @@ def setup_run_logger(run, test):
     runlogger = logging.getLogger('run_logger')
     level = logging.getLevelName(os.environ.get('ODYBCL2FASTQ_RUN_LOG_LEVEL', 'INFO'))
     runlogger.setLevel(level)
-    handler = logging.FileHandler(get_output_log())
+    handler = logging.FileHandler(get_output_log(run))
     handler.setLevel(level)
     runlogger.addHandler(handler)
     return runlogger
