@@ -22,6 +22,7 @@ from odybcl2fastq import constants as const
 import odybcl2fastq.util as util
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.run import COMPLETE_FILE as DEMULTIPLEX_COMPLETE_FILE
+from odybcl2fastq.run import FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS
 
 LOG_FILE = const.ROOT_DIR + 'centrifuge.log'
 PROCESSED_FILE = 'centrifuge.processed'
@@ -193,11 +194,6 @@ def process_runs(pool, proc_num):
             ret_code, std_out, std_err, cmd = result.get()
             output = std_out + std_err
             if ret_code == 0:
-                # copy folder to final dir
-                dest_dir = config.FINAL_DIR + run + '/centrifuge'
-                centrifuge_dir = run_dir + 'centrifuge'
-                util.copy(centrifuge_dir, dest_dir)
-
                 success_samples.append(sample)
                 message = 'sample %s completed successfully\nsee logs here: %s\n' % (sample, output)
                 status = 'success'
@@ -210,11 +206,22 @@ def process_runs(pool, proc_num):
                 # only email from outer job if error is from inner job itself
                 # not the bcl2fastq subprocess
             logging.info('message = %s' % message)
+
         if failed_samples:
             failure_email(run, cmd, ret_code, std_out, std_err)
             # success or failure of individual run will be logged from run.py to capture
             # manual runs for the status log
         else:
+            # copy html files to final dir
+            dest_dir = config.FINAL_DIR + run + '/centrifuge/'
+            centrifuge_dir = run_dir + 'centrifuge'
+            html_files = glob.glob(centrifuge_dir + '/*.html')
+            if not os.path.exists(dest_dir):
+                os.makedirs(dest_dir)
+            for hf in html_files:
+                html_name = hf.split('/')[-1]
+                util.copy(hf, dest_dir + html_name)
+            util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
             util.touch(run_dir, COMPLETE_FILE)
             success_email(run, centrifuge_dir, cmd, ret_code, std_out, std_err)
         logging.info("Completed centrifuge for run %s with %i samples %i success %s and %i failures %s\n\n\n" %
