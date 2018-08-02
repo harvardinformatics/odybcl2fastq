@@ -12,38 +12,7 @@ class Odybcl2fastqTests(unittest.TestCase):
     def setUp(self):
         self.sample_data_dir = (os.path.abspath( os.path.dirname( __file__ ) ) +
         '/sample_data/')
-
-    def tearDown(self):
-        pass
-
-    def test_sheet_parse(self):
-        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
-        sample_sheet = SampleSheet(sample_sheet_path)
-        parts = ['Header', 'Reads', 'Settings', 'Data']
-        for part in parts:
-            self.assertTrue(part in sample_sheet.sections and sample_sheet.sections[part])
-
-    def test_get_instrument(self):
-        run_info = 'tests/sample_data/RunInfo.xml'
-        sample_sheet_path = 'tests/sample_data/SampleSheet.json'
-        sample_sheet = SampleSheet(sample_sheet_path)
-        instrument =  sample_sheet.get_instrument()
-        self.assertTrue(instrument == 'hiseq')
-
-    def test_extract_basemasks(self):
-        run_info = 'tests/sample_data/RunInfo.xml'
-        instrument = 'hiseq'
-        # json does not give ordered results
-        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
-        sample_sheet = SampleSheet(sample_sheet_path)
-        mask_lists, mask_samples =  run.extract_basemasks(sample_sheet.sections['Data'], run_info, instrument)
-        mask_lists_control = {'y26,i8,y134': ['1:y26,i8,y134', '2:y26,i8,y134']}
-        self.assertTrue(mask_lists == mask_lists_control)
-
-    def test_build_cmd(self):
-        mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']
-        instrument = 'hiseq'
-        args = Namespace(BCL_ADAPTER_STRINGENCY=0.90000000000000002, BCL_BARCODE_MISMATCHES=0,
+        self.args = Namespace(BCL_ADAPTER_STRINGENCY=0.90000000000000002, BCL_BARCODE_MISMATCHES=0,
             BCL_CREATE_INDEXREAD_FASTQ=False, BCL_FASTQ_COMPRESSION_LEVEL=4,
             BCL_FIND_ADAPTERS_SLIDING_WINDOW=False, BCL_IGNORE_MISSING_BCLS=True,
             BCL_IGNORE_MISSING_FILTER=True, BCL_IGNORE_MISSING_POSITIONS=True,
@@ -58,6 +27,38 @@ class Odybcl2fastqTests(unittest.TestCase):
             RUNINFO_XML='/n/boslfs/INSTRUMENTS/illumina/test_run/RunInfo.xml',
             TEST=True
         )
+
+    def tearDown(self):
+        pass
+
+    def test_sheet_parse(self):
+        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        sample_sheet = SampleSheet(sample_sheet_path)
+        parts = ['Header', 'Reads', 'Settings', 'Data']
+        for part in parts:
+            self.assertTrue(part in sample_sheet.sections and sample_sheet.sections[part])
+
+    def test_get_instrument(self):
+        run_info = 'tests/sample_data/RunInfo.xml'
+        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        sample_sheet = SampleSheet(sample_sheet_path)
+        instrument =  sample_sheet.get_instrument()
+        self.assertTrue(instrument == 'hiseq')
+
+    def test_extract_basemasks(self):
+        run_info = 'tests/sample_data/RunInfo.xml'
+        instrument = 'hiseq'
+        # json does not give ordered results
+        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        sample_sheet = SampleSheet(sample_sheet_path)
+        run_type = sample_sheet.get_run_type()
+        mask_lists, mask_samples =  run.extract_basemasks(sample_sheet.sections['Data'], run_info, instrument, self.args, run_type)
+        mask_lists_control = {'y26,i8,y134': ['1:y26,i8,y134', '2:y26,i8,y134']}
+        self.assertTrue(mask_lists == mask_lists_control)
+
+    def test_build_cmd(self):
+        mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']
+        instrument = 'hiseq'
         switches_to_names = {('--with-failed-reads',): 'BCL_WITH_FAILED_READS',
                 ('--adapter-stringency',): 'BCL_ADAPTER_STRINGENCY', ('-p',
                     '--processing-threads'): 'BCL_PROC_THREADS', ('-o',
@@ -84,10 +85,12 @@ class Odybcl2fastqTests(unittest.TestCase):
                     'BCL_FASTQ_COMPRESSION_LEVEL'
         }
         run_type = None
+        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        sample_sheet = SampleSheet(sample_sheet_path)
         cmd_path = 'tests/sample_data/cmd.json'
         cmd_control = util.load_json(cmd_path)
-        cmd = run.bcl2fastq_build_cmd(args,
-                switches_to_names, mask_list, instrument, run_type)
+        cmd = run.bcl2fastq_build_cmd(self.args,
+                switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
         assert cmd == cmd_control
 
 if __name__ == '__main__':
