@@ -32,6 +32,8 @@ from odybcl2fastq.status_db import StatusDB
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
 
+import odybcl2fastq
+
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
@@ -521,6 +523,7 @@ def bcl2fastq_process_runs(args = None, switches_to_names = None):
     # these are only passed in for the test
     if not args or not switches_to_names:
         args, switches_to_names = initArgs()
+    logger.info('Processing runs from run folder %s, using sample sheet %s, to output dir %s' % (args.BCL_RUNFOLDER_DIR, args.BCL_SAMPLE_SHEET, args.BCL_OUTPUT_DIR))
     util.touch(args.BCL_RUNFOLDER_DIR + '/', PROCESSED_FILE)
     test = ('TEST' in args and args.TEST)
     no_demultiplex = ('NO_DEMULTIPLEX' in args and args.NO_DEMULTIPLEX)
@@ -621,7 +624,7 @@ def bcl2fastq_process_runs(args = None, switches_to_names = None):
         # pass a special ret_code to avoid double email on error
         ret_code = 9
         status = 'failure'
-    logger.info("Odybcl2fastq for %s returned %s\n" % (run, status))
+    logger.info("odybcl2fastq for %s returned %s\n" % (run, status))
     runlogger.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
 

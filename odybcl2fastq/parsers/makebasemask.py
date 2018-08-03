@@ -8,6 +8,8 @@ import logging
 
 NUTRAL_BASE = 'n'
 
+logger = logging.getLogger('run_logger')
+
 def make_universal_mask(rundata_by_read):
     universal_mask=OrderedDict()
     mask_type={'Y':'i','N':'y'}
@@ -57,10 +59,10 @@ def make_mask(universal_mask, sample_key, sample_dict):
         # if the universal mask had a indexed read3 but this sample doesn't, add nutral
         cnt = int(sample_mask['read3'][1:])
         sample_mask['read3'] = NUTRAL_BASE * cnt
-    logging.info('sample %s mask is: %s' % (sample_key, sample_mask))
+    logger.info('sample %s mask is: %s' % (sample_key, sample_mask))
     if sample_mask != universal_mask:
         #TODO: consider removing this, too noisy
-        logging.warning('sample mask for %s differs from the universal mask %s vs %s' % (sample_key, json.dumps(sample_mask), json.dumps(universal_mask)))
+        logger.warning('sample mask for %s differs from the universal mask %s vs %s' % (sample_key, json.dumps(sample_mask), json.dumps(universal_mask)))
     return ','.join(sample_mask.values())
 
 def lists_from_mask(mask, data_by_sample):
@@ -108,7 +110,7 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
             if mask not in mask_samples:
                 mask_samples[mask] = []
             mask_samples[mask].append(row)
-            logging.info('adding mask %s for lane %s' % (mask, lane))
+            logger.info('adding mask %s for lane %s' % (mask, lane))
         for lane, masks in lane_masks.items():
             for mask in list(masks):
                 if mask not in mask_lists:
@@ -124,6 +126,6 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
             if mask not in mask_samples:
                 mask_samples[mask] = []
             mask_samples[mask].append(row)
-    logging.info('instrument is %s' % instrument)
-    logging.info('masks: %s' % json.dumps(mask_lists))
+    logger.info('instrument is %s' % instrument)
+    logger.info('masks: %s' % json.dumps(mask_lists))
     return mask_lists, mask_samples

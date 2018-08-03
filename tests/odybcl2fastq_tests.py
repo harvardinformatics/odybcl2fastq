@@ -6,6 +6,13 @@ from argparse import Namespace
 import odybcl2fastq.util as util
 import odybcl2fastq.run as run
 from  odybcl2fastq.parsers.samplesheet import SampleSheet
+import logging
+
+TEST_RUN_NAME       = 'test_run'
+BCL_OUTPUT_DIR      = 'tests/output/%s' % TEST_RUN_NAME
+BCL_RUNFOLDER_DIR   = 'tests/%s' % TEST_RUN_NAME
+BCL_SAMPLE_SHEET    = 'tests/%s/SampleSheet_new.csv' % TEST_RUN_NAME
+RUNINFO_XML         = 'tests/%s/RunInfo.xml' % TEST_RUN_NAME
 
 class Odybcl2fastqTests(unittest.TestCase):
 
@@ -18,13 +25,13 @@ class Odybcl2fastqTests(unittest.TestCase):
             BCL_IGNORE_MISSING_FILTER=True, BCL_IGNORE_MISSING_POSITIONS=True,
             BCL_MASK_SHORT_ADAPTER_READS=22, BCL_MINIMUM_TRIMMED_READ_LENGTH=0,
             BCL_NO_BGZF=False, BCL_NO_LANE_SPLITTING=True,
-            BCL_OUTPUT_DIR='/n/ngsdata/odybcl2fastq_test/test_run',
+            BCL_OUTPUT_DIR=BCL_OUTPUT_DIR,
             BCL_PROC_THREADS=8,
-            BCL_RUNFOLDER_DIR='/n/boslfs/INSTRUMENTS/illumina/test_run',
-            BCL_SAMPLE_SHEET='/n/boslfs/INSTRUMENTS/illumina/test_run/SampleSheet_new.csv',
+            BCL_RUNFOLDER_DIR=BCL_RUNFOLDER_DIR,
+            BCL_SAMPLE_SHEET=BCL_SAMPLE_SHEET,
             BCL_TILES=False, BCL_WITH_FAILED_READS=False,
             BCL_WRITE_FASTQ_REVCOMP=False,
-            RUNINFO_XML='/n/boslfs/INSTRUMENTS/illumina/test_run/RunInfo.xml',
+            RUNINFO_XML=RUNINFO_XML,
             TEST=True
         )
         self.switches_to_names = {('--with-failed-reads',): 'BCL_WITH_FAILED_READS',
@@ -81,23 +88,32 @@ class Odybcl2fastqTests(unittest.TestCase):
         mask_lists_control = {'y26,i8,y134': ['1:y26,i8,y134', '2:y26,i8,y134']}
         self.assertTrue(mask_lists == mask_lists_control)
 
-    def test_build_cmd(self):
-        mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']
-        instrument = 'hiseq'
-        run_type = None
-        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
-        sample_sheet = SampleSheet(sample_sheet_path)
-        cmd_path = 'tests/sample_data/cmd.json'
-        cmd_control = util.load_json(cmd_path)
-        cmd = run.bcl2fastq_build_cmd(self.args,
-                self.switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
-        assert cmd == cmd_control
+    # def test_build_cmd(self):
+    #     mask_list = ['1:y26,i8,y134', '2:y26,i8,y134']
+    #     instrument = 'hiseq'
+    #     run_type = None
+    #     sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+    #     sample_sheet = SampleSheet(sample_sheet_path)
+    #     cmd_path = 'tests/sample_data/cmd.json'
+    #     cmd_control = util.load_json(cmd_path)
+    #     cmd = run.bcl2fastq_build_cmd(self.args,
+    #             self.switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
+    #     assert cmd == cmd_control
 
     def test_process_runs(self):
+        logger = logging.getLogger('odybcl2fastq')
         run.bcl2fastq_process_runs(self.args,
                 self.switches_to_names)
-        #TODO: test logging output?
-        assert 1 == 1
+        self.assertTrue(os.path.exists(logger.handlers[0].baseFilename))
+        odybcl2fastqlog = open(logger.handlers[0].baseFilename, 'r').read()
+        self.assertTrue('Processing runs from run folder' in odybcl2fastqlog)
+
+        runlogger = logging.getLogger('run_logger')
+        self.assertTrue(os.path.exists(runlogger.handlers[0].baseFilename))
+        runlog = open(runlogger.handlers[0].baseFilename, 'r').read()
+        self.assertTrue('Beginning to process run' in runlog)
+        self.assertTrue('END Odybcl2fastq' in runlog)
+
 
 if __name__ == '__main__':
     unittest.main()

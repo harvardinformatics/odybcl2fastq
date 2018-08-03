@@ -23,7 +23,7 @@ class DemultiplexTests(unittest.TestCase):
         cmd_path = 'tests/sample_data/cmd.json'
         cmd = self._load_json(cmd_path)
         code, demult_out, demult_err = run_cmd(cmd)
-        self.assertTrue(code == 0)
+        self.assertTrue(code == 0, 'Error running command %s, %s' % (cmd, demult_err))
         fastq_file = 'MDT1_SI_GA_A11_1_S1_L001_R1_001.fastq.gz'
         fastq_control_path = 'tests/sample_data/' + fastq_file
         fastq_path = '/n/ngsdata/odybcl2fastq_test/171101_D00365_1013_AHYYTWBCXY/bambahmukku/' + fastq_file

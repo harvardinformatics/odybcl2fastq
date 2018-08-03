@@ -67,3 +67,16 @@ An email is sent for any failure.  A warning is sent if outputdir space is close
 to capacity.
 
 For successfull runs an html summary of results is emailed.
+
+
+## Testing
+There is a docker container, Dockerfile-test, that can be used to run tests in a CentOS 6 environment
+with bcl2fastq installed (downloaded directly from Illumina).
+
+To run the odybcl2fastq_tests.py, you'll need to map in the test illumina run to tests/test_run and
+set the config file via ODYBCL2FASTQ_CONFIG_FILE to tests/test.config.json.  Also, a log file must be set.
+
+e.g.
+
+    docker build -t odybcl2fastq -f Dockerfile-test .
+    docker run -it -e ODYBCL2FASTQ_CONFIG_FILE=/app/tests/test.config.json -v $HOME/test/odybcl2fastq/test_run:/app/tests/test_run -e ODYBCL2FASTQ_LOG_LEVEL=DEBUG -e ODYBCL2FASTQ_LOG_FILE=/app/logs/odyfile.log odybcl2fastq nosetests -vv tests/odybcl2fastq_tests.py

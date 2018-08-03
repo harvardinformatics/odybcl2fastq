@@ -3,11 +3,13 @@
 #
 FROM centos:6.8
 
-RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel && \
+RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel unzip && \
     wget https://bootstrap.pypa.io/2.6/get-pip.py && \
     python get-pip.py
 
 WORKDIR /app
+
+RUN wget https://support.illumina.com/content/dam/illumina-support/documents/downloads/software/bcl2fastq/bcl2fastq2-v2-20-0-linux-x86-64.zip && unzip *.zip && rpm -i *.rpm
 
 ADD . /app
 
