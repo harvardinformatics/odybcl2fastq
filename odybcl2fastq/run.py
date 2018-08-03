@@ -584,6 +584,9 @@ def bcl2fastq_process_runs():
             logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)
             logging.info('Email sent: %s\n' % str(sent))
+            # add a file to show that this output folder is completed, safe to
+            # centrifuge
+            util.touch(args.BCL_OUTPUT_DIR + '/', COMPLETE_FILE)
         job_cnt += 1
     if success:
         ret_code = 0

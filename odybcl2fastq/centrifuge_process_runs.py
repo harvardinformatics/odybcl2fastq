@@ -21,13 +21,14 @@ from odybcl2fastq import config
 from odybcl2fastq import constants as const
 import odybcl2fastq.util as util
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
+from odybcl2fastq.run import COMPLETE_FILE as DEMULTIPLEX_COMPLETE_FILE
 
 LOG_FILE = const.ROOT_DIR + 'centrifuge.log'
 PROCESSED_FILE = 'centrifuge.processed'
 COMPLETE_FILE = 'centrifuge.complete'
 SKIP_FILE = 'centrifuge.skip'
 FASTQLIST = 'centrifuge_fastqlist.txt'
-DAYS_TO_SEARCH = 1
+DAYS_TO_SEARCH = 4
 PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
 FREQUENCY = 60
@@ -77,6 +78,9 @@ def need_to_process(dir):
         return False
     # filter out if run never completed to get transfered to ngsdata
     if not os.path.exists(config.FINAL_DIR + run):
+        return False
+    # filter out if run never completed demultiplexing
+    if not os.path.exists(dir + DEMULTIPLEX_COMPLETE_FILE ):
         return False
     return True
 
