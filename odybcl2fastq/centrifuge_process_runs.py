@@ -57,11 +57,11 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
 
 def send_email(message, subject, to_email = None):
     logging.warning(message)
-    fromaddr = config.EMAIL['from_email']
+    fromaddr = config.EMAIL['centrifuge_from_email']
     if to_email:
         toemaillist = config.EMAIL[to_email]
     else:
-        toemaillist=config.EMAIL['to_email']
+        toemaillist=config.EMAIL['centrifuge_to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
 
 def need_to_process(dir):
