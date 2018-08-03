@@ -44,6 +44,8 @@ setup(
         'console_scripts': [
             'odybcl2fastq=odybcl2fastq.run:bcl2fastq_process_runs',
             'odybcl2fastqProcessRuns=odybcl2fastq.process_runs:main',
+            'storage_mgmt=odybcl2fastq.storage_mgmt:manage_storage',
+            'load_runs=odybcl2fastq.load_runs:main',
         ]
     },
     scripts=[
@@ -54,6 +56,7 @@ setup(
         'MySQL-python>=1.2.5',
         'argparse>=1.4.0',
         'numpy==1.6.1',
+        'requests>=2.19.1',
         'nose',
     ],
     test_requires=[
