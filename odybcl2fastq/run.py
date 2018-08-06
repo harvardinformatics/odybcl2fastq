@@ -124,6 +124,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-bcls'],
             'required'  : False,
             'help'      : 'missing or corrupt bcl files are ignored',
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -131,6 +132,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-filter'],
             'required'  : False,
             'help'      : 'missing or corrupt filter files are ignored',
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -138,6 +140,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-positions'],
             'required'  : False,
             'help'      : 'missing or corrupt positions files are ignored',
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -615,6 +618,7 @@ def bcl2fastq_process_runs(args = None, switches_to_names = None):
             runlogger.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)
             runlogger.info('Email sent: %s\n' % str(sent))
+            util.touch(args.BCL_OUTPUT_DIR + '/', COMPLETE_FILE)
         job_cnt += 1
     if success:
         ret_code = 0

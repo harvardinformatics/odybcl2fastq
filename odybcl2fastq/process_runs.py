@@ -24,8 +24,8 @@ from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 
 LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
-PROCESSED_FILE = 'odybcl2fastq.processed'
-COMPLETE_FILE = 'odybcl2fastq.complete'
+PROCESSED_FILE = ody_run.PROCESSED_FILE
+COMPLETE_FILE = ody_run.COMPLETE_FILE
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
 DAYS_TO_SEARCH = 7
