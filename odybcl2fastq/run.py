@@ -123,6 +123,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-bcls'],
             'required'  : False,
             'help'      : 'missing or corrupt bcl files are ignored',
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -130,6 +131,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-filter'],
             'required'  : False,
             'help'      : 'missing or corrupt filter files are ignored',
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
@@ -137,6 +139,7 @@ def initArgs():
             'switches'  : ['--ignore-missing-positions'],
             'required'  : False,
             'help'      : 'missing or corrupt positions files are ignored',
+            'default'   : True,
             'action'    : 'store_true',
         },
         {
