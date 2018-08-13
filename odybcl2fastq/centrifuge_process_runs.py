@@ -53,7 +53,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
     subject =  "Centrifuge Failed: %s" % run
     message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
             " error: %s\n" % (subject, cmd, ret_code, std_out, std_err))
-    send_email(message, subject, 'admin_email')
+    send_email(message, subject, 'centrifuge_admin_email')
 
 def send_email(message, subject, to_email = None):
     logging.warning(message)
