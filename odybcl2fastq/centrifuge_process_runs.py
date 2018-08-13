@@ -126,8 +126,8 @@ def group_fastq_files(run_dir, files):
 
         path_lst.pop() # remove the 001
         read = int(path_lst.pop().replace('R', ''))
-        lane = path_lst.pop()
-        if 'L' in lane:
+        if 'L' in path_lst[-1]:
+            lane = path_lst.pop()
             lane = int(lane.replace('L', ''))
         else: # nextseq does not have lanes so group all in 1
             lane = 1
