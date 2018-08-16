@@ -21,6 +21,8 @@ if not logfilename.startswith('/'):
     logfilename = os.path.join(config.LOG_DIR, logfilename)
 handler = logging.FileHandler(logfilename)
 handler.setLevel(logging.getLevelName(LOGLEVELSTR))
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 logger  = logging.getLogger('centrifuge')
