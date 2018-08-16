@@ -40,6 +40,7 @@ FREQUENCY = 60
 
 logger = logging.getLogger('odybcl2fastq')
 
+
 def failure_email(run, cmd, ret_code, std_out, std_err):
     log = ody_run.get_output_log(run)
     subject = "Run Failed: %s" % run
@@ -51,7 +52,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
 
 
 def send_email(message, subject):
-    logger = config.EMAIL['from_email']
+    fromaddr = config.EMAIL['from_email']
     toemaillist = config.EMAIL['to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
 
