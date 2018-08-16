@@ -1,10 +1,10 @@
 {
-    "SOURCE_DIR": "tests/sample_data",
-    "OUTPUT_DIR": "output",
-    "FINAL_DIR": "final",
+    "SOURCE_DIR": "/app/test/sample_data/source_dir",
+    "OUTPUT_DIR": "test/sample_data/output_dir",
+    "FINAL_DIR": "test/sample_data/final_dir",
     "FASTQ_URL": "fastq",
-    "MOUNT_DIR": "mount",
-    "LOG_DIR": "logs",
+    "MOUNT_DIR": "test/sample_data/final_dir",
+    "LOG_DIR": "test/sample_data/logs",
     "CONTROL_DIR": "mount",
     "EMAIL": {
         "to_email": [""],

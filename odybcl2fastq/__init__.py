@@ -16,8 +16,10 @@ logging.basicConfig(
 
 # Setup loggers
 logger  = logging.getLogger('odybcl2fastq')
-logfile = os.environ.get('ODYBCL2FASTQ_LOG_FILE', os.path.join(const.ROOT_DIR, 'odybcl2fastq.log'))
-handler = logging.FileHandler(logfile)
+logfilename = os.environ.get('ODYBCL2FASTQ_LOG_FILE', 'odybcl2fastq.log')
+if not logfilename.startswith('/'):
+    logfilename = os.path.join(config.LOG_DIR, logfilename)
+handler = logging.FileHandler(logfilename)
 handler.setLevel(logging.getLevelName(LOGLEVELSTR))
 logger.addHandler(handler)
 
@@ -25,12 +27,6 @@ logger  = logging.getLogger('centrifuge')
 logfile = os.environ.get('CENTRIFUGE_LOG_FILE', os.path.join(const.ROOT_DIR, 'centrifuge.log'))
 handler = logging.FileHandler(logfile)
 handler.setLevel(logging.getLevelName(os.environ.get('CENTRIFUGE_LOG_LEVEL', LOGLEVELSTR)))
-logger.addHandler(handler)
-
-logger  = logging.getLogger('storage_mgt')
-logfile = os.environ.get('STORAGEMGT_LOG_FILE', os.path.join(const.ROOT_DIR, 'storage_mgmt.log'))
-handler = logging.FileHandler(logfile)
-handler.setLevel(logging.getLevelName(os.environ.get('STORAGEMGT_LOG_LEVEL', LOGLEVELSTR)))
 logger.addHandler(handler)
 
 logger  = logging.getLogger('db')

@@ -1,0 +1,25 @@
+{
+    "SOURCE_DIR": "test/storage_mgmt/source_dir",
+    "OUTPUT_DIR": "test/storage_mgmt/output_dir",
+    "FINAL_DIR": "test/storage_mgmt/final_dir",
+    "FASTQ_URL": "fastq",
+    "MOUNT_DIR": "test/storage_mgmt/final_dir",
+    "LOG_DIR": "test/storage_mgmt/logs",
+    "CONTROL_DIR": "mount",
+    "EMAIL": {
+        "to_email": [""],
+        "from_email": [""],
+        "smtp": ""
+    },
+
+    "STATUS_DB": {
+        "host": "",
+        "user": "",
+        "password": "",
+        "database": ""
+    },
+    "BAUER_DB": {
+        "api": "",
+        "token": ""
+    }
+}

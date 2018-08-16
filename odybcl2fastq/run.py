@@ -22,7 +22,6 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from collections import OrderedDict
 import odybcl2fastq.util as util
-from odybcl2fastq import constants as const
 from odybcl2fastq import config
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
@@ -31,8 +30,6 @@ from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq.status_db import StatusDB
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
-
-import odybcl2fastq
 
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
@@ -43,6 +40,7 @@ STORAGE_CAPACITY_WARN = 0.96
 STORAGE_CAPACITY_ERROR = 0.99
 
 logger = logging.getLogger('odybcl2fastq')
+
 
 def initArgs():
     '''
@@ -214,18 +212,18 @@ def initArgs():
             'help'      : 'use simple sliding window to detec adapters, indels not handled',
             'default'   : 4,
             'type'      : int,
-            'choices'   : range(1,10),
+            'choices'   : range(1, 10),
         },
         {
             'name'      : 'BCL_RUNFOLDER_DIR',
-            'switches'  : ['-R','--runfolder-dir'],
+            'switches'  : ['-R', '--runfolder-dir'],
             'required'  : True,
             'help'      : 'path to run folder directory',
             'type'      : str,
         },
         {
             'name'      : 'BCL_OUTPUT_DIR',
-            'switches'  : ['-o','--output-dir'],
+            'switches'  : ['-o', '--output-dir'],
             'required'  : True,
             'help'      : 'path to demultiplexed output',
             'type'      : str,
@@ -258,7 +256,7 @@ def initArgs():
     # Check for environment variable values
     # Set to 'default' if they are found
     for parameterdef in parameterdefs:
-        if os.environ.get(parameterdef['name'],None) is not None:
+        if os.environ.get(parameterdef['name'], None) is not None:
             parameterdef['default'] = os.environ.get(parameterdef['name'])
 
     # Setup argument parser
@@ -266,7 +264,7 @@ def initArgs():
     parser.add_argument('-V', '--version', action='version', version='bcl2fastq2.2')
 
     # sets up dict with switches as keys and names as values
-    switches_to_names={}
+    switches_to_names = {}
     # Use the parameterdefs for the ArgumentParser
     for parameterdef in parameterdefs:
         switches = parameterdef.pop('switches')
@@ -278,14 +276,14 @@ def initArgs():
         parameterdef['dest'] = name
         if 'default' in parameterdef:
             parameterdef['help'] += '  [default: %s]' % parameterdef['default']
-        parser.add_argument(*switches,**parameterdef)
+        parser.add_argument(*switches, **parameterdef)
 
         # Gotta put it back on for later
         parameterdef['name'] = name
 
         # add switch tuple as key, paramterdef name (= destination) as value
-        if 'BCL' in parameterdef['name']: # this allows non BCL things to be excluded from switches to names so don't get incorrectly added to cmd line arg
-            switches_to_names[tuple(switches)]=parameterdef['name']
+        if 'BCL' in parameterdef['name']:  # this allows non BCL things to be excluded from switches to names so don't get incorrectly added to cmd line arg
+            switches_to_names[tuple(switches)] = parameterdef['name']
     args = parser.parse_args()
     return args, switches_to_names
 
@@ -434,7 +432,7 @@ def run_bcl2fastq_cmd(cmd, output_log):
 
 def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type, sample_sheet):
     argdict = vars(args)
-    cmdstrings=['bcl2fastq']
+    cmdstrings = ['bcl2fastq']
     # keeps consistent order of writing
     switch_list = switches_to_names.keys()
     switch_list.sort()
@@ -443,7 +441,7 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     for switches in switch_list:
         switch = [switch for switch in switches if '--' in switch][0]
         bcl_params.append(switch)
-        argvalue=str(argdict[switches_to_names[switches]])
+        argvalue = str(argdict[switches_to_names[switches]])
         # the bit below prevents boolean flags from having values in the cmd
         if argvalue != 'False':
             if argvalue == 'True':
@@ -522,7 +520,7 @@ def write_cmd(cmd, output_dir, run):
         fout.write(cmd)
 
 
-def bcl2fastq_process_runs(args = None, switches_to_names = None):
+def bcl2fastq_process_runs(args=None, switches_to_names=None):
     # these are only passed in for the test
     if not args or not switches_to_names:
         args, switches_to_names = initArgs()
@@ -557,7 +555,6 @@ def bcl2fastq_process_runs(args = None, switches_to_names = None):
     if jobs_tot > 1:
         runlogger.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
     job_cnt = 1
-    sample_sheet_dir = args.BCL_SAMPLE_SHEET
     output_dir = args.BCL_OUTPUT_DIR
     # run bcl2fatq per indexing strategy on run
     for mask, mask_list in mask_lists.items():
@@ -568,8 +565,10 @@ def bcl2fastq_process_runs(args = None, switches_to_names = None):
             args.BCL_OUTPUT_DIR = output_dir + '-' + output_suffix
             args.BCL_SAMPLE_SHEET = sample_sheet.write_new_sample_sheet(mask_samples[mask], output_suffix)
             sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
-        cmd = bcl2fastq_build_cmd(args,
-                switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
+        cmd = bcl2fastq_build_cmd(
+            args,
+            switches_to_names, mask_list, instrument, run_type, sample_sheet.sections
+        )
         runlogger.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
             runlogger.info("Test run, command not run: %s" % cmd)
