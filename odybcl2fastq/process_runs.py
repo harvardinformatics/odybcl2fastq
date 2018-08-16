@@ -170,19 +170,23 @@ def tail(f, n):
 
 def copy_log():
     # last line is the tail command
-    lines = tail(LOG_FILE, 80000)
-    # show max of 100 lines
-    end = len(lines)
-    max = 100
-    if end > max:
-        end = end - max
-        lines = lines[-1:end:-1]
-    else:
-        lines = lines[::-1]
-    with open(LOG_HTML, 'w') as f:
-        f.write('<pre>')
-        f.writelines(lines)
-        f.write('</pre>')
+    try:
+        logfile = logger.handlers[0].baseFilename
+        lines = tail(logfile, 80000)
+        # show max of 100 lines
+        end = len(lines)
+        max = 100
+        if end > max:
+            end = end - max
+            lines = lines[-1:end:-1]
+        else:
+            lines = lines[::-1]
+        with open(LOG_HTML, 'w') as f:
+            f.write('<pre>')
+            f.writelines(lines)
+            f.write('</pre>')
+    except Exception as e:
+        logger.error('Error creating HTML log file: %s' % str(e))
 
 
 def process_runs(pool, proc_num):
