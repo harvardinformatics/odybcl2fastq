@@ -32,7 +32,7 @@ class StorageMgmtTest(unittest.TestCase):
 
     def testSetDirs(self):
         '''
-        Make sure the directories are properly set in the --help message
+        storage_mgmt_tests: Make sure the directories are properly set in the --help message
         '''
         cmd = 'storage_mgmt --help'
         code, out, err = run_cmd(cmd)
@@ -43,7 +43,7 @@ class StorageMgmtTest(unittest.TestCase):
 
     def testMaxDelete(self):
         '''
-        Make sure that you don't delete more than max
+        storage_mgmt_tests: Make sure that you don't delete more than max
         '''
         today = datetime.date.today()
         daysgoneby = 10
@@ -59,7 +59,7 @@ class StorageMgmtTest(unittest.TestCase):
 
     def testLogging(self):
         '''
-        Make sure log file can be specified by env, either full path or relative to config LOG_DIR
+        storage_mgmt_tests: Make sure log file can be specified by env, either full path or relative to config LOG_DIR
         '''
         today = datetime.date.today()
         daysgoneby = 10
@@ -85,7 +85,7 @@ class StorageMgmtTest(unittest.TestCase):
 
     def testNoDelete(self):
         '''
-        Test storage_mgmt dry run.  Should list directories to be removed.
+        storage_mgmt_tests: Test storage_mgmt dry run.  Should list directories to be removed.
         '''
         today = datetime.date.today()
         daysgoneby = 10
@@ -108,7 +108,7 @@ class StorageMgmtTest(unittest.TestCase):
 
     def testDelete(self):
         '''
-        Test with --delete option on.  Should actually delete runs.
+        storage_mgmt_tests: with --delete option on.  Should actually delete runs.
         '''
         today = datetime.date.today()
         daysgoneby = 10

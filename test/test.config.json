@@ -1,5 +1,5 @@
 {
-    "SOURCE_DIR": "/app/test/sample_data/source_dir",
+    "SOURCE_DIR": "test/sample_data/source_dir",
     "OUTPUT_DIR": "test/sample_data/output_dir",
     "FINAL_DIR": "test/sample_data/final_dir",
     "FASTQ_URL": "fastq",

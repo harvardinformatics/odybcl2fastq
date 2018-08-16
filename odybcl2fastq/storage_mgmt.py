@@ -13,26 +13,15 @@ Created on  2018-03-09
 '''
 import sys, os
 import datetime
-import logging
 import json
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from subprocess import Popen, PIPE
-from odybcl2fastq import config
+from odybcl2fastq import config, initLogger
 
 
 # Setup logging, to a file if set, otherwise, stderr
-logger      = logging.getLogger('storage_mgmt')
-loglevel    = logging.getLevelName(os.environ.get('STORAGE_MGMT_LOG_LEVEL', 'INFO'))
-logfilename = os.environ.get('STORAGE_MGMT_LOG_FILE')
-if logfilename:
-    if not logfilename.startswith('/'):
-        logfilename = os.path.join(config.LOG_DIR, logfilename)
-    handler = logging.FileHandler(logfilename)
-    handler.setLevel(loglevel)
-    logger.addHandler(handler)
-else:
-    logger.setLevel(loglevel)
+logger = initLogger('storage_mgmt')
 
 
 # Set named storage paths

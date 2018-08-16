@@ -6,10 +6,10 @@ from odybcl2fastq.parsers.samplesheet import SampleSheet
 import logging
 
 TEST_RUN_NAME       = 'test_run'
-BCL_OUTPUT_DIR      = 'tests/output/%s' % TEST_RUN_NAME
-BCL_RUNFOLDER_DIR   = 'tests/%s' % TEST_RUN_NAME
-BCL_SAMPLE_SHEET    = 'tests/%s/SampleSheet_new.csv' % TEST_RUN_NAME
-RUNINFO_XML         = 'tests/%s/RunInfo.xml' % TEST_RUN_NAME
+BCL_OUTPUT_DIR      = 'test/output/%s' % TEST_RUN_NAME
+BCL_RUNFOLDER_DIR   = 'test/%s' % TEST_RUN_NAME
+BCL_SAMPLE_SHEET    = 'test/%s/SampleSheet_new.csv' % TEST_RUN_NAME
+RUNINFO_XML         = 'test/%s/RunInfo.xml' % TEST_RUN_NAME
 
 
 class Odybcl2fastqTest(unittest.TestCase):
@@ -64,23 +64,32 @@ class Odybcl2fastqTest(unittest.TestCase):
         pass
 
     def testSheetParse(self):
-        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        '''
+        odybcl2fastq_tests: Test sample sheet parsing
+        '''
+        sample_sheet_path = 'test/sample_data/SampleSheet.csv'
         sample_sheet = SampleSheet(sample_sheet_path)
         parts = ['Header', 'Reads', 'Settings', 'Data']
         for part in parts:
             self.assertTrue(part in sample_sheet.sections and sample_sheet.sections[part])
 
     def testGetInstrument(self):
-        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        '''
+        odbcl2fastq_tests: Make sure the instrument can be retrieved from the sample sheet
+        '''
+        sample_sheet_path = 'test/sample_data/SampleSheet.csv'
         sample_sheet = SampleSheet(sample_sheet_path)
         instrument = sample_sheet.get_instrument()
         self.assertTrue(instrument == 'hiseq')
 
     def testExtractBasemasks(self):
-        run_info = 'tests/sample_data/RunInfo.xml'
+        '''
+        odbcl2fastq_tests: Make sure the base masks can be retrieved from the sample sheet
+        '''
+        run_info = 'test/sample_data/RunInfo.xml'
         instrument = 'hiseq'
         # json does not give ordered results
-        sample_sheet_path = 'tests/sample_data/SampleSheet.csv'
+        sample_sheet_path = 'test/sample_data/SampleSheet.csv'
         sample_sheet = SampleSheet(sample_sheet_path)
         run_type = sample_sheet.get_run_type()
         mask_lists, mask_samples = run.extract_basemasks(sample_sheet.sections['Data'], run_info, instrument, self.args, run_type)
@@ -100,6 +109,9 @@ class Odybcl2fastqTest(unittest.TestCase):
     #     assert cmd == cmd_control
 
     def testProcessRuns(self):
+        '''
+        odybcl2fastq_tests: Use a dry run to make sure that logging output is correct
+        '''
         logger = logging.getLogger('odybcl2fastq')
         run.bcl2fastq_process_runs(
             self.args,
