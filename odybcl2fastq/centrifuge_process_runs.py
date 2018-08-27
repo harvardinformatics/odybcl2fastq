@@ -155,7 +155,14 @@ def get_centrifuge_cmd(run_dir, grp, read1, read2):
     else:
         cmd_lst.append('None')
     cmd_lst.append(outfile)
-    cmd =  ' '.join(cmd_lst)
+
+    # Add optionals
+    cmd_lst.append(config.CENTRIFUGE_INDEX)
+    cmd_lst.append(config.CENTRIFUGE_PROC)
+    if config.CENTRIFUGE_MM:
+        cmd_lst.append(config.CENTRIFUGE_MM)
+
+    cmd = ' '.join(cmd_lst)
     return cmd, outfile
 
 def run_centrifuge(cmd):
