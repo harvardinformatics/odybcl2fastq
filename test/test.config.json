@@ -6,6 +6,10 @@
     "MOUNT_DIR": "test/sample_data/final_dir",
     "LOG_DIR": "test/sample_data/logs",
     "CONTROL_DIR": "mount",
+    "CENTRIFUGE_DIR": "",
+    "CENTRIFUGE_INDEX": "/centrifuge/nt",
+    "CENTRIFUGE_PROC": "8",
+    "CENTRIFUGE_MM": "",
     "EMAIL": {
         "to_email": [""],
         "from_email": [""],

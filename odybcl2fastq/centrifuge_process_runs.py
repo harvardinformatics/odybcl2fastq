@@ -11,7 +11,7 @@ Created on  2018-07-05
 @copyright: 2018 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
-import os, glob, time, re
+import os, glob, time, re, sys
 import logging
 import subprocess
 import json
@@ -34,6 +34,7 @@ PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
 FREQUENCY = 60
 
+
 def setup_logging():
     # take level from env or INFO
     level = os.getenv('ODYBCL2FASTQ_LOGGING_LEVEL', logging.INFO)
@@ -44,16 +45,19 @@ def setup_logging():
     )
     logging.getLogger().addHandler(logging.StreamHandler())
 
+
 def success_email(run, centrifuge_dir, cmd, ret_code, std_out, std_err):
     subject =  "Centrifuge Completed: %s" % run
     message = ("%s\nSee results: %s\ncmd: %s\nreturn code: %i" % (subject, centrifuge_dir, cmd, ret_code))
     send_email(message, subject)
+
 
 def failure_email(run, cmd, ret_code, std_out, std_err):
     subject =  "Centrifuge Failed: %s" % run
     message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
             " error: %s\n" % (subject, cmd, ret_code, std_out, std_err))
     send_email(message, subject, 'centrifuge_admin_email')
+
 
 def send_email(message, subject, to_email = None):
     logging.warning(message)
@@ -63,6 +67,7 @@ def send_email(message, subject, to_email = None):
     else:
         toemaillist=config.EMAIL['centrifuge_to_email']
     buildmessage(message, subject, None, fromaddr, toemaillist)
+
 
 def need_to_process(dir):
     run = dir.split('/')[-2]
@@ -85,6 +90,7 @@ def need_to_process(dir):
         return False
     return True
 
+
 def find_runs(filter):
     # get all subdirectories
     dirs = sorted(glob.glob(config.OUTPUT_DIR + '*/'))
@@ -93,6 +99,7 @@ def find_runs(filter):
         if filter(dir):
             runs.append(dir)
     return runs
+
 
 def get_fastq_files(dir):
     # check if we are limiting to a list of fastq files
@@ -110,6 +117,7 @@ def get_fastq_files(dir):
     # exclude undetermined files
     file_lst = [path for path in file_lst if not re.match(r'.*/Undetermined.*\.fastq\.gz', path)]
     return file_lst
+
 
 def group_fastq_files(run_dir, files):
     # fastq files must be grouped by sample_name/sample then read then lane
@@ -141,13 +149,14 @@ def group_fastq_files(run_dir, files):
         grps[grp][read][lane] = path
     return grps
 
+
 def get_centrifuge_cmd(run_dir, grp, read1, read2):
     run = os.path.basename(os.path.normpath(run_dir))
     # create centrifuge dir
     centrifuge_dir = run_dir + 'centrifuge'
     outfile = centrifuge_dir + '/' + grp + '.html'
     if not os.path.exists(centrifuge_dir):
-        subprocess.call('mkdir %s' % (centrifuge_dir) ,shell=True)
+        subprocess.call('mkdir %s' % (centrifuge_dir), shell=True)
     script = config.CENTRIFUGE_DIR + 'centrifuge.sh'
     cmd_lst = ['bash -e', script, ','.join(read1)]
     if read2:
@@ -165,11 +174,13 @@ def get_centrifuge_cmd(run_dir, grp, read1, read2):
     cmd = ' '.join(cmd_lst)
     return cmd, outfile
 
+
 def run_centrifuge(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
     std_out, std_err = proc.communicate()
     return (proc.returncode, std_out, std_err, cmd)
+
 
 def process_runs(pool, proc_num):
     runs_found = find_runs(need_to_process)
@@ -234,6 +245,7 @@ def process_runs(pool, proc_num):
         logging.info("Completed centrifuge for run %s with %i samples %i success %s and %i failures %s\n\n\n" %
                 (run, len(results), len(success_samples), json.dumps(success_samples), len(failed_samples), json.dumps(failed_samples)))
 
+
 if __name__ == "__main__":
     try:
         setup_logging()
@@ -249,6 +261,8 @@ if __name__ == "__main__":
             if frequency != FREQUENCY:
                 logging.info("Frequency is not default: %i\n" % frequency)
             time.sleep(frequency)
+            if len(sys.argv) > 1 and sys.argv[1] == "--no-daemon":
+                break
         pool.close()
     except Exception as e:
         logging.exception(e)
