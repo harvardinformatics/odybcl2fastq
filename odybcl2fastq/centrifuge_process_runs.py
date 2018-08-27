@@ -53,7 +53,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
     subject =  "Centrifuge Failed: %s" % run
     message = ("%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
             " error: %s\n" % (subject, cmd, ret_code, std_out, std_err))
-    send_email(message, subject, 'admin_email')
+    send_email(message, subject, 'centrifuge_admin_email')
 
 def send_email(message, subject, to_email = None):
     logging.warning(message)
@@ -126,8 +126,8 @@ def group_fastq_files(run_dir, files):
 
         path_lst.pop() # remove the 001
         read = int(path_lst.pop().replace('R', ''))
-        lane = path_lst.pop()
-        if 'L' in lane:
+        if 'L' in path_lst[-1]:
+            lane = path_lst.pop()
             lane = int(lane.replace('L', ''))
         else: # nextseq does not have lanes so group all in 1
             lane = 1
@@ -155,7 +155,14 @@ def get_centrifuge_cmd(run_dir, grp, read1, read2):
     else:
         cmd_lst.append('None')
     cmd_lst.append(outfile)
-    cmd =  ' '.join(cmd_lst)
+
+    # Add optionals
+    cmd_lst.append(config.CENTRIFUGE_INDEX)
+    cmd_lst.append(config.CENTRIFUGE_PROC)
+    if config.CENTRIFUGE_MM:
+        cmd_lst.append(config.CENTRIFUGE_MM)
+
+    cmd = ' '.join(cmd_lst)
     return cmd, outfile
 
 def run_centrifuge(cmd):
