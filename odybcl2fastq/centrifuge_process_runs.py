@@ -163,6 +163,7 @@ def get_centrifuge_cmd(run_dir, grp, read1, read2):
         cmd_lst.append(config.CENTRIFUGE_MM)
 
     cmd = ' '.join(cmd_lst)
+    logging.info('Using centrifuge command: %s' % cmd)
     return cmd, outfile
 
 def run_centrifuge(cmd):

@@ -9,8 +9,7 @@
     "CENTRIFUGE_DIR": "",
     "CENTRIFUGE_INDEX": "/centrifuge/nt",
     "CENTRIFUGE_PROC": "8",
-    "CENTRIFUGE_MM": ""
-
+    "CENTRIFUGE_MM": "",
     "EMAIL": {
         "to_email": [""],
         "from_email": [""],
