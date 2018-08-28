@@ -190,9 +190,12 @@ def copy_log():
 
 
 def process_runs(pool, proc_num):
+    print "Processing runs"
     runs_found = find_runs(need_to_process)
     run_dirs = runs_found[:proc_num]
     if run_dirs:
+        print "Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
+            json.dumps(run_dirs))
         logger.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
             json.dumps(run_dirs)))
         results = {}
@@ -231,6 +234,7 @@ def main():
         proc_num = PROC_NUM
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
+        print "Starting odybcl2fastq processing"
         # run continuously
         while True:
             # queue new runs for demultiplexing with bcl2fastq2
