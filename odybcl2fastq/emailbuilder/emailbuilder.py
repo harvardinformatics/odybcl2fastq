@@ -4,7 +4,6 @@ from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, make_msgid
 from odybcl2fastq import config
-import odybcl2fastq.constants as const
 
 
 def generateMessageId():
