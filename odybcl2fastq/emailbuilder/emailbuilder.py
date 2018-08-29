@@ -1,10 +1,11 @@
 import smtplib
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, PackageLoader
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
-from email.Utils import COMMASPACE,make_msgid
+from email.Utils import COMMASPACE, make_msgid
 from odybcl2fastq import config
 import odybcl2fastq.constants as const
+
 
 def generateMessageId():
     '''
@@ -13,7 +14,7 @@ def generateMessageId():
     return make_msgid()
 
 
-def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemaillist=[], bccemaillist=[], server=None):
+def buildmessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[], server=None):
     if not server:
         server = config.EMAIL['smtp']
     msg = MIMEMultipart()
@@ -27,20 +28,21 @@ def buildmessage(message, subject, summary_data, fromaddr,toemaillist, ccemailli
         msg['Bcc'] = COMMASPACE.join(bccemaillist)
     if summary_data:
         html = get_html(summary_data)
-        msg.attach(MIMEText(html.encode('utf-8'),'html'))
+        msg.attach(MIMEText(html.encode('utf-8'), 'html'))
     else:
-        msg.attach(MIMEText(message.encode('utf-8'),'plain'))
+        msg.attach(MIMEText(message.encode('utf-8'), 'plain'))
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
-    success = smtp.sendmail(fromaddr,emails,msg.as_string())
+    success = smtp.sendmail(fromaddr, emails, msg.as_string())
     smtp.close()
     return success
 
+
 def get_html(summary_data):
     # create html message with jinja
-    j2_env = Environment(loader=FileSystemLoader(const.TEMPLATE_DIR),
-            trim_blocks = True)
+    j2_env = Environment(
+        loader=PackageLoader('odybcl2fastq', 'templates'),
+        trim_blocks=True
+    )
     html = j2_env.get_template('summary.html').render(summary_data)
     return html
-
-
