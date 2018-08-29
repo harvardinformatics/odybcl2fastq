@@ -35,6 +35,7 @@ setup(
     include_package_data=True,
     url='https://https://github.com/harvardinformatics/odybcl2fastq',
     packages=find_packages(),
+    package_data={'odybcl2fastq': ['templates/*.html']},
     long_description='bcl2fastq runner for Bauer Sequencing Core',
     classifiers=[
         "Development Status :: 3 - Alpha",
