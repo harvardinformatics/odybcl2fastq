@@ -235,6 +235,9 @@ def main():
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
         print "Starting odybcl2fastq processing"
+        print "Running with "
+        for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR', 'MOUNT_DIR', 'LOG_DIR', 'CONTROL_DIR']:
+            print "\t%s\t%s" % (k, config[k])
         # run continuously
         while True:
             # queue new runs for demultiplexing with bcl2fastq2
