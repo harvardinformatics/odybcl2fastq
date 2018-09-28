@@ -12,10 +12,7 @@ def generateMessageId():
     '''
     return make_msgid()
 
-
-def buildmessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[], server=None):
-    if not server:
-        server = config.EMAIL['smtp']
+def composeMessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[]):
     msg = MIMEMultipart()
     msg['Message-ID'] = generateMessageId()
     msg['From'] = fromaddr
@@ -29,7 +26,13 @@ def buildmessage(message, subject, summary_data, fromaddr, toemaillist, ccemaill
         html = get_html(summary_data)
         msg.attach(MIMEText(html.encode('utf-8'), 'html'))
     else:
-        msg.attach(MIMEText(message.encode('utf-8'), 'plain'))
+        msg.attach(MIMEText(message.encode('utf-8')[-900000:], 'plain'))
+    return msg
+
+def buildmessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[], server=None):
+    if not server:
+        server = config.EMAIL['smtp']
+    msg = composeMessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[])
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
     success = smtp.sendmail(fromaddr, emails, msg.as_string())
