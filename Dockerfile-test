@@ -3,7 +3,7 @@
 #
 FROM centos:6.8
 
-RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel unzip && \
+RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel unzip libffi-devel libssl-devel pyOpenSSL && \
     wget https://bootstrap.pypa.io/2.6/get-pip.py && \
     python get-pip.py
 
@@ -18,3 +18,7 @@ ADD . /app
 
 RUN pip install .
 
+ENV PYTHONPATH=/app
+ENV ODYBCL2FASTQ_CONFIG_FILE=/app/test/test.config.json
+
+CMD ["nosetests", "-vv"]

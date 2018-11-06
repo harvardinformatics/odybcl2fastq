@@ -15,6 +15,7 @@ import os, glob, time, sys
 import logging
 import subprocess
 import json
+from time import sleep
 from datetime import datetime
 from multiprocessing import Pool
 from odybcl2fastq import config
@@ -29,7 +30,7 @@ COMPLETE_FILE = ody_run.COMPLETE_FILE
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
 DAYS_TO_SEARCH = 7
-INCOMPLETE_AFTER_DAYS = 2
+INCOMPLETE_AFTER_DAYS =
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Jan 15 2017', '%b %d %Y')
@@ -190,42 +191,57 @@ def copy_log():
 
 
 def process_runs(pool, proc_num):
-    print "Processing runs"
-    runs_found = find_runs(need_to_process)
-    run_dirs = runs_found[:proc_num]
-    if run_dirs:
-        print "Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
-            json.dumps(run_dirs))
-        logger.info("Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
-            json.dumps(run_dirs)))
-        results = {}
-        for run_dir in run_dirs:
+    '''
+    Fills up the pool with runs with apply_async
+    If anything is ready, result is placed in success_runs or failed_runs
+    Then looks for more runs
+    '''
+    logger.info("Processing runs")
+
+    run_dirs = find_runs(need_to_process)
+    logger.info("Found %s runs: %s\nprocessing %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
+        json.dumps(run_dirs)))
+    results = {}
+    failed_runs = []
+    success_runs = []
+
+    while len(run_dirs) > 0 or len(results) > 0:
+        while len(run_dirs) > 0:
+            run_dir = run_dirs.pop()
             run = os.path.basename(os.path.normpath(run_dir))
             cmd = get_odybcl2fastq_cmd(run_dir)
             logger.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
             results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
-        failed_runs = []
-        success_runs = []
+
         for run, result in results.items():
-            ret_code, std_out, std_err, cmd = result.get()
-            if ret_code == 0:
-                success_runs.append(run)
-                status = 'success'
-            else:
-                failed_runs.append(run)
-                status = 'failure'
-                # failures from bcl2fastq will be emailed from inner job
-                # inner job passes ret code 9 on fail from bcl2fastq
-                # only email from outer job if error is from inner job itself
-                # not the bcl2fastq subprocess
-                if ret_code != 9:
-                    failure_email(run, cmd, ret_code, std_out, std_err)
-            # success or failure of individual run will be logged from run.py to capture
-            # manual runs for the status log
-        logger.info(
-            "Completed %i runs %i success %s and %i failures %s\n\n\n" %
-            (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs))
-        )
+            if result.ready():
+                ret_code, std_out, std_err, cmd = result.get()
+                if ret_code == 0:
+                    success_runs.append(run)
+                    status = 'success'
+                else:
+                    failed_runs.append(run)
+                    status = 'failure'
+                    # failures from bcl2fastq will be emailed from inner job
+                    # inner job passes ret code 9 on fail from bcl2fastq
+                    # only email from outer job if error is from inner job itself
+                    # not the bcl2fastq subprocess
+                    if ret_code != 9:
+                        failure_email(run, cmd, ret_code, std_out, std_err)
+
+                # Clear this result from the dict
+                del results[run]
+
+        sleep(10)
+        run_dirs = find_runs(need_to_process)
+        if len(run_dirs) > 0:
+            logger.info("Found %s runs: %s\nprocessing %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
+                json.dumps(run_dirs)))
+
+    logger.info(
+        "Completed %i runs %i success %s and %i failures %s\n\n\n" %
+        (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs))
+    )
     copy_log()
 
 
@@ -234,10 +250,10 @@ def main():
         proc_num = PROC_NUM
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
-        print "Starting odybcl2fastq processing"
-        print "Running with "
+        logger.info("Starting odybcl2fastq processing")
+        logger.info("Running with ")
         for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR', 'MOUNT_DIR', 'LOG_DIR', 'CONTROL_DIR']:
-            print "\t%s\t%s" % (k, config[k])
+            logger.info("\t%s\t%s" % (k, config[k]))
         # run continuously
         while True:
             # queue new runs for demultiplexing with bcl2fastq2

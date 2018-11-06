@@ -5,10 +5,10 @@ import odybcl2fastq.run as run
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 import logging
 
-TEST_RUN_NAME       = 'test_run'
-BCL_OUTPUT_DIR      = 'test/output/%s' % TEST_RUN_NAME
+TEST_RUN_NAME       = 'sample_data'
+BCL_OUTPUT_DIR      = 'test/%s/output_dir' % TEST_RUN_NAME
 BCL_RUNFOLDER_DIR   = 'test/%s' % TEST_RUN_NAME
-BCL_SAMPLE_SHEET    = 'test/%s/SampleSheet_new.csv' % TEST_RUN_NAME
+BCL_SAMPLE_SHEET    = 'test/%s/SampleSheet.csv' % TEST_RUN_NAME
 RUNINFO_XML         = 'test/%s/RunInfo.xml' % TEST_RUN_NAME
 
 
