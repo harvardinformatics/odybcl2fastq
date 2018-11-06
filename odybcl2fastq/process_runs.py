@@ -212,7 +212,7 @@ def process_runs(pool, proc_num):
             cmd = get_odybcl2fastq_cmd(run_dir)
             logger.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
             results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
-            queued_runs.append(run)
+            queued_runs.append(run_dir)
 
         for run, result in results.items():
             if result.ready():
