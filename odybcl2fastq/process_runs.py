@@ -199,8 +199,7 @@ def process_runs(pool, proc_num):
     logger.info("Processing runs")
 
     run_dirs = find_runs(need_to_process)
-    logger.info("Found %s runs: %s\nprocessing %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
-        json.dumps(run_dirs)))
+    logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
     results = {}
     failed_runs = []
     success_runs = []
@@ -235,8 +234,8 @@ def process_runs(pool, proc_num):
         sleep(10)
         run_dirs = find_runs(need_to_process)
         if len(run_dirs) > 0:
-            logger.info("Found %s runs: %s\nprocessing %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs),
-                json.dumps(run_dirs)))
+            logger.info("Found %s more runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
+
 
     logger.info(
         "Completed %i runs %i success %s and %i failures %s\n\n\n" %
