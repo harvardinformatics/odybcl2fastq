@@ -30,7 +30,7 @@ COMPLETE_FILE = ody_run.COMPLETE_FILE
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
 DAYS_TO_SEARCH = 7
-INCOMPLETE_AFTER_DAYS =
+INCOMPLETE_AFTER_DAYS = 2
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Jan 15 2017', '%b %d %Y')
