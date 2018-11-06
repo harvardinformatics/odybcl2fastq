@@ -239,8 +239,8 @@ def process_runs(pool, proc_num):
             if new_run not in queued_runs:
                 run_dirs.append(new_run)
 
-        if len(new_runs) > 0:
-            logger.info("Found %s more runs: %s\n" % (len(new_runs), json.dumps(new_runs)))
+        if len(run_dirs) > 0:
+            logger.info("Found %s more runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
 
 
     logger.info(
