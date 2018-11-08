@@ -24,26 +24,16 @@ from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.run import COMPLETE_FILE as DEMULTIPLEX_COMPLETE_FILE
 from odybcl2fastq.run import FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS
 
-LOG_FILE = const.ROOT_DIR + 'centrifuge.log'
 PROCESSED_FILE = 'centrifuge.processed'
 COMPLETE_FILE = 'centrifuge.complete'
 SKIP_FILE = 'centrifuge.skip'
 FASTQLIST = 'centrifuge_fastqlist.txt'
-DAYS_TO_SEARCH = 4
+DAYS_TO_SEARCH = 30
 PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
 FREQUENCY = 60
 
-
-def setup_logging():
-    # take level from env or INFO
-    level = os.getenv('ODYBCL2FASTQ_LOGGING_LEVEL', logging.INFO)
-    logging.basicConfig(
-            filename= LOG_FILE,
-            level=level,
-            format='%(asctime)s %(message)s'
-    )
-    logging.getLogger().addHandler(logging.StreamHandler())
+logger = logging.getLogger('centrifuge')
 
 
 def success_email(run, centrifuge_dir, cmd, ret_code, std_out, std_err):
@@ -60,7 +50,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err):
 
 
 def send_email(message, subject, to_email = None):
-    logging.warning(message)
+    logger.warning(message)
     fromaddr = config.EMAIL['centrifuge_from_email']
     if to_email:
         toemaillist = config.EMAIL[to_email]
@@ -187,15 +177,15 @@ def process_runs(pool, proc_num):
     if runs_found:
         run_dir = runs_found[0]
         util.touch(run_dir, PROCESSED_FILE)
-        logging.info("Found %s runs: %s\nprocessing the first:\n%s\n" % (len(runs_found), json.dumps(runs_found),
+        logger.info("Found %s runs: %s\nprocessing the first:\n%s\n" % (len(runs_found), json.dumps(runs_found),
             run_dir))
         results = {}
         run = os.path.basename(os.path.normpath(run_dir))
-        logging.info("Centrifuge processing %s\n" % (run))
+        logger.info("Centrifuge processing %s\n" % (run))
         # we run centrifuge per sample
         fastq_files = get_fastq_files(run_dir)
         grps = group_fastq_files(run_dir, fastq_files)
-        logging.info("Found %s samples to run on centrifuge\n" % (len(grps)))
+        logger.info("Found %s samples to run on centrifuge\n" % (len(grps)))
         for sample, files in grps.items():
             read1 = [files[1][i] for i in sorted(files[1])]
             if 2 in files:
@@ -204,7 +194,7 @@ def process_runs(pool, proc_num):
                 read2 = None
             cmd, output_dir = get_centrifuge_cmd(run_dir, sample, read1, read2)
             centrifuge_dir = run_dir + 'centrifuge'
-            logging.info("Queueing centrifuge cmd for %s:\n%s\n" % (sample, cmd))
+            logger.info("Queueing centrifuge cmd for %s:\n%s\n" % (sample, cmd))
             results[sample] = pool.apply_async(run_centrifuge, (cmd,))
         failed_samples = []
         success_samples = []
@@ -223,7 +213,7 @@ def process_runs(pool, proc_num):
                 # inner job passes ret code 9 on fail from bcl2fastq
                 # only email from outer job if error is from inner job itself
                 # not the bcl2fastq subprocess
-            logging.info('message = %s' % message)
+            logger.info('message = %s' % message)
 
         if failed_samples:
             failure_email(run, cmd, ret_code, std_out, std_err)
@@ -242,28 +232,33 @@ def process_runs(pool, proc_num):
             util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
             util.touch(run_dir, COMPLETE_FILE)
             success_email(run, centrifuge_dir, cmd, ret_code, std_out, std_err)
-        logging.info("Completed centrifuge for run %s with %i samples %i success %s and %i failures %s\n\n\n" %
+        logger.info("Completed centrifuge for run %s with %i samples %i success %s and %i failures %s\n\n\n" %
                 (run, len(results), len(success_samples), json.dumps(success_samples), len(failed_samples), json.dumps(failed_samples)))
 
 
-if __name__ == "__main__":
+def main():
     try:
-        setup_logging()
         proc_num = PROC_NUM
         # create pool and call process_runs to apply_async jobs
         pool = Pool(proc_num)
         # run continuously
+        for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR', 'MOUNT_DIR', 'LOG_DIR', 'CONTROL_DIR']:
+            logger.info("\t%s\t%s" % (k, config[k]))
         while True:
             # queue new runs for demultiplexing with bcl2fastq2
             process_runs(pool, proc_num)
             # wait before checking for more runs to process
             frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
             if frequency != FREQUENCY:
-                logging.info("Frequency is not default: %i\n" % frequency)
+                logger.info("Frequency is not default: %i\n" % frequency)
             time.sleep(frequency)
             if len(sys.argv) > 1 and sys.argv[1] == "--no-daemon":
                 break
         pool.close()
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         send_email(str(e), 'Odybcl2fastq centrifuge exception', 'admin_email')
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -47,6 +47,7 @@ setup(
             'odybcl2fastqProcessRuns=odybcl2fastq.process_runs:main',
             'storage_mgmt=odybcl2fastq.storage_mgmt:manage_storage',
             'load_runs=odybcl2fastq.load_runs:main',
+            'centrifugeProcessRuns=odybcl2fastq.centrifuge_process_runs:main',
         ]
     },
     scripts=[
