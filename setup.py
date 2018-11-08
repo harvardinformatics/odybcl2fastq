@@ -58,6 +58,7 @@ setup(
         'MySQL-python>=1.2.5',
         'argparse>=1.4.0',
         'numpy==1.6.1',
+        'scipy==0.15.1',
         'requests>=2.19.1',
         'nose',
     ],
