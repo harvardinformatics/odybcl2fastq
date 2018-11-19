@@ -203,7 +203,7 @@ def process_runs(pool, proc_num):
     results = {}
     failed_runs = []
     success_runs = []
-    queued_runs = []
+    queued_runs = {}
 
     while len(run_dirs) > 0 or len(results) > 0:
         while len(run_dirs) > 0:
@@ -212,7 +212,7 @@ def process_runs(pool, proc_num):
             cmd = get_odybcl2fastq_cmd(run_dir)
             logger.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
             results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
-            queued_runs.append(run_dir)
+            queued_runs[run_dir] = 1
 
         for run, result in results.items():
             if result.ready():
@@ -232,6 +232,7 @@ def process_runs(pool, proc_num):
 
                 # Clear this result from the dict
                 del results[run]
+                del queued_runs[run]
 
         sleep(10)
         new_runs = find_runs(need_to_process)
