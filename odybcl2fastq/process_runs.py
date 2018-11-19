@@ -212,7 +212,7 @@ def process_runs(pool, proc_num):
             cmd = get_odybcl2fastq_cmd(run_dir)
             logger.info("Queueing odybcl2fastq cmd for %s:\n%s\n" % (run, cmd))
             results[run] = pool.apply_async(run_odybcl2fastq, (cmd,))
-            queued_runs[run_dir] = 1
+            queued_runs[run] = 1
 
         for run, result in results.items():
             if result.ready():
@@ -235,10 +235,11 @@ def process_runs(pool, proc_num):
                 del queued_runs[run]
 
         sleep(10)
-        new_runs = find_runs(need_to_process)
-        for new_run in new_runs:
+        new_run_dirs = find_runs(need_to_process)
+        for new_run_dir in new_run_dirs:
+            new_run = os.path.basename(os.path.normpath(new_run_dir))
             if new_run not in queued_runs:
-                run_dirs.append(new_run)
+                run_dirs.append(new_run_dir)
 
         if len(run_dirs) > 0:
             logger.info("Found %s more runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
