@@ -4,7 +4,6 @@ import odybcl2fastq.util as util
 import re, os
 
 class SampleSheet(object):
-    SAMPLE_SHEET_FILE = 'SampleSheet.csv'
 
     def __init__(self, path):
         self.path = path
@@ -111,7 +110,7 @@ class SampleSheet(object):
         return instrument
 
     def validate(self):
-        if self.validate_sample_names():
+        if self.sample_names_corrected() or self.columns_corrected():
             # copy orig sample sheet as backup and record
             util.copy(self.path, self.path.replace('.csv', '_orig.csv'))
             # write a corrected sheet
@@ -119,13 +118,27 @@ class SampleSheet(object):
             # copy corrected to sample sheet path, leave corrected file as record
             util.copy(corrected_sample_sheet, self.path)
 
-    def validate_sample_names(self):
+    def columns_corrected(self):
+        # remove all but whitelisted chars from data cols
+        corrected = False
+        invalid_regex = '[^\w\-@\. ]'
+        for sam, line in self.sections['Data'].items():
+            for col in line:
+                if re.search(invalid_regex, line[col]):
+                    corrected = True
+                    tmp = line[col]
+                    line[col] = re.sub(invalid_regex, '', line[col])
+                    logging.info('Sample_Sheet corrected, invalid chars removed: %s to %s' % (tmp, line[col]))
+            self.sections['Data'][sam] = line
+        return corrected
+
+    def sample_names_corrected(self):
         corrected = False
         proj_by_sample = {}
+        cols_to_validate = ['Sample_ID', 'Sample_Name', 'Sample_Project']
         for sam, line in self.sections['Data'].items():
-            cols_to_validate = ['Sample_ID', 'Sample_Name', 'Sample_Project']
             for col in cols_to_validate:
-                # remove any whitespace
+                # replace any whitespace with underscores in sample names
                 if util.contains_whitespace(line[col]):
                     corrected = True
                     tmp = line[col]
@@ -168,8 +181,7 @@ class SampleSheet(object):
         return corrected
 
     def write_new_sample_sheet(self, new_samples, output_suffix):
-        new_sample_sheet = os.path.dirname(self.path) + '/' + self.SAMPLE_SHEET_FILE
-        new_sample_sheet = new_sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
+        new_sample_sheet = self.path.replace('.csv', ('_' + output_suffix + '.csv'))
         input = open(self.path, 'r')
         output = open(new_sample_sheet, 'wb')
         for line in input:
