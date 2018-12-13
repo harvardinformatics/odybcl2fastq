@@ -4,7 +4,6 @@ import odybcl2fastq.util as util
 import re, os
 
 class SampleSheet(object):
-    SAMPLE_SHEET_FILE = 'SampleSheet.csv'
 
     def __init__(self, path):
         self.path = path
@@ -111,7 +110,7 @@ class SampleSheet(object):
         return instrument
 
     def validate(self):
-        if self.validate_sample_names():
+        if self.validate_columns() or self.validate_sample_names():
             # copy orig sample sheet as backup and record
             util.copy(self.path, self.path.replace('.csv', '_orig.csv'))
             # write a corrected sheet
@@ -119,11 +118,23 @@ class SampleSheet(object):
             # copy corrected to sample sheet path, leave corrected file as record
             util.copy(corrected_sample_sheet, self.path)
 
+    def validate_columns(self):
+        corrected = False
+        for sam, line in self.sections['Data'].items():
+            for col in line.keys():
+                # remove non-asci chars
+                if (re.search(r'[^\x00-\x7F]+', line[col])):
+                    corrected = True
+                    tmp = line[col]
+                    line[col] = re.sub(r'[^\x00-\x7F]+', '', line[col])
+                    logging.info('Sample_Sheet corrected, non-ascii char removed: %s to %s' % (tmp, line[col]))
+        return corrected
+
     def validate_sample_names(self):
         corrected = False
         proj_by_sample = {}
+        cols_to_validate = ['Sample_ID', 'Sample_Name', 'Sample_Project', 'index', 'index2']
         for sam, line in self.sections['Data'].items():
-            cols_to_validate = ['Sample_ID', 'Sample_Name', 'Sample_Project']
             for col in cols_to_validate:
                 # remove any whitespace
                 if util.contains_whitespace(line[col]):
@@ -168,8 +179,7 @@ class SampleSheet(object):
         return corrected
 
     def write_new_sample_sheet(self, new_samples, output_suffix):
-        new_sample_sheet = os.path.dirname(self.path) + '/' + self.SAMPLE_SHEET_FILE
-        new_sample_sheet = new_sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
+        new_sample_sheet = self.path.replace('.csv', ('_' + output_suffix + '.csv'))
         input = open(self.path, 'r')
         output = open(new_sample_sheet, 'wb')
         for line in input:
