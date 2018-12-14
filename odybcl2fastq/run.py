@@ -543,7 +543,7 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
     # BCL_OUTPUT_DIR
     custom_output_dir = sample_sheet.get_output_dir()
     if custom_output_dir:
-        args.BCL_OUTPUT_DIR = sample_sheet.sections['Header']['output-dir']
+        args.BCL_OUTPUT_DIR = custom_output_dir
     run_type = sample_sheet.get_run_type()
     mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
     # skip everything but billing if run folder flagged

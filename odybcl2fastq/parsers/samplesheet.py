@@ -190,7 +190,7 @@ class SampleSheet(object):
     def get_output_dir(self):
         output_dir = ''
         if 'output-dir' in self.sections['Header']:
-            output_dir = self.sections['Header']['output-dir']
+            output_dir = self.sections['Header']['output-dir'].strip()
         return output_dir
 
     def get_run_type(self):
