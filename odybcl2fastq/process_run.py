@@ -382,7 +382,7 @@ def run_cmd(cmd):
     return (proc.returncode, out, err)
 
 
-def run_bcl2fastq_cmd(cmd, output_log):
+def run_analysis_cmd(cmd, output_log):
     # run unix cmd, stream out and error, return last lines of out
     with open(output_log, 'a+') as writer:
         with open(output_log, 'r') as reader:
@@ -470,7 +470,7 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex=False):
         message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
         success = True
     else:
-        code, last_output = run_bcl2fastq_cmd(cmd, output_log)
+        code, last_output = run_analysis_cmd(cmd, output_log)
         logger.info("***** END bcl2fastq *****\n\n")
         if code != 0:
             message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
@@ -488,6 +488,11 @@ def write_cmd(cmd, output_dir, run):
     with open(path, 'w') as fout:
         fout.write(cmd)
 
+def write_cmd_10x(cmd, output_dir, run):
+    path = '%s/%s_10x.sh' % (output_dir, run)
+    with open(path, 'w') as fout:
+        fout.write(cmd)
+    return path
 
 def process_runs(args=None, switches_to_names=None):
     ''' digest args and sample_sheet, call bcl2fastq or 10x demultiplexing
@@ -511,26 +516,27 @@ def process_runs(args=None, switches_to_names=None):
         update_lims_db(run.name, run.sample_sheet.sections, run.instrument)
         return
 
-    if (run.type == '10x'):
+    if (run.type == '10x'): # cellranger
         setup_10x_analysis(run, runlogger)
-    else:
+        print(test99)
+    else: # bcl2fastq
         setup_bcl2fastq_analysis(run, runlogger)
 
 def setup_bcl2fastq_analysis(run, runlogger):
-    # TODO: change extract_basemasks to just take a run object as parameter
-    mask_lists, mask_samples = extract_basemasks(run.sample_sheet.sections['Data'], run.args.RUNINFO_XML, run.instrument, run.args, run.type)
-    jobs_tot = len(mask_lists)
+    run.extract_basemasks()
+    jobs_tot = len(run.mask_lists)
     if jobs_tot > 1:
         runlogger.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
     job_cnt = 1
     # run bcl2fatq per indexing strategy on run
-    for mask, mask_list in mask_lists.items():
+    for mask, mask_list in run.mask_lists.items():
         output_suffix = None
         # if more than one bcl2fastq cmd needed suffix output dir and sample sheet
         if jobs_tot > 1:
             output_suffix = mask.replace(',', '_')
+            # output suffix should be owned by an analysis object
             run.add_output_suffix(output_suffix)
-            run.write_new_sample_sheet(mask_samples[mask])
+            run.write_new_sample_sheet(run.mask_samples[mask])
         cmd = bcl2fastq_build_cmd(
             run.args,
             run.switches, mask_list, run.instrument, run.type, run.sample_sheet.sections
@@ -593,12 +599,49 @@ def setup_bcl2fastq_analysis(run, runlogger):
         # pass a special ret_code to avoid double email on error
         ret_code = 9
         status = 'failure'
-    logger.info("odybcl2fastq for %s returned %s\n" % (run, status))
+    logger.info("odybcl2fastq for %s returned %s\n" % (run.name, status))
     runlogger.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
 
 def setup_10x_analysis(run, runlogger):
+    cellranger = build_10x_cmd(run, True)
+    if not os.path.exists(run.output_dir):
+        os.mkdir(run.output_dir)
+    path = write_cmd_10x(cellranger, run.output_dir, run.name)
+    cmd = slurm_cmd(path)
+    output_log = get_output_log(run.name)
+    run_analysis_cmd(cmd, output_log)
     pass
+
+def slurm_cmd(path):
+    return 'sbatch %s' % path
+
+def build_10x_cmd(run, test = False):
+    cmd = '''#!/bin/bash
+#SBATCH -p bos-info
+#SBATCH -N 1
+#SBATCH -n 8
+#SBATCH -t 08:00:00
+#SBATCH --mem 32000
+#SBATCH -J mkfastq
+#SBATCH -o cellranger_mkfastq_%A.out
+#SBATCH -e cellranger_mkfastq_%A.err
+'''
+    if test:
+        cmd += '#SBATCH --test-only'
+
+    cmd +='''
+source new-modules.sh
+module purge
+module load cellranger/2.1.0-fasrc01
+cellranger makfastq --localcores=8 --ignore-dual-index'''
+    options = {
+            'run': run.args.BCL_RUNFOLDER_DIR,
+            'samplesheet': run.sample_sheet_path,
+            'output_dir': run.output_dir
+            }
+    cmd += ' '.join(['--' + k + '=' + v for (k, v) in options.items()])
+    return cmd
 
 def setup_run_logger(run_name, test):
     # take level from env or INFO

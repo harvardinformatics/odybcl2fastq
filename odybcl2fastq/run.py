@@ -2,6 +2,7 @@ from collections import OrderedDict
 import logging
 import odybcl2fastq.util as util
 from odybcl2fastq.parsers.samplesheet import SampleSheet
+from odybcl2fastq.parsers.makebasemask import extract_basemasks
 import re, os
 
 class Run(object):
@@ -68,3 +69,6 @@ class Run(object):
                         checksum.update(data)
                     checksum = checksum.hexdigest() + '  ' + f.replace(self.output_dir + '/', '') + '\n'
                     checksum_fh.write(checksum)
+
+    def extract_basemasks(self):
+        self.mask_lists, self.mask_samples = extract_basemasks(self.sample_sheet.sections['Data'], self.args.RUNINFO_XML, self.instrument, self.args, self.type)
