@@ -5,6 +5,7 @@ import re, os
 
 class SampleSheet(object):
     SAMPLE_SHEET_FILE = 'SampleSheet.csv'
+    MASK_SHORT_ADAPTER_READS = 22
 
     def __init__(self, path):
         self.path = path
@@ -205,3 +206,19 @@ class SampleSheet(object):
             return self.sections['Header']['Assay'].strip().lower()
         else:
             return None
+
+    def mask_short_reads(self):
+        return (self.shortest_read() > self.MASK_SHORT_ADAPTER_READS)
+
+    def shortest_read(self):
+        return int(self.sections['Reads'][min(self.sections['Reads'].keys(), key=(lambda k:int(self.sections['Reads'][k])))])
+
+    def get_params_from_header(self, bcl_params):
+        # users can add params to the end of the HEADER section of the sample sheet
+        params = {}
+        for k, v in self.sections['Header'].items():
+            key = '--' + k.strip()
+            if key in bcl_params:
+                v = v.strip()
+                params[key] = v if v else None
+        return params

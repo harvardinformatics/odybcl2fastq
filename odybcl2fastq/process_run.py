@@ -25,18 +25,17 @@ import odybcl2fastq.util as util
 from odybcl2fastq import config
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
-from odybcl2fastq.parsers import parse_stats
 from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq.status_db import StatusDB
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.run import Run
+from odybcl2fastq.analysis import Analysis
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
 
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
-MASK_SHORT_ADAPTER_READS = 22
 STORAGE_CAPACITY_WARN = 0.96
 STORAGE_CAPACITY_ERROR = 0.99
 
@@ -381,97 +380,19 @@ def run_cmd(cmd):
     out, err = proc.communicate()
     return (proc.returncode, out, err)
 
-
-def run_analysis_cmd(cmd, output_log):
-    # run unix cmd, stream out and error, return last lines of out
-    with open(output_log, 'a+') as writer:
-        with open(output_log, 'r') as reader:
-            proc = Popen(cmd, shell=True, stderr=STDOUT, stdout=writer)
-            lines = []
-            # stream output to log, std out
-            while proc.poll() is None:
-                line = reader.readline()
-                # save last 40 lines for email
-                if line:
-                    lines.append(line)
-                    if len(lines) > 40:
-                        lines.pop(0)
-                sys.stdout.write(line)
-            # write any remaining output
-            try:
-                line = reader.readline()
-                lines.append(line)
-                sys.stdout.write(line)
-            except Exception:
-                pass
-            code = proc.wait()
-    return code, ''.join(lines)
-
-
-def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type, sample_sheet):
-    argdict = vars(args)
-    cmdstrings = ['bcl2fastq']
-    # keeps consistent order of writing
-    switch_list = switches_to_names.keys()
-    switch_list.sort()
-    bcl_params = []
-    cmd_dict = OrderedDict()
-    for switches in switch_list:
-        switch = [switch for switch in switches if '--' in switch][0]
-        bcl_params.append(switch)
-        argvalue = str(argdict[switches_to_names[switches]])
-        # the bit below prevents boolean flags from having values in the cmd
-        if argvalue != 'False':
-            if argvalue == 'True':
-                cmd_dict[switch] = None
-            else:
-                cmd_dict[switch] = argvalue
-    if instrument == 'nextseq':
-        cmd_dict['--no-lane-splitting'] = None
-    # check for short reads, do not mask
-    if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MASK_SHORT_ADAPTER_READS:
-        cmd_dict['--mask-short-adapter-reads'] = 0
-    # grab any manually added params from sample sheet
-    ss_params = get_params_from_sample_sheet(sample_sheet, bcl_params)
-    cmd_dict.update(ss_params)
-    cmdstrings.extend([(k + ' ' + str(v)) if v is not None else k for k, v in cmd_dict.items()])
-    # add the basemask generated from sample sheet if none was manually provided
-    mask_switch = '--use-bases-mask'
-    if mask_switch not in cmd_dict:
-        # each mask should be prefaced by the switch
-        mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
-        cmdstrings.append(mask_opt)
-    cmdstring = ' '.join(cmdstrings)
-    return cmdstring
-
-
-def get_params_from_sample_sheet(sample_sheet, bcl_params):
-    # users can add params to the end of the HEADER section of the sample sheet
-    params = {}
-    for k, v in sample_sheet['Header'].items():
-        key = '--' + k.strip()
-        if key in bcl_params:
-            v = v.strip()
-            params[key] = v if v else None
-    return params
-
-
-def shortest_read(r):
-    return int(r[min(r.keys(), key=(lambda k:int(r[k])))])
-
-
-def bcl2fastq_runner(cmd, output_log, args, no_demultiplex=False):
+def analysis_runner(analysis, output_log, args, no_demultiplex=False):
     runlogger = logging.getLogger('run_logger')
 
-    runlogger.info("***** START bcl2fastq *****\n\n")
+    runlogger.info("***** START %s for %s *****\n\n" % (analysis.type, analysis.name))
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     last_output = ''
     if no_demultiplex:
         message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
         success = True
     else:
-        code, last_output = run_analysis_cmd(cmd, output_log)
-        logger.info("***** END bcl2fastq *****\n\n")
+        runlogger.info('Launching %s...%s\n' % (analysis.type, analysis.cmd))
+        code, last_output = analysis.run(output_log)
+        logger.info("***** END %s for %s *****\n\n" % (analysis.type, analysis.name))
         if code != 0:
             message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
             success = False
@@ -480,19 +401,6 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex=False):
             success = True
     runlogger.info('message = %s' % message)
     return success, message + last_output
-
-
-
-def write_cmd(cmd, output_dir, run):
-    path = '%s/%s.opts' % (output_dir, run)
-    with open(path, 'w') as fout:
-        fout.write(cmd)
-
-def write_cmd_10x(cmd, output_dir, run):
-    path = '%s/%s_10x.sh' % (output_dir, run)
-    with open(path, 'w') as fout:
-        fout.write(cmd)
-    return path
 
 def process_runs(args=None, switches_to_names=None):
     ''' digest args and sample_sheet, call bcl2fastq or 10x demultiplexing
@@ -516,51 +424,35 @@ def process_runs(args=None, switches_to_names=None):
         update_lims_db(run.name, run.sample_sheet.sections, run.instrument)
         return
 
-    if (run.type == '10x'): # cellranger
-        setup_10x_analysis(run, runlogger)
-        print(test99)
-    else: # bcl2fastq
-        setup_bcl2fastq_analysis(run, runlogger)
-
-def setup_bcl2fastq_analysis(run, runlogger):
     run.extract_basemasks()
     jobs_tot = len(run.mask_lists)
     if jobs_tot > 1:
         runlogger.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
     job_cnt = 1
-    # run bcl2fatq per indexing strategy on run
+    # run an analysis per indexing strategy on run
     for mask, mask_list in run.mask_lists.items():
         output_suffix = None
         # if more than one bcl2fastq cmd needed suffix output dir and sample sheet
         if jobs_tot > 1:
             output_suffix = mask.replace(',', '_')
-            # output suffix should be owned by an analysis object
-            run.add_output_suffix(output_suffix)
-            run.write_new_sample_sheet(run.mask_samples[mask])
-        cmd = bcl2fastq_build_cmd(
-            run.args,
-            run.switches, mask_list, run.instrument, run.type, run.sample_sheet.sections
-        )
+        analysis = Analysis.create(run, mask, output_suffix)
+        cmd = analysis.build_cmd(run.test)
         runlogger.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if run.test:
             runlogger.info("Test run, command not run: %s" % cmd)
             success = True
             message = 'TEST'
         else:
-            runlogger.info('Launching bcl2fastq...%s\n' % cmd)
             output_log = get_output_log(run.name)
-            success, message = bcl2fastq_runner(cmd, output_log, run.args, run.no_demultiplex)
+            success, message = analysis_runner(analysis, output_log, run.args, run.no_demultiplex)
             summary_data = {}
             # run folder will contain any suffix that was applied
-            run_folder = run.output_dir.split('/').pop()
             if success:
                 if not run.no_post_process:
-                    # write bcl2fastq cmd
-                    write_cmd(cmd, run.output_dir, run.name)
                     # update lims db
-                    update_lims_db(run_folder, run.sample_sheet.sections, run.instrument)
+                    update_lims_db(run.name, analysis.sample_sheet.sections, run.instrument)
                     # run  qc, TODO: consider a seperate job for this
-                    error_files, fastqc_err, fastqc_out = fastqc_runner(run.output_dir)
+                    error_files, fastqc_err, fastqc_out = fastqc_runner(analysis.output_dir)
                     with open(output_log, 'a+') as f:
                         f.write('\n'.join(fastqc_out) + "\n\n")
                         f.write('\n'.join(fastqc_err) + "\n\n")
@@ -568,22 +460,18 @@ def setup_bcl2fastq_analysis(run, runlogger):
                 if not run.no_file_copy:
                     copy_source_to_output(
                         run.args.BCL_RUNFOLDER_DIR,
-                        run.output_dir,
-                        run.sample_sheet_path,
+                        analysis.output_dir,
+                        analysis.sample_sheet_path,
                         run.instrument
                     )
                     run.fastq_checksum()
                     # copy output to final dest where users will access
-                    copy_output_to_final(run.output_dir, run_folder, output_log)
-                # get data from run to put in the email
-                summary_data = parse_stats.get_summary(run.output_dir, run.instrument, run.sample_sheet_path, run_folder)
-                summary_data['run'] = run.name
-                summary_data['run_folder'] = run_folder
-                summary_data['cmd'] = cmd
-                summary_data['version'] = 'bcl2fastq2 v2.2'
-                subject = 'Demultiplex Summary for ' + run_folder
+                    copy_output_to_final(analysis.output_dir, analysis.name, output_log)
+                # get data from analysis to put in the email
+                summary_data = analysis.get_email_data()
+                subject = 'Demultiplex Summary for ' + analysis.name
             else:
-                subject = 'Run Failed: ' + run_folder
+                subject = 'Run Failed: ' + analysis.name
             toemaillist = config.EMAIL['to_email']
             fromaddr = config.EMAIL['from_email']
             runlogger.info('Sending email summary to %s\n' % json.dumps(toemaillist))
@@ -602,46 +490,6 @@ def setup_bcl2fastq_analysis(run, runlogger):
     logger.info("odybcl2fastq for %s returned %s\n" % (run.name, status))
     runlogger.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
-
-def setup_10x_analysis(run, runlogger):
-    cellranger = build_10x_cmd(run, True)
-    if not os.path.exists(run.output_dir):
-        os.mkdir(run.output_dir)
-    path = write_cmd_10x(cellranger, run.output_dir, run.name)
-    cmd = slurm_cmd(path)
-    output_log = get_output_log(run.name)
-    run_analysis_cmd(cmd, output_log)
-    pass
-
-def slurm_cmd(path):
-    return 'sbatch %s' % path
-
-def build_10x_cmd(run, test = False):
-    cmd = '''#!/bin/bash
-#SBATCH -p bos-info
-#SBATCH -N 1
-#SBATCH -n 8
-#SBATCH -t 08:00:00
-#SBATCH --mem 32000
-#SBATCH -J mkfastq
-#SBATCH -o cellranger_mkfastq_%A.out
-#SBATCH -e cellranger_mkfastq_%A.err
-'''
-    if test:
-        cmd += '#SBATCH --test-only'
-
-    cmd +='''
-source new-modules.sh
-module purge
-module load cellranger/2.1.0-fasrc01
-cellranger makfastq --localcores=8 --ignore-dual-index'''
-    options = {
-            'run': run.args.BCL_RUNFOLDER_DIR,
-            'samplesheet': run.sample_sheet_path,
-            'output_dir': run.output_dir
-            }
-    cmd += ' '.join(['--' + k + '=' + v for (k, v) in options.items()])
-    return cmd
 
 def setup_run_logger(run_name, test):
     # take level from env or INFO

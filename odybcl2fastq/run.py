@@ -41,14 +41,6 @@ class Run(object):
             if os.path.exists(path):
                 util.copy(path, self.sample_sheet_path)
 
-    def add_output_suffix(self, output_suffix, mask):
-        self.output_suffix = output_suffix
-        self.output_dir += '-' + output_suffix
-
-    def write_new_sample_sheet(mask):
-        self.sample_sheet_path = self.sample_sheet.write_new_sample_sheet(mask, self.output_suffix)
-        self.sample_sheet = SampleSheet(self.sample_sheet_path)
-
     def fastq_checksum():
         checksum_report = self.output_dir + '/md5sum.txt'
         with open(checksum_report, 'a') as checksum_fh:
