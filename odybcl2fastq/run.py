@@ -643,7 +643,9 @@ def setup_run_logger(run, test):
     level = logging.getLevelName(os.environ.get('ODYBCL2FASTQ_RUN_LOG_LEVEL', 'INFO'))
     runlogger.setLevel(level)
     handler = logging.FileHandler(get_output_log(run))
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     handler.setLevel(level)
+    handler.setFormatter(formatter)
     runlogger.addHandler(handler)
     return runlogger
 
