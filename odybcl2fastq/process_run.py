@@ -16,8 +16,6 @@ Created on  2017-04-19
 import sys, os, stat
 import logging
 import json
-from glob import glob
-import hashlib
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from collections import OrderedDict
@@ -380,31 +378,28 @@ def run_cmd(cmd):
     out, err = proc.communicate()
     return (proc.returncode, out, err)
 
-def analysis_runner(analysis, output_log, args, no_demultiplex=False):
+def analysis_runner(analysis, output_log, no_demultiplex=False):
     runlogger = logging.getLogger('run_logger')
-
     runlogger.info("***** START %s for %s *****\n\n" % (analysis.type, analysis.name))
-    run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     last_output = ''
     if no_demultiplex:
-        message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
+        message = 'run %s completed successfully\nsee logs here: %s\n' % (analysis.name, output_log)
         success = True
     else:
         runlogger.info('Launching %s...%s\n' % (analysis.type, analysis.cmd))
-        code, last_output = analysis.run(output_log)
+        code, last_output = analysis.execute(output_log)
         logger.info("***** END %s for %s *****\n\n" % (analysis.type, analysis.name))
         if code != 0:
-            message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
+            message = 'run %s failed\n see logs here: %s\n' % (analysis.name, output_log)
             success = False
         else:
-            message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
+            message = 'run %s completed successfully\nsee logs here: %s\n' % (analysis.name, output_log)
             success = True
     runlogger.info('message = %s' % message)
     return success, message + last_output
 
 def process_runs(args=None, switches_to_names=None):
     ''' digest args and sample_sheet, call bcl2fastq or 10x demultiplexing
-
         args and switches are only passed in for the test
     '''
     if not args or not switches_to_names:
@@ -415,24 +410,25 @@ def process_runs(args=None, switches_to_names=None):
     run = Run(args, switches_to_names)
     runlogger = setup_run_logger(run.name, run.test)
     runlogger.info("***** START Odybcl2fastq *****\n\n")
-    runlogger.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
+    runlogger.info("Beginning to process run: %s\n args: %s\n" % (run.name, json.dumps(vars(args))))
     run.set_sample_sheet()
 
     # skip everything but billing if run folder flagged
-    if os.path.exists(run.args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
+    if os.path.exists(run.runfolder_dir + '/' + 'billing_only.txt'):
         runlogger.info("This run is flagged for billing only %s" % run.name)
         update_lims_db(run.name, run.sample_sheet.sections, run.instrument)
         return
 
+    # extract indexing strategies from lanes, each strategy requires an analysis
     run.extract_basemasks()
     jobs_tot = len(run.mask_lists)
     if jobs_tot > 1:
-        runlogger.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
+        runlogger.info("This run contains different masks in the same lane and will require %i analysis jobs" % jobs_tot)
     job_cnt = 1
     # run an analysis per indexing strategy on run
     for mask, mask_list in run.mask_lists.items():
-        output_suffix = None
-        # if more than one bcl2fastq cmd needed suffix output dir and sample sheet
+        output_suffix = ''
+        # if more than one analysis cmd needed suffix output dir and sample sheet
         if jobs_tot > 1:
             output_suffix = mask.replace(',', '_')
         analysis = Analysis.create(run, mask, output_suffix)
@@ -444,23 +440,23 @@ def process_runs(args=None, switches_to_names=None):
             message = 'TEST'
         else:
             output_log = get_output_log(run.name)
-            success, message = analysis_runner(analysis, output_log, run.args, run.no_demultiplex)
+            success, message = analysis_runner(analysis, output_log, run.no_demultiplex)
             summary_data = {}
             template = None
             # run folder will contain any suffix that was applied
             if success:
                 if not run.no_post_process:
                     # update lims db
-                    update_lims_db(run.name, analysis.sample_sheet.sections, run.instrument)
+                    update_lims_db(analysis.name, analysis.sample_sheet.sections, run.instrument)
                     # run  qc, TODO: consider a seperate job for this
                     error_files, fastqc_err, fastqc_out = fastqc_runner(analysis.output_dir)
                     with open(output_log, 'a+') as f:
                         f.write('\n'.join(fastqc_out) + "\n\n")
                         f.write('\n'.join(fastqc_err) + "\n\n")
-                    # copy run files to final
+                # copy run files to final
                 if not run.no_file_copy:
                     copy_source_to_output(
-                        run.args.BCL_RUNFOLDER_DIR,
+                        run.runfolder_dir,
                         analysis.output_dir,
                         analysis.sample_sheet_path,
                         run.instrument
@@ -470,7 +466,6 @@ def process_runs(args=None, switches_to_names=None):
                     copy_output_to_final(analysis.output_dir, analysis.name, output_log)
                 # get data from analysis to put in the email
                 summary_data = analysis.get_email_data()
-                print(summary_data)
                 template = analysis.get_template()
                 subject = 'Demultiplex Summary for ' + analysis.name
             else:
@@ -485,7 +480,7 @@ def process_runs(args=None, switches_to_names=None):
     if success:
         ret_code = 0
         status = 'success'
-        util.touch(run.args.BCL_RUNFOLDER_DIR + '/', COMPLETE_FILE)
+        util.touch(run.runfolder_dir + '/', COMPLETE_FILE)
     else:
         # pass a special ret_code to avoid double email on error
         ret_code = 9
@@ -500,7 +495,9 @@ def setup_run_logger(run_name, test):
     level = logging.getLevelName(os.environ.get('ODYBCL2FASTQ_RUN_LOG_LEVEL', 'INFO'))
     runlogger.setLevel(level)
     handler = logging.FileHandler(get_output_log(run_name))
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     handler.setLevel(level)
+    handler.setFormatter(formatter)
     runlogger.addHandler(handler)
     return runlogger
 

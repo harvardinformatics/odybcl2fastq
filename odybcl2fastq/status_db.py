@@ -1,18 +1,18 @@
 import os
 import json
 import time
-#import MySQLdb
+import MySQLdb
 import logging
 from odybcl2fastq import config
 
 class StatusDB(object):
     def __init__(self):
-        '''self.db = MySQLdb.connect(
+        self.db = MySQLdb.connect(
                 host = config.STATUS_DB['host'],
                 user = config.STATUS_DB['user'],
                 passwd = config.STATUS_DB['password'],
                 db = config.STATUS_DB['database']
-        )'''
+        )
         pass
 
     def minilims_select(self, thing = None, name = None, property = None, value
