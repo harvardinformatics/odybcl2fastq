@@ -3,6 +3,7 @@ import logging
 import odybcl2fastq.util as util
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.parsers import parse_stats
+from odybcl2fastq import config
 import re, os
 
 class Analysis(object):
@@ -53,12 +54,16 @@ class Analysis(object):
                 code = proc.wait()
         return code, ''.join(lines)
 
+    def get_template(self):
+        return self.template
+
 class Analysis10x(Analysis):
 
     def __init__(self, run, mask, output_suffix):
-        super(AanalysisBcl2fastq, self).__init__()
+        super(Analysis10x, self).__init__(run, mask, output_suffix)
         self.type = '10x'
-        self.masklist = self.run.masklists[self.mask]
+        self.template = 'summary10x.html'
+        self.version = 'cellranger v2.1.0'
 
     def build_cmd(self, test = False):
         cmd = ("#!/bin/bash\n"
@@ -85,9 +90,28 @@ class Analysis10x(Analysis):
         cmd += ' '.join(['--' + k + '=' + v for (k, v) in options.items()])
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
-        path = self.write_cmd(cellranger, run.output_dir, run.name)
+        self.record_cmd = cmd
+        path = self.write_cmd()
         slurm_cmd = 'sbatch %s' % path
+        self.run_cmd = slurm_cmd
         return slurm_cmd
+
+    def write_cmd(self):
+        path = '%s/%s_10x.sh' % (self.output_dir, self.name)
+        with open(path, 'w') as fout:
+            fout.write(self.record_cmd)
+        return path
+
+    def get_email_data(self):
+        summary_data = {}
+        summary_data['run_folder'] = self.name
+        summary_data['cmd'] = self.run_cmd + '\n' + 'file contents:\n' + self.record_cmd
+        summary_data['version'] = self.version
+        summary_data['instrument'] = self.run.instrument
+        summary_data['fastq_url'] = config.FASTQ_URL
+        summary_data['sample_sheet'] = self.sample_sheet_path
+        return summary_data
+
 
 class AnalysisBcl2fastq(Analysis):
 
@@ -96,6 +120,7 @@ class AnalysisBcl2fastq(Analysis):
         self.type = 'Bcl2fastq'
         self.version = 'bcl2fastq2 v2.2'
         self.mask_list = self.run.mask_lists[self.mask]
+        self.template = 'summary.html'
 
     def build_cmd(self, test = False):
         argdict = vars(self.run.args)
@@ -131,23 +156,20 @@ class AnalysisBcl2fastq(Analysis):
             mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(self.mask_list)
             cmdstrings.append(mask_opt)
         cmdstring = ' '.join(cmdstrings)
-        self.cmd = cmdstring
+        self.run_cmd = cmdstring
+        self.record_cmd = cmdstring
         self.write_cmd()
         return cmdstring
-
-
 
     def write_cmd(self):
         path = '%s/%s.opts' % (self.output_dir, self.name)
         with open(path, 'w') as fout:
-            fout.write(self.cmd)
+            fout.write(self.record_cmd)
+        return path
 
     def get_email_data(self):
         summary_data = parse_stats.get_summary(self.output_dir, self.run.instrument, self.sample_sheet_path, self.name)
         summary_data['run_folder'] = self.name
-        summary_data['cmd'] = self.cmd
+        summary_data['cmd'] = self.record_cmd
         summary_data['version'] = self.version
-
-
-
-
+        return summary_data

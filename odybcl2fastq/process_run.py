@@ -446,6 +446,7 @@ def process_runs(args=None, switches_to_names=None):
             output_log = get_output_log(run.name)
             success, message = analysis_runner(analysis, output_log, run.args, run.no_demultiplex)
             summary_data = {}
+            template = None
             # run folder will contain any suffix that was applied
             if success:
                 if not run.no_post_process:
@@ -469,13 +470,15 @@ def process_runs(args=None, switches_to_names=None):
                     copy_output_to_final(analysis.output_dir, analysis.name, output_log)
                 # get data from analysis to put in the email
                 summary_data = analysis.get_email_data()
+                print(summary_data)
+                template = analysis.get_template()
                 subject = 'Demultiplex Summary for ' + analysis.name
             else:
                 subject = 'Run Failed: ' + analysis.name
             toemaillist = config.EMAIL['to_email']
             fromaddr = config.EMAIL['from_email']
             runlogger.info('Sending email summary to %s\n' % json.dumps(toemaillist))
-            sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)
+            sent = buildmessage(message, subject, summary_data, template, fromaddr, toemaillist)
             runlogger.info('Email sent: %s\n' % str(sent))
             util.touch(run.output_dir + '/', COMPLETE_FILE)
         job_cnt += 1
