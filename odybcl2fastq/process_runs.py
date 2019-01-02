@@ -244,6 +244,9 @@ def process_runs(pool, proc_num):
         if len(run_dirs) > 0:
             logger.info("Found %s more runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
 
+        # check for any runs that started but never completed demultiplexing
+        notify_incomplete_runs()
+
 
     logger.info(
         "Completed %i runs %i success %s and %i failures %s\n\n\n" %
@@ -265,8 +268,6 @@ def main():
         while True:
             # queue new runs for demultiplexing with bcl2fastq2
             process_runs(pool, proc_num)
-            # check for any runs that started but never completed demultiplexing
-            notify_incomplete_runs()
             # wait before checking for more runs to process
             frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
             if frequency != FREQUENCY:
