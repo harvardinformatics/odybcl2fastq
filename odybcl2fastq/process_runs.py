@@ -206,6 +206,7 @@ def process_runs(pool, proc_num):
     queued_runs = {}
 
     while len(run_dirs) > 0 or len(results) > 0:
+        logger.info("Current runs found: %s Runs pending results: %s Runs queued: %s\n" % (json.dumps(run_dirs), json.dumps(results.keys()), json.dumps(queued_runs.keys())))
         while len(run_dirs) > 0:
             run_dir = run_dirs.pop()
             run = os.path.basename(os.path.normpath(run_dir))
@@ -233,6 +234,7 @@ def process_runs(pool, proc_num):
                 # Clear this result from the dict
                 del results[run]
                 del queued_runs[run]
+        logger.info("After checking results, runs found: %s Runs pending results: %s Runs queued %s\n" % (json.dumps(run_dirs), json.dumps(results.keys()), json.dumps(queued_runs.keys())))
 
         sleep(10)
         new_run_dirs = find_runs(need_to_process)
