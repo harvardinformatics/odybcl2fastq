@@ -1,11 +1,11 @@
 #
 # Docker container for testing odybcl2fastq
 #
-FROM centos:6.8
+FROM centos:7.4.1708
 
-RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel unzip libffi-devel libssl-devel pyOpenSSL && \
-    wget https://bootstrap.pypa.io/2.6/get-pip.py && \
-    python get-pip.py
+RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel unzip libffi-devel libssl-devel pyOpenSSL
+RUN yum -y install epel-release
+RUN yum -y install python-pip
 
 ENV TZ=America/New_York
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -16,7 +16,7 @@ RUN wget https://support.illumina.com/content/dam/illumina-support/documents/dow
 
 ADD . /app
 
-RUN pip install .
+RUN pip install nose
 
 ENV PYTHONPATH=/app
 ENV ODYBCL2FASTQ_CONFIG_FILE=/app/test/test.config.json
