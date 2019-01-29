@@ -78,7 +78,7 @@ class SampleSheet(object):
                                 lane = data_dict['Lane']
                             else:
                                 name = '%s:%s' % (data_dict['Sample_Project'],data_dict['Sample_ID'])
-                                lane = 1
+                                lane = '1'
                             if lane not in self.lanes:
                                 self.lanes.append(lane)
 

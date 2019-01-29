@@ -68,13 +68,13 @@ def run_is_incomplete(dir):
     if ((now - m_time).days) <= INCOMPLETE_AFTER_DAYS:
         return False
     # filter out if tagged as complete
-    if os.path.isfile(dir + COMPLETE_FILE):
+    if os.path.isfile(dir + '/' + COMPLETE_FILE):
         return False
     # filter out if never tagged for processing
-    if not os.path.isfile(dir + PROCESSED_FILE):
+    if not os.path.isfile(dir + '/' + PROCESSED_FILE):
         return False
     # filter out already notified
-    if os.path.isfile(dir + INCOMPLETE_NOTIFIED_FILE):
+    if os.path.isfile(dir + '/' + INCOMPLETE_NOTIFIED_FILE):
         return False
     return True
 
@@ -89,11 +89,11 @@ def need_to_process(dir):
     if ((now - m_time).days) > DAYS_TO_SEARCH:
         return False
     # filter out if tagged as processed
-    if os.path.isfile(dir + PROCESSED_FILE):
+    if os.path.isfile(dir + '/' + PROCESSED_FILE):
         return False
     # filter out if any required files are missing
     for req in REQUIRED_FILES:
-        if not os.path.exists(dir + req):
+        if not os.path.exists(dir + '/' + req):
             return False
     return True
 
@@ -112,7 +112,7 @@ def find_runs(filter):
 
 def get_sample_sheet_path(run_dir):
     # set default
-    sample_sheet_path = run_dir + 'SampleSheet.csv'
+    sample_sheet_path = run_dir + '/SampleSheet.csv'
     return sample_sheet_path
 
 
@@ -123,7 +123,7 @@ def notify_incomplete_runs():
         message = "The following runs failed be entered into bauer db %s or more days ago:\n\n%s" % (INCOMPLETE_AFTER_DAYS, run_dirs_str)
         send_email(message, 'BauerDB incomplete runs')
         for run in run_dirs:
-            util.touch(run, INCOMPLETE_NOTIFIED_FILE)
+            util.touch(run + '/', INCOMPLETE_NOTIFIED_FILE)
 
 
 def load_runs(proc_num):
@@ -134,18 +134,18 @@ def load_runs(proc_num):
             "Found %s runs: %s\nprocessing first %s:\n%s\n" % (len(runs_found), json.dumps(runs_found), len(run_dirs), json.dumps(run_dirs)))
         results = {}
         for run_dir in run_dirs:
-            util.touch(run_dir, PROCESSED_FILE)
+            util.touch(run_dir + '/', PROCESSED_FILE)
             run = os.path.basename(os.path.normpath(run_dir))
             sample_sheet_path = get_sample_sheet_path(run_dir)
             bauer = BauerDB(sample_sheet_path)
             logger.info("Loading run into bauer db:\n%s\n" % (run))
-            results[run] = bauer.insert_run(run_dir)
+            results[run] = bauer.insert_run(run_dir + '/')
         failed_runs = []
         success_runs = []
         for run, result in results.items():
             if result:
                 success_runs.append(run)
-                util.touch(run_dir, COMPLETE_FILE)
+                util.touch(run_dir + '/', COMPLETE_FILE)
             else:
                 failed_runs.append(run)
 
