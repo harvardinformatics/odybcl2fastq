@@ -42,7 +42,7 @@ def initLogger(name):
     '''
     logfileenv = '_'.join([name, 'log', 'file']).upper()
     loglevelenv = '_'.join([name, 'log', 'level']).upper()
-    print "%s %s" % (logfileenv, loglevelenv)
+    print("%s %s" % (logfileenv, loglevelenv))
 
     loglevel = logging.getLevelName(os.environ.get(loglevelenv, 'INFO'))
     logfilename = os.environ.get(logfileenv)

@@ -1,0 +1,30 @@
+{
+    "__default__": {
+        "time": "0:00:10",
+        "N": 1,
+        "cores": 1,
+        "mem": 100,
+        "partition": "bos-info",
+        "name": "{rule}.{wildcards.run}",
+        "out": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}.out",
+        "error": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}.err"
+
+    },
+    "demultiplex_10x": {
+        "time": "0:00:10",
+        "N": 1,
+        "cores": 1,
+        "mem": 100,
+        "partition": "bos-info",
+        "name": "{wildcards.run}.{rule}",
+        "out": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}/{rule}.out",
+        "error": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}/{rule}.err"
+    },
+    "fastqc": {
+        "time": "2:00:00",
+        "cores": 8,
+        "mem": 32000
+    }
+
+}
+

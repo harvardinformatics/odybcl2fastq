@@ -1,8 +1,8 @@
 import smtplib
 from jinja2 import Environment, PackageLoader
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
-from email.Utils import COMMASPACE, make_msgid
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE, make_msgid
 from odybcl2fastq import config
 
 

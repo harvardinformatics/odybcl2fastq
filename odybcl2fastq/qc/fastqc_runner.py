@@ -21,7 +21,7 @@ def fastqc_runner(output_dir,numthreads = 1,batch = False):
     file_lst = [path for path in file_lst if not re.match(r'.*/Undetermined.*\.fastq\.gz', path)]
     files = ' '.join(file_lst)
     logging.info("start FASTQC on files: %s" % json.dumps(files))
-    print 'files are', files
+    print('files are', files)
     # create qc dir
     qc_dir = output_dir + '/QC'
     if not os.path.exists(qc_dir):
@@ -38,7 +38,7 @@ def fastqc_runner(output_dir,numthreads = 1,batch = False):
         out.append(fastqc_out)
     else:
         for file in files.split():
-            print 'file is', os.path.basename(file)
+            print('file is', os.path.basename(file))
             if gzNotEmpty(file):
                 print('gz is not empty' + file)
                 fastqc_cmd = 'fastqc -o %s --noextract --threads 1 %s' % (qc_dir,file)
@@ -72,4 +72,4 @@ if __name__ == "__main__":
     badfiles,errors = fastqc_runner(opts.indir,opts.outdir,numthreads=opts.nthreads,batch=opts.batch)
     if len(errors) != 0:
         for i in range(len(errors)):
-            print '%s\n%s\n' % (badfiles[i],errors[i])
+            print('%s\n%s\n' % (badfiles[i],errors[i]))

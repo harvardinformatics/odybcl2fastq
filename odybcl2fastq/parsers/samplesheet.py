@@ -73,7 +73,7 @@ class SampleSheet(object):
                             data_fields=[field.replace('SampleID','Sample_ID').replace('Index', 'index') for field in linelist if field != '']
                         else:
                             data_dict=OrderedDict(zip(data_fields,linelist[:len(data_fields)]))
-                            if 'Lane' in data_dict.keys():
+                            if 'Lane' in list(data_dict):
                                 name = '%s:%s' % (data_dict['Lane'],data_dict['Sample_ID'])
                                 lane = data_dict['Lane']
                             else:
@@ -85,7 +85,7 @@ class SampleSheet(object):
                             defaults_by_section['Data'][name] = data_dict
 
         for section_key in ['Settings','Header','Reads']:
-            for data_key in defaults_by_section[section_key].keys():
+            for data_key in list(defaults_by_section[section_key]):
                 if defaults_by_section[section_key][data_key] == None:
                     defaults_by_section[section_key].pop(data_key)
 
@@ -104,7 +104,7 @@ class SampleSheet(object):
         return defaults_by_section
 
     def get_instrument(self):
-        if 'Lane' in self.sections['Data'].itervalues().next():
+        if 'Lane' in next(iter(self.sections['Data'].values())):
             instrument = 'hiseq'
         else:
             instrument = 'nextseq'
