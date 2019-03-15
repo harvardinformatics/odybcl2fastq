@@ -52,7 +52,7 @@ def make_mask(universal_mask, sample_key, sample_dict):
         if 'read2' in sample_mask:
             sample_mask['read2'] = update_mask_index(sample_dict['index'],
                     sample_mask['read2'], sample_key)
-    if 'index2' in sample_dict and sample_dict['index2']: # dual indexed
+    if 'index2' in sample_dict and sample_dict['index2'] and 'read3' in sample_mask: # dual indexed
         sample_mask['read3'] = update_mask_index(sample_dict['index2'],
                 sample_mask['read3'], sample_key)
     elif 'read3' in sample_mask and 'i' in sample_mask['read3']:
