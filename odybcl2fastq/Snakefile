@@ -1,5 +1,5 @@
 configfile: "snakemake_config.json"
-localrules: all, update_lims_db
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 # TODO: use a function for runs
@@ -8,10 +8,13 @@ RUNS = ['190307_NB501677_0400_AH2WFKBGXB']
 rule all:
     input:
         #expand("{output}{run}/demultiplex_10x.sh", output=config['output'], run=RUNS)
-        #expand("{output}{run}/demultiplex.processed", output=config['output'], run=RUNS)
+        expand("{output}{run}/demultiplex.processed", output=config['output'], run=RUNS)
         # TODO: consider regex pattern constraints on run
         #expand("{output}{run}/update_lims_db.processed", output=config['output'], run=RUNS)
-        expand("{output}{run}/fastqc.processed", output=config['output'], run=RUNS)
+        #expand("{output}{run}/fastqc.processed", output=config['output'], run=RUNS)
+        #expand("{output}{run}/RunInfo.xml", output=config['output'], run=RUNS)
+        #expand("{output}{run}/md5sum.txt", output=config['output'], run=RUNS)
+        #expand("{output}{run}/ody.complete", output=config['output'], run=RUNS)
 
 rule demultiplex_10x_cmd:
     input:
@@ -57,6 +60,16 @@ rule demultiplex_10x:
         {config[output]}{wildcards.run}/test.sh
         """
 
+rule count_10x:
+    input:
+        flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
+    output:
+        touch(expand("{output}{{run}}/count.processed", output=config['output']))
+    shell:
+        """
+        {config[output]}{wildcards.run}/test.sh
+        """
+
 rule update_lims_db:
     input:
         flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
@@ -73,18 +86,59 @@ rule update_lims_db:
 
 rule fastqc:
     input:
+        # TODO: consider using demux rule as a targeting input
         flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
     output:
         touch(expand("{output}{{run}}/fastqc.processed", output=config['output']))
     shell:
         """
+        module load fastqc/0.11.5-fasrc01
         files=$(find /n/boslfs/LABS/informatics/sequencing/ANALYSIS/190307_NB501677_0400_AH2WFKBGXB/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)
+        mkdir -p {config[output]}{wildcards.run}/QC
         fastqc -o {config[output]}{wildcards.run}/QC --threads 1 -b $files
         """
 
+rule cp_source_to_output:
+    input:
+        flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
+    params:
+        sample_sheet="SampleSheet.csv",
+        run_info="RunInfo.xml",
+        interop="InterOp"
+    output:
+        sample_sheet=expand("{output}{{run}}/SampleSheet.csv", output=config['output']),
+        run_info=expand("{output}{{run}}/RunInfo.xml", output=config['output']),
+    shell:
+        """
+        cp {config[source]}{wildcards.run}/{params.sample_sheet} {output.sample_sheet}
+        cp {config[source]}{wildcards.run}/{params.run_info} {output.run_info}
+        """
+
+rule checksum:
+    input:
+        rules.cp_source_to_output.output
+    output:
+        checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
+    shell:
+        """
+        files=$(find /n/boslfs/LABS/informatics/sequencing/ANALYSIS/190307_NB501677_0400_AH2WFKBGXB/ -name *.fastq.gz -print0 | xargs -0)
+        md5sum $files > {output.checksum}
+        """
+
+rule publish:
+    input:
+        checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
+    output:
+        touch(expand("{output}{{run}}/ody.complete", output=config['output']))
+    shell:
+        """
+        cp -r {config[output]}{wildcards.run} {config[published]}{wildcards.run}
+        """
 
 '''
 
 
+        mkdir {config[published]}{wildcards.run}
+        interop=expand("{output}{{run}}/InterOp.csv", output=config['output'])
         sbatch {output}{run}/demultiplex_10x.sh >& {log}
 '''

@@ -6,8 +6,8 @@
         "mem": 100,
         "partition": "bos-info",
         "name": "{rule}.{wildcards.run}",
-        "out": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}.out",
-        "error": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}.err"
+        "out": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}/{rule}.out",
+        "error": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}/{rule}.err"
 
     },
     "demultiplex_10x": {
