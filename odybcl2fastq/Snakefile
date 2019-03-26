@@ -4,50 +4,46 @@ from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 # TODO: use a function for runs
 RUNS = ['190307_NB501677_0400_AH2WFKBGXB']
+RUNS, = glob_wildcards("/n/boslfs/INSTRUMENTS/illumina/190325{run}/")
 
 rule all:
     input:
         #expand("{output}{run}/demultiplex_10x.sh", output=config['output'], run=RUNS)
-        expand("{output}{run}/demultiplex.processed", output=config['output'], run=RUNS)
+        #expand("{output}{run}/demultiplex.processed", output=config['output'], run=RUNS)
         # TODO: consider regex pattern constraints on run
         #expand("{output}{run}/update_lims_db.processed", output=config['output'], run=RUNS)
+        #expand("{output}{run}/fastqc.sh", output=config['output'], run=RUNS)
         #expand("{output}{run}/fastqc.processed", output=config['output'], run=RUNS)
         #expand("{output}{run}/RunInfo.xml", output=config['output'], run=RUNS)
         #expand("{output}{run}/md5sum.txt", output=config['output'], run=RUNS)
         #expand("{output}{run}/ody.complete", output=config['output'], run=RUNS)
+        expand("{source}{run}/odybcl2fastq.complete", source=config['source'], run=RUNS)
+
+rule select10x:
+    input:
+        run_dir=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
+    output:
+        touch(expand("{source}{{run}}/ody.processed", source=config['source']))
+    run:
+        setup_run_logger(wildcards.run, False)
+        sample_sheet = SampleSheet(input.sample_sheet[0])
+
 
 rule demultiplex_10x_cmd:
     input:
         run_dir=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
-    params:
-        time="8:00:00",
-        N=1,
-        cores=8,
-        mem=32000,
-        partition="bos-info"
     output:
         expand("{output}{{run}}/demultiplex_10x.sh", output=config['output'])
-    message:
-        "writing cmd"
     shell:
-        # TODO: decide if we want to get rid of this bash script gen
         """
         mkdir -p {config[output]}{wildcards.run}
-        cmd="#!/bin/bash\n\n"
-        cmd+="#SBATCH -p {params.partition}\n"
-        cmd+="#SBATCH -N {params.N}\n"
-        cmd+="#SBATCH -n {params.cores}\n"
-        cmd+="#SBATCH -t {params.time}\n"
-        cmd+="#SBATCH --mem {params.mem}\n"
-        cmd+="#SBATCH -J demultiplex_10x_{wildcards.run}\n"
-        cmd+="#SBATCH -o cellranger_mkfastq_{wildcards.run}_%A.out\n"
-        cmd+="#SBATCH -e cellranger_mkfastq_{wildcards.run}_%A.err\n"
-        cmd+="#SBATCH --test-only\n\n"
+        cmd="#!/bin/bash\n"
         cmd+="source new-modules.sh\n"
         cmd+="module purge\n"
-        cmd+="module load cellranger/2.1.0-fasrc01\n\n"
-        cmd+="cellranger makfastq --localcores=8 --ignore-dual-index --run {config[source]}{wildcards.run} --samplesheet {input.run_dir} --output_dir {config[output]}{wildcards.run}"
-        echo "$cmd" >> {config[output]}{wildcards.run}/demultiplex_10x.sh
+        cmd+="module load cellranger/3.0.1-fasrc01\n\n"
+        cmd+="cellranger mkfastq --localcores=8 --ignore-dual-index --run={config[source]}{wildcards.run} --samplesheet={input.run_dir} --output-dir={config[output]}{wildcards.run}/fastq"
+        echo "$cmd" >> {output}
+        chmod 777 {output}
         """
 
 rule demultiplex_10x:
@@ -57,22 +53,39 @@ rule demultiplex_10x:
         touch(expand("{output}{{run}}/demultiplex.processed", output=config['output']))
     shell:
         """
-        {config[output]}{wildcards.run}/test.sh
+        {config[output]}{wildcards.run}/demultiplex_10x.sh
+        """
+
+rule count_10x_cmd:
+    input:
+        rules.demultiplex_10x.output
+    output:
+        expand("{output}{{run}}/count.sh", output=config['output'])
+    shell:
+        """
+        sample = find {config[output]}{wildcards.run}/fastq -type d -maxdepth 1 -mindepth 1 -not -name Reports -not -name Stats -printf "%f\n"
+        cmd="#!/bin/bash\n"
+        cmd+="source new-modules.sh\n"
+        cmd+="module purge\n"
+        cmd+="module load cellranger/3.0.1-fasrc01\n\n"
+        cmd+="cellranger count --lanes=1,2,3,4 id=$sample --transcriptome=/n/boslfs/LABS/informatics/refs/10x/refdata-cellranger-GRCh38-1.2.0 --localcores=12 --sample=$sample --fastqs={config[output]}{wildcards.run}/fastq/$sample/$sample"
+        echo "$cmd" >> {output}
+        chmod 777 {output}
         """
 
 rule count_10x:
     input:
-        flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
+        script=expand("{output}{{run}}/count.sh", output=config['output'])
     output:
         touch(expand("{output}{{run}}/count.processed", output=config['output']))
     shell:
         """
-        {config[output]}{wildcards.run}/test.sh
+        {config[output]}{wildcards.run}/count.sh
         """
 
 rule update_lims_db:
     input:
-        flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
+        rules.demultiplex_10x.output,
         sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source']),
         run_folder=expand("{source}{{run}}", source=config['source'])
     output:
@@ -84,23 +97,36 @@ rule update_lims_db:
         instrument = sample_sheet.get_instrument()
         update_lims_db(input.run_folder[0], sample_sheet.sections, instrument)
 
+rule fastqc_cmd:
+    input:
+        rules.demultiplex_10x.output,
+    output:
+        expand("{output}{{run}}/fastqc.sh", output=config['output'])
+    shell:
+        """
+        mkdir -p {config[output]}{wildcards.run}/QC
+        cmd="#!/bin/bash\n"
+        cmd+="source new-modules.sh\n"
+        cmd+="module purge\n"
+        cmd+="module load fastqc/0.11.5-fasrc01\n\n"
+        cmd+="mkdir -p {config[output]}{wildcards.run}/QC\n"
+        cmd+="fastqc -o {config[output]}{wildcards.run}/QC --threads 1 -b $(find {config[output]}{wildcards.run}/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
+        echo "$cmd" >> {output}
+        """
+
 rule fastqc:
     input:
-        # TODO: consider using demux rule as a targeting input
-        flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
+        expand("{output}{{run}}/fastqc.sh", output=config['output'])
     output:
         touch(expand("{output}{{run}}/fastqc.processed", output=config['output']))
     shell:
         """
-        module load fastqc/0.11.5-fasrc01
-        files=$(find /n/boslfs/LABS/informatics/sequencing/ANALYSIS/190307_NB501677_0400_AH2WFKBGXB/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)
-        mkdir -p {config[output]}{wildcards.run}/QC
-        fastqc -o {config[output]}{wildcards.run}/QC --threads 1 -b $files
+        {input}
         """
 
 rule cp_source_to_output:
     input:
-        flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
+        rules.demultiplex_10x.output,
     params:
         sample_sheet="SampleSheet.csv",
         run_info="RunInfo.xml",
@@ -121,7 +147,7 @@ rule checksum:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
     shell:
         """
-        files=$(find /n/boslfs/LABS/informatics/sequencing/ANALYSIS/190307_NB501677_0400_AH2WFKBGXB/ -name *.fastq.gz -print0 | xargs -0)
+        files=$(find {output}{wildcards.run}/ -name *.fastq.gz -print0 | xargs -0)
         md5sum $files > {output.checksum}
         """
 
@@ -129,16 +155,31 @@ rule publish:
     input:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
     output:
-        touch(expand("{output}{{run}}/ody.complete", output=config['output']))
+        touch(expand("{source}{{run}}/odybcl2fastq.complete", source=config['source']))
     shell:
         """
         cp -r {config[output]}{wildcards.run} {config[published]}{wildcards.run}
         """
 
 '''
-
+cmd+="#SBATCH -p {params.partition}\n"
+        cmd+="#SBATCH -N {params.N}\n"
+        cmd+="#SBATCH -n {params.cores}\n"
+        cmd+="#SBATCH -t {params.time}\n"
+        cmd+="#SBATCH --mem {params.mem}\n"
+        cmd+="#SBATCH -J demultiplex_10x_{wildcards.run}\n"
+        cmd+="#SBATCH -o cellranger_mkfastq_{wildcards.run}_%A.out\n"
+        cmd+="#SBATCH -e cellranger_mkfastq_{wildcards.run}_%A.err\n"
+        cmd+="#SBATCH --test-only\n\n"
 
         mkdir {config[published]}{wildcards.run}
         interop=expand("{output}{{run}}/InterOp.csv", output=config['output'])
         sbatch {output}{run}/demultiplex_10x.sh >& {log}
+        echo "$cmd" >> {config[output]}{wildcards.run}/demultiplex_10x.sh
+
+        flag=expand("{output}{{run}}/demultiplex.processed", output=config['output']),
+module load fastqc/0.11.5-fasrc01
+        files=$(find /n/boslfs/LABS/informatics/sequencing/ANALYSIS/190307_NB501677_0400_AH2WFKBGXB/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)
+        mkdir -p {config[output]}{wildcards.run}/QC
+        fastqc -o {config[output]}{wildcards.run}/QC --threads 1 -b $files
 '''
