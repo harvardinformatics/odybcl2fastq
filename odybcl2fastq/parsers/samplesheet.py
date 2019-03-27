@@ -200,6 +200,14 @@ class SampleSheet(object):
         else:
             return 'standard'
 
+    def get_sample_types(self):
+        types = {}
+        for key, row in self.sections['Data'].items():
+            name = key.split(':')[1]
+            if 'Type' in row and row['Type']:
+                types[name] = row['Type']
+        return types
+
     def get_assay(self):
         if 'Assay' in self.sections['Header'] and self.sections['Header']['Assay']:
             return self.sections['Header']['Assay'].strip().lower()

@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 # Setup loggers
-logger  = logging.getLogger('odybcl2fastq')
+"""logger  = logging.getLogger('odybcl2fastq')
 logfilename = os.environ.get('ODYBCL2FASTQ_LOG_FILE', 'odybcl2fastq.log')
 if not logfilename.startswith('/'):
     logfilename = os.path.join(config.LOG_DIR, logfilename)
@@ -29,7 +29,7 @@ logger  = logging.getLogger('centrifuge')
 logfile = os.environ.get('CENTRIFUGE_LOG_FILE', os.path.join(const.ROOT_DIR, 'centrifuge.log'))
 handler = logging.FileHandler(logfile)
 handler.setLevel(logging.getLevelName(os.environ.get('CENTRIFUGE_LOG_LEVEL', LOGLEVELSTR)))
-logger.addHandler(handler)
+logger.addHandler(handler)"""
 
 
 def initLogger(name):
