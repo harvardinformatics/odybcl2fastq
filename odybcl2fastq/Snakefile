@@ -12,6 +12,8 @@ configfile: "snakemake_config.json"
 localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
+from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
+from odybcl2fastq import config as ody_config
 
 onstart:
     """
@@ -29,6 +31,7 @@ rule all:
     """
     input:
         expand("{source}{run}/ody.complete", source=config['source'], run=config['run'])
+        #expand("{output}{run}/script/demultiplex_10x.sh", output=config['output'], run=config['run'])
 
 rule demultiplex_10x_cmd:
     """
@@ -79,7 +82,7 @@ rule count_10x_cmd:
         cmd+="source new-modules.sh\n"
         cmd+="module purge\n"
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
-        cmd+="cellranger count --lanes=1,2,3,4 --id={config[sample]} --transcriptome=/n/boslfs/LABS/informatics/refs/10x/refdata-cellranger-GRCh38-1.2.0 --localcores=12 --sample={config[sample]} --fastqs={config[output]}{wildcards.run}/{config[sample]}"
+        cmd+="cellranger count --lanes=1,2,3,4 --id={config[sample]} --transcriptome=/n/boslfs/LABS/informatics/refs/10x/refdata-cellranger-GRCh38-1.2.0 --localcores=12 --sample={config[sample]} --fastqs={config[output]}{wildcards.run}/fastq/{config[sample]}"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -131,7 +134,7 @@ rule fastqc_cmd:
         cmd+="module purge\n"
         cmd+="module load fastqc/0.11.5-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/QC\n"
-        cmd+="fastqc -o {config[output]}{wildcards.run}/QC --threads 1 -b $(find {config[output]}{wildcards.run}/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
+        cmd+="fastqc -o {config[output]}{wildcards.run}/QC --threads 1 -b $(find {config[output]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -206,3 +209,13 @@ rule publish:
         """
         cp -r {config[output]}{wildcards.run} {config[published]}{wildcards.run}
         """
+
+onsuccess:
+    message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
+    subject = 'Demultiplex Summary for: %s' % config['run']
+    sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'])
+
+onerror:
+    message = 'run %s failed\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
+    subject = 'Run Failed: %s' % config['run']
+    sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'])

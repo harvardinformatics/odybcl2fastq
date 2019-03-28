@@ -26,7 +26,7 @@ def composeMessage(message, subject, summary_data, fromaddr, toemaillist, ccemai
         html = get_html(summary_data)
         msg.attach(MIMEText(html.encode('utf-8'), 'html'))
     else:
-        msg.attach(MIMEText(message.encode('utf-8')[-900000:], 'plain'))
+        msg.attach(MIMEText(message[-900000:], 'plain'))
     return msg
 
 def buildmessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[], server=None):

@@ -260,16 +260,16 @@ def main():
         for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR', 'MOUNT_DIR', 'LOG_DIR', 'CONTROL_DIR']:
             logger.info("\t%s\t%s" % (k, config[k]))
         # run continuously
-        #while True:
-        # queue new runs for demultiplexing with bcl2fastq2
-        process_runs()
-        # check for any runs that started but never completed demultiplexing
-        #notify_incomplete_runs()
-        # wait before checking for more runs to process
-        frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
-        if frequency != FREQUENCY:
-            logger.info("Frequency is not default: %i\n" % frequency)
-        time.sleep(frequency)
+        while True:
+            # queue new runs for demultiplexing with bcl2fastq2
+            process_runs()
+            # check for any runs that started but never completed demultiplexing
+            #notify_incomplete_runs()
+            # wait before checking for more runs to process
+            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+            if frequency != FREQUENCY:
+                logger.info("Frequency is not default: %i\n" % frequency)
+            time.sleep(frequency)
     except Exception as e:
         logging.exception(e)
         send_email(str(e), 'Odybcl2fastq exception')

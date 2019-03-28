@@ -2,6 +2,7 @@
     "source": "/n/boslfs/INSTRUMENTS/illumina/",
     "output": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/",
     "published": "/n/boslfs/LABS/informatics/mcorrea/PUBLISHED/",
+    "log": "/n/informatics_external/seq/odybcl2fastq_log_test/",
     "run": "",
     "sample": ""
 }
