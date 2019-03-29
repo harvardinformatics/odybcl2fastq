@@ -23,6 +23,7 @@ from odybcl2fastq import constants as const
 import odybcl2fastq.util as util
 from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
+from odybcl2fastq.parsers.samplesheet import SampleSheet
 
 LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = ody_run.PROCESSED_FILE
@@ -198,8 +199,29 @@ def process_runs(pool, proc_num):
     '''
     logger.info("Processing runs")
 
-    run_dirs = find_runs(need_to_process)
-    logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
+    # Filtering out 10x runs to prevent the pipeline from processing
+    # TODO: remove this when we can move this pipeline to snakemake
+    run_dirs_all = find_runs(need_to_process)
+    logger.info("Found %s runs: %s\n" % (len(run_dirs_all), json.dumps(run_dirs_all)))
+    run_dirs = []
+    for run in run_dirs_all:
+        ss_path = get_sample_sheet_path(run)
+        sample_sheet = SampleSheet(ss_path)
+        sam_types = sample_sheet.get_sample_types()
+        types10x = [
+            '10x single cell',
+            '10x genome',
+            '10x single cell rna',
+            '10x singel cell atac'
+        ]
+        is_10x = False
+        for t, v in sam_types.items():
+            if v in types10x:
+                is_10x = True
+                break
+        if not is_10x:
+            run_dirs.append(run)
+    logger.info("Found %s runs that are not 10x: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
     results = {}
     failed_runs = []
     success_runs = []
