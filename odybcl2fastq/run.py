@@ -545,12 +545,25 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
     if custom_output_dir:
         args.BCL_OUTPUT_DIR = custom_output_dir
     run_type = sample_sheet.get_run_type()
-    mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
+    sam_types = sample_sheet.get_sample_types()
+    types10x = [
+        '10x single cell',
+        '10x genome',
+        '10x single cell rna',
+        '10x singel cell atac'
+    ]
+    is_10x = False
+    for t, v in sam_types.items():
+        if v in types10x:
+            is_10x = True
+            break
     # skip everything but billing if run folder flagged
-    if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
+    # only do billing for 10x
+    if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt') or is_10x:
         runlogger.info("This run is flagged for billing only %s" % run)
         update_lims_db(run, sample_sheet.sections, instrument)
         return
+    mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
     jobs_tot = len(mask_lists)
     if jobs_tot > 1:
         runlogger.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
