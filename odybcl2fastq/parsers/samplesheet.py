@@ -51,6 +51,7 @@ class SampleSheet(object):
             }
         ssheet_open = open(samplesheet,'r')
         defaults_section = ''
+        data_fields = []
         for line in ssheet_open:
             linelist = line.strip().split(',')
             if linelist[0] != '':
@@ -77,7 +78,7 @@ class SampleSheet(object):
                                 lane = data_dict['Lane']
                             else:
                                 name = '%s:%s' % (data_dict['Sample_Project'],data_dict['Sample_ID'])
-                                lane = 1
+                                lane = '1'
                             if lane not in self.lanes:
                                 self.lanes.append(lane)
 
@@ -189,7 +190,7 @@ class SampleSheet(object):
     def get_output_dir(self):
         output_dir = ''
         if 'output-dir' in self.sections['Header']:
-            output_dir = self.sections['Header']['output-dir']
+            output_dir = self.sections['Header']['output-dir'].strip()
         return output_dir
 
     def get_run_type(self):
@@ -198,6 +199,14 @@ class SampleSheet(object):
             return self.sections['Header']['Chemistry'].strip().lower()
         else:
             return 'standard'
+
+    def get_sample_types(self):
+        types = {}
+        for key, row in self.sections['Data'].items():
+            name = key.split(':')[1]
+            if 'Type' in row and row['Type']:
+                types[name] = row['Type']
+        return types
 
     def get_assay(self):
         if 'Assay' in self.sections['Header'] and self.sections['Header']['Assay']:

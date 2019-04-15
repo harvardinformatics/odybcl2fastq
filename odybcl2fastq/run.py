@@ -13,7 +13,7 @@ Created on  2017-04-19
 @copyright: 2017 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
-import sys, os, traceback, stat
+import sys, os, stat
 import logging
 import json
 from glob import glob
@@ -22,7 +22,6 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 from collections import OrderedDict
 import odybcl2fastq.util as util
-from odybcl2fastq import constants as const
 from odybcl2fastq import config
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
@@ -31,16 +30,16 @@ from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq.status_db import StatusDB
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.qc.fastqc_runner import fastqc_runner
-from tests.compare_fastq import compare_fastq
 
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
-FINAL_DIR_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP|stat.S_IROTH|stat.S_IXOTH
-FINAL_FILE_PERMISSIONS = stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH
-SUMMARY_LOG_FILE = const.ROOT_DIR + 'odybcl2fastq.log'
+FINAL_DIR_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
+FINAL_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
 MASK_SHORT_ADAPTER_READS = 22
 STORAGE_CAPACITY_WARN = 0.96
 STORAGE_CAPACITY_ERROR = 0.99
+
+logger = logging.getLogger('odybcl2fastq')
 
 
 def initArgs():
@@ -53,7 +52,7 @@ def initArgs():
     parameterdefs = [
         {
             'name'      : 'TEST',
-            'switches'  : ['-t','--test'],
+            'switches'  : ['-t', '--test'],
             'required'  : False,
             'help'      : 'run in test mode, log to std out, no not run cmd',
             'action'    : 'store_true',
@@ -89,7 +88,7 @@ def initArgs():
         },
         {
             'name'      : 'BCL_PROC_THREADS',
-            'switches'  : ['-p','--processing-threads'],
+            'switches'  : ['-p', '--processing-threads'],
             'required'  : False,
             'help'      : 'number threads to process demultiplexed data',
             'default'   : 8,
@@ -213,18 +212,18 @@ def initArgs():
             'help'      : 'use simple sliding window to detec adapters, indels not handled',
             'default'   : 4,
             'type'      : int,
-            'choices'   : range(1,10),
+            'choices'   : range(1, 10),
         },
         {
             'name'      : 'BCL_RUNFOLDER_DIR',
-            'switches'  : ['-R','--runfolder-dir'],
+            'switches'  : ['-R', '--runfolder-dir'],
             'required'  : True,
             'help'      : 'path to run folder directory',
             'type'      : str,
         },
         {
             'name'      : 'BCL_OUTPUT_DIR',
-            'switches'  : ['-o','--output-dir'],
+            'switches'  : ['-o', '--output-dir'],
             'required'  : True,
             'help'      : 'path to demultiplexed output',
             'type'      : str,
@@ -257,7 +256,7 @@ def initArgs():
     # Check for environment variable values
     # Set to 'default' if they are found
     for parameterdef in parameterdefs:
-        if os.environ.get(parameterdef['name'],None) is not None:
+        if os.environ.get(parameterdef['name'], None) is not None:
             parameterdef['default'] = os.environ.get(parameterdef['name'])
 
     # Setup argument parser
@@ -265,7 +264,7 @@ def initArgs():
     parser.add_argument('-V', '--version', action='version', version='bcl2fastq2.2')
 
     # sets up dict with switches as keys and names as values
-    switches_to_names={}
+    switches_to_names = {}
     # Use the parameterdefs for the ArgumentParser
     for parameterdef in parameterdefs:
         switches = parameterdef.pop('switches')
@@ -277,16 +276,17 @@ def initArgs():
         parameterdef['dest'] = name
         if 'default' in parameterdef:
             parameterdef['help'] += '  [default: %s]' % parameterdef['default']
-        parser.add_argument(*switches,**parameterdef)
+        parser.add_argument(*switches, **parameterdef)
 
         # Gotta put it back on for later
         parameterdef['name'] = name
 
         # add switch tuple as key, paramterdef name (= destination) as value
-        if 'BCL' in parameterdef['name']: # this allows non BCL things to be excluded from switches to names so don't get incorrectly added to cmd line arg
-            switches_to_names[tuple(switches)]=parameterdef['name']
+        if 'BCL' in parameterdef['name']:  # this allows non BCL things to be excluded from switches to names so don't get incorrectly added to cmd line arg
+            switches_to_names[tuple(switches)] = parameterdef['name']
     args = parser.parse_args()
     return args, switches_to_names
+
 
 def get_submissions(sample_sheet, instrument):
     subs = set()
@@ -295,13 +295,16 @@ def get_submissions(sample_sheet, instrument):
             subs.add(row['Description'])
     return list(subs)
 
+
 def update_lims_db(run, sample_sheet, instrument):
-    logging.info('Start db update for %s\n' % run)
+    runlogger = logging.getLogger('run_logger')
+    runlogger.info('Start db update for %s\n' % run)
     subs = get_submissions(sample_sheet, instrument)
     stdb = StatusDB()
     stdb.link_run_and_subs(run, subs)
     analysis = stdb.insert_analysis(run, ', '.join(subs))
-    logging.info('End db update for %s\n' % analysis)
+    runlogger.info('End db update for %s\n' % analysis)
+
 
 def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     # copy important source files to the output dir they will then be moved to
@@ -310,15 +313,15 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     dest_root += '/'
     if instrument == 'hiseq':
         run_params_file = 'runParameters.xml'
-    else: # nextseq
+    else:  # nextseq
         run_params_file = 'RunParameters.xml'
     # get filename part of sample_sheet
     sample_sheet = sample_sheet.replace(src_root, '')
     files_to_copy = {
-            'sample_sheet': sample_sheet,
-            'run_info': 'RunInfo.xml',
-            'run_params': run_params_file,
-            'interop': 'InterOp'
+        'sample_sheet': sample_sheet,
+        'run_info': 'RunInfo.xml',
+        'run_params': run_params_file,
+        'interop': 'InterOp'
     }
     for name, file in files_to_copy.items():
         new_file = file
@@ -329,7 +332,10 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
         src = src_root + file
         util.copy(src, dest)
 
+
 def copy_output_to_final(output_dir, run_folder, output_log):
+    runlogger = logging.getLogger('run_logger')
+
     # determine dest_dir
     dest_dir = config.FINAL_DIR + run_folder
     # check size of output_dir
@@ -353,16 +359,21 @@ def copy_output_to_final(output_dir, run_folder, output_log):
     storage_capacity_error = float(os.getenv('ODY_STORAGE_CAPACITY_ERROR', STORAGE_CAPACITY_ERROR))
     if capacity > storage_capacity_warn:
         message = '%s near capacity copying %s: %s, used: %s, tot: %s' % (config.FINAL_DIR, output_dir, output_space, used, tot_space)
-        logging.warning(message)
+        logger.warning(message)
         sent = buildmessage(message, 'NGSDATA is near capacity', [], config.EMAIL['from_email'], config.EMAIL['admin_email'])
     if capacity > storage_capacity_error:
         msg = 'Could not copy %s to  %s: %s' % (output_dir, config.FINAL_DIR, capacity)
         raise Exception(msg)
-    logging.info('Copying %s: %s, to %s at capacity: %s' % (output_dir, output_space,
-        dest_dir, capacity))
+    runlogger.info('Copying %s: %s, to %s at capacity: %s' % (
+        output_dir,
+        output_space,
+        dest_dir,
+        capacity)
+    )
     util.copy(output_dir, dest_dir)
     # change permissions on dest_dir
     util.chmod_rec(dest_dir, FINAL_DIR_PERMISSIONS, FINAL_FILE_PERMISSIONS)
+
 
 def fastq_checksum(output_dir):
     checksum_report = output_dir + '/md5sum.txt'
@@ -382,14 +393,16 @@ def fastq_checksum(output_dir):
                     if not data:
                         break
                     checksum.update(data)
-                checksum = checksum.hexdigest() + '  ' +  f.replace(output_dir + '/', '') + '\n'
+                checksum = checksum.hexdigest() + '  ' + f.replace(output_dir + '/', '') + '\n'
                 checksum_fh.write(checksum)
+
 
 def run_cmd(cmd):
     # run unix cmd, return out and error
     proc = Popen(cmd, shell=True, stderr=PIPE, stdout=PIPE)
     out, err = proc.communicate()
     return (proc.returncode, out, err)
+
 
 def run_bcl2fastq_cmd(cmd, output_log):
     # run unix cmd, stream out and error, return last lines of out
@@ -416,9 +429,10 @@ def run_bcl2fastq_cmd(cmd, output_log):
             code = proc.wait()
     return code, ''.join(lines)
 
+
 def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type, sample_sheet):
     argdict = vars(args)
-    cmdstrings=['bcl2fastq']
+    cmdstrings = ['bcl2fastq']
     # keeps consistent order of writing
     switch_list = switches_to_names.keys()
     switch_list.sort()
@@ -427,7 +441,7 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     for switches in switch_list:
         switch = [switch for switch in switches if '--' in switch][0]
         bcl_params.append(switch)
-        argvalue=str(argdict[switches_to_names[switches]])
+        argvalue = str(argdict[switches_to_names[switches]])
         # the bit below prevents boolean flags from having values in the cmd
         if argvalue != 'False':
             if argvalue == 'True':
@@ -449,8 +463,9 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
         # each mask should be prefaced by the switch
         mask_opt = mask_switch + ' ' + (' ' + mask_switch + ' ').join(mask_list)
         cmdstrings.append(mask_opt)
-    cmdstring=' '.join(cmdstrings)
+    cmdstring = ' '.join(cmdstrings)
     return cmdstring
+
 
 def get_params_from_sample_sheet(sample_sheet, bcl_params):
     # users can add params to the end of the HEADER section of the sample sheet
@@ -462,11 +477,15 @@ def get_params_from_sample_sheet(sample_sheet, bcl_params):
             params[key] = v if v else None
     return params
 
+
 def shortest_read(r):
     return int(r[min(r.keys(), key=(lambda k:int(r[k])))])
 
-def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
-    logging.info("***** START bcl2fastq *****\n\n")
+
+def bcl2fastq_runner(cmd, output_log, args, no_demultiplex=False):
+    runlogger = logging.getLogger('run_logger')
+
+    runlogger.info("***** START bcl2fastq *****\n\n")
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
     last_output = ''
     if no_demultiplex:
@@ -474,15 +493,16 @@ def bcl2fastq_runner(cmd, output_log, args, no_demultiplex = False):
         success = True
     else:
         code, last_output = run_bcl2fastq_cmd(cmd, output_log)
-        logging.info("***** END bcl2fastq *****\n\n")
-        if code!=0:
+        logger.info("***** END bcl2fastq *****\n\n")
+        if code != 0:
             message = 'run %s failed\n see logs here: %s\n' % (run, output_log)
             success = False
         else:
             message = 'run %s completed successfully\nsee logs here: %s\n' % (run, output_log)
             success = True
-    logging.info('message = %s' % message)
+    runlogger.info('message = %s' % message)
     return success, message + last_output
+
 
 def check_sample_sheet(sample_sheet, run):
     # if sample sheet is not already there then copy the one from run_folder named
@@ -493,23 +513,29 @@ def check_sample_sheet(sample_sheet, run):
         if os.path.exists(path):
             util.copy(path, sample_sheet)
 
+
 def write_cmd(cmd, output_dir, run):
     path = '%s/%s.opts' % (output_dir, run)
     with open(path, 'w') as fout:
         fout.write(cmd)
 
-def bcl2fastq_process_runs():
-    args, switches_to_names = initArgs()
+
+def bcl2fastq_process_runs(args=None, switches_to_names=None):
+    # these are only passed in for the test
+    if not args or not switches_to_names:
+        args, switches_to_names = initArgs()
+    logger.info('Processing runs from run folder %s, using sample sheet %s, to output dir %s' % (args.BCL_RUNFOLDER_DIR, args.BCL_SAMPLE_SHEET, args.BCL_OUTPUT_DIR))
     util.touch(args.BCL_RUNFOLDER_DIR + '/', PROCESSED_FILE)
     test = ('TEST' in args and args.TEST)
     no_demultiplex = ('NO_DEMULTIPLEX' in args and args.NO_DEMULTIPLEX)
     no_post_process = ('NO_POST_PROCESS' in args and args.NO_POST_PROCESS)
     no_file_copy = ('NO_FILE_COPY' in args and args.NO_FILE_COPY)
     run = os.path.basename(args.BCL_RUNFOLDER_DIR)
-    setup_logging(run, test)
-    logging.info("***** START Odybcl2fastq *****\n\n")
+
+    runlogger = setup_run_logger(run, test)
+    runlogger.info("***** START Odybcl2fastq *****\n\n")
     check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
-    logging.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
+    runlogger.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
     sample_sheet.validate()
     instrument = sample_sheet.get_instrument()
@@ -517,19 +543,31 @@ def bcl2fastq_process_runs():
     # BCL_OUTPUT_DIR
     custom_output_dir = sample_sheet.get_output_dir()
     if custom_output_dir:
-        args.BCL_OUTPUT_DIR = sample_sheet.sections['Header']['output-dir']
+        args.BCL_OUTPUT_DIR = custom_output_dir
     run_type = sample_sheet.get_run_type()
-    mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
+    sam_types = sample_sheet.get_sample_types()
+    types10x = [
+        '10x single cell',
+        '10x genome',
+        '10x single cell rna',
+        '10x singel cell atac'
+    ]
+    is_10x = False
+    for t, v in sam_types.items():
+        if v in types10x:
+            is_10x = True
+            break
     # skip everything but billing if run folder flagged
-    if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
-        logging.info("This run is flagged for billing only %s" % run)
+    # only do billing for 10x
+    if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt') or is_10x:
+        runlogger.info("This run is flagged for billing only %s" % run)
         update_lims_db(run, sample_sheet.sections, instrument)
         return
+    mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], args.RUNINFO_XML, instrument, args, run_type)
     jobs_tot = len(mask_lists)
     if jobs_tot > 1:
-        logging.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
+        runlogger.info("This run contains different masks in the same lane and will require %i bcl2fastq jobs" % jobs_tot)
     job_cnt = 1
-    sample_sheet_dir = args.BCL_SAMPLE_SHEET
     output_dir = args.BCL_OUTPUT_DIR
     # run bcl2fatq per indexing strategy on run
     for mask, mask_list in mask_lists.items():
@@ -540,15 +578,17 @@ def bcl2fastq_process_runs():
             args.BCL_OUTPUT_DIR = output_dir + '-' + output_suffix
             args.BCL_SAMPLE_SHEET = sample_sheet.write_new_sample_sheet(mask_samples[mask], output_suffix)
             sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
-        cmd = bcl2fastq_build_cmd(args,
-                switches_to_names, mask_list, instrument, run_type, sample_sheet.sections)
-        logging.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
+        cmd = bcl2fastq_build_cmd(
+            args,
+            switches_to_names, mask_list, instrument, run_type, sample_sheet.sections
+        )
+        runlogger.info("\nJob %i of %i:" % (job_cnt, jobs_tot))
         if test:
-            logging.info("Test run, command not run: %s" % cmd)
+            runlogger.info("Test run, command not run: %s" % cmd)
             success = True
             message = 'TEST'
         else:
-            logging.info('Launching bcl2fastq...%s\n' % cmd)
+            runlogger.info('Launching bcl2fastq...%s\n' % cmd)
             output_log = get_output_log(run)
             success, message = bcl2fastq_runner(cmd, output_log, args, no_demultiplex)
             summary_data = {}
@@ -567,9 +607,12 @@ def bcl2fastq_process_runs():
                         f.write('\n'.join(fastqc_err) + "\n\n")
                     # copy run files to final
                 if not no_file_copy:
-                    copy_source_to_output(args.BCL_RUNFOLDER_DIR,
-                            args.BCL_OUTPUT_DIR, args.BCL_SAMPLE_SHEET,
-                            instrument)
+                    copy_source_to_output(
+                        args.BCL_RUNFOLDER_DIR,
+                        args.BCL_OUTPUT_DIR,
+                        args.BCL_SAMPLE_SHEET,
+                        instrument
+                    )
                     fastq_checksum(args.BCL_OUTPUT_DIR)
                     # copy output to final dest where users will access
                     copy_output_to_final(args.BCL_OUTPUT_DIR, run_folder, output_log)
@@ -584,11 +627,9 @@ def bcl2fastq_process_runs():
                 subject = 'Run Failed: ' + run_folder
             toemaillist = config.EMAIL['to_email']
             fromaddr = config.EMAIL['from_email']
-            logging.info('Sending email summary to %s\n' % json.dumps(toemaillist))
+            runlogger.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)
-            logging.info('Email sent: %s\n' % str(sent))
-            # add a file to show that this output folder is completed, safe to
-            # centrifuge
+            runlogger.info('Email sent: %s\n' % str(sent))
             util.touch(args.BCL_OUTPUT_DIR + '/', COMPLETE_FILE)
         job_cnt += 1
     if success:
@@ -599,30 +640,28 @@ def bcl2fastq_process_runs():
         # pass a special ret_code to avoid double email on error
         ret_code = 9
         status = 'failure'
-    get_summary_logger().info("Odybcl2fastq for %s returned %s\n" % (run, status))
-    logging.info("***** END Odybcl2fastq *****\n\n")
+    logger.info("odybcl2fastq for %s returned %s\n" % (run, status))
+    runlogger.info("***** END Odybcl2fastq *****\n\n")
     return ret_code
 
+
 def get_output_log(run):
-    return config.LOG_DIR + run + '.log'
+    logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
+    return os.path.join(logdir, run + '.log')
 
-def get_summary_logger():
-    handler = logging.FileHandler(SUMMARY_LOG_FILE)
-    handler.setFormatter(logging.Formatter('%(asctime)s %(filename)s %(message)s'))
-    summary_logger = logging.getLogger('summary_log')
-    summary_logger.addHandler(handler)
-    return summary_logger
 
-def setup_logging(run, test):
+def setup_run_logger(run, test):
     # take level from env or INFO
-    level = os.getenv('LOGGING_LEVEL', logging.INFO)
-    logging.basicConfig(
-            filename=get_output_log(run),
-            level=level,
-            format='%(asctime)s %(filename)s %(message)s'
-    )
-    if test:
-        logging.getLogger().addHandler(logging.StreamHandler())
+    runlogger = logging.getLogger('run_logger')
+    level = logging.getLevelName(os.environ.get('ODYBCL2FASTQ_RUN_LOG_LEVEL', 'INFO'))
+    runlogger.setLevel(level)
+    handler = logging.FileHandler(get_output_log(run))
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    handler.setLevel(level)
+    handler.setFormatter(formatter)
+    runlogger.addHandler(handler)
+    return runlogger
+
 
 if __name__ == "__main__":
     try:

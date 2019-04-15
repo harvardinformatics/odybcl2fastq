@@ -1,0 +1,29 @@
+{
+    "SOURCE_DIR": "test/sample_data/source_dir",
+    "OUTPUT_DIR": "test/sample_data/output_dir",
+    "FINAL_DIR": "test/sample_data/final_dir",
+    "FASTQ_URL": "fastq",
+    "MOUNT_DIR": "test/sample_data/final_dir",
+    "LOG_DIR": "test/sample_data/logs",
+    "CONTROL_DIR": "mount",
+    "CENTRIFUGE_DIR": "",
+    "CENTRIFUGE_INDEX": "/centrifuge/nt",
+    "CENTRIFUGE_PROC": "8",
+    "CENTRIFUGE_MM": "",
+    "EMAIL": {
+        "to_email": [""],
+        "from_email": [""],
+        "smtp": ""
+    },
+
+    "STATUS_DB": {
+        "host": "",
+        "user": "",
+        "password": "",
+        "database": ""
+    },
+    "BAUER_DB": {
+        "api": "",
+        "token": ""
+    }
+}

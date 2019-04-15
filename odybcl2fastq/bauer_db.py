@@ -32,13 +32,13 @@ class BauerDB(object):
 
         # insert lanes
         sample_sheet = SampleSheet(self.sample_sheet_path)
-        lane_ids = []
+        lane_ids = {}
         for lane in sample_sheet.lanes:
             lane_data = {
                     'run': run_id,
                     'number': lane,
             }
-            lane_ids.append(self.post_data('lanes', lane_data))
+            lane_ids[lane] = self.post_data('lanes', lane_data)
 
         # insert samples
         for sample_name, sample_row in sample_sheet.sections['Data'].items():
@@ -53,9 +53,9 @@ class BauerDB(object):
             if 'Type' in sample_row and sample_row['Type']:
                 sample_data['sample_type'] = self.get_sample_type(sample_row['Type'])
             if 'Lane' in sample_row and sample_row['Lane'].isdigit():
-                lane = lane_ids[int(sample_row['Lane'])-1]
+                lane = lane_ids[sample_row['Lane']]
             else:
-                lane = lane_ids[0]
+                lane = lane_ids['1']
             sample_data['lane'] = lane
             sample_id = self.post_data('samples', sample_data)
         return True
