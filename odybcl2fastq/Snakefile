@@ -9,18 +9,22 @@ Created on  2019-03-25
 '''
 
 configfile: "snakemake_config.json"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, count_reference_genome
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq import config as ody_config
+from odybcl2fastq.status_db import StatusDB
+import odybcl2fastq.util as util
+
 
 onstart:
     """
     touch processed file to prevent reprocessing
     prepare log and script dirs
     """
-    shell("touch {source}{run}/ody.processed", source=config['source'], run=config['run'])
+    shell("mkdir -p {source}{run}/status", source={config['source']}, run=config['run'])
+    shell("touch {source}{run}/status/ody.processed", source=config['source'], run=config['run'])
     shell("mkdir -p {output}{run}", output={config['output']}, run=config['run'])
     shell("mkdir -p {output}{run}/log", output={config['output']}, run=config['run'])
     shell("mkdir -p {output}{run}/script", output={config['output']}, run=config['run'])
@@ -30,8 +34,11 @@ rule all:
     final output of workflow
     """
     input:
-        expand("{source}{run}/ody.complete", source=config['source'], run=config['run'])
+        expand("{source}{run}/status/ody.complete", source=config['source'], run=config['run'])
         #expand("{output}{run}/script/demultiplex_10x.sh", output=config['output'], run=config['run'])
+        #expand("{source}{run}/reference_genome.txt", source=config['source'], run=config['run'])
+        #expand("{output}{run}/script/count.sh", output=config['output'], run=config['run'])
+        #expand("{source}{run}/status/demultiplex.processed", source=config['source'], run=config['run'])
 
 rule demultiplex_10x_cmd:
     """
@@ -60,29 +67,63 @@ rule demultiplex_10x:
     input:
         expand("{output}{{run}}/script/demultiplex_10x.sh", output=config['output'])
     output:
-        touch(expand("{output}{{run}}/demultiplex.processed", output=config['output']))
+        touch(expand("{source}{{run}}/status/demultiplex.processed", source=config['source']))
     shell:
         """
         {input}
         """
 
-# DONT run count for now since we don't have a way to detect reference genome
+rule count_reference_genome:
+    input:
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
+        sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
+    output:
+        expand("{source}{{run}}/reference_genome.txt", source=config['source'])
+    run:
+        setup_run_logger(wildcards.run, False)
+        sample_sheet = SampleSheet(input.sample_sheet[0])
+        subs = sample_sheet.get_submissions()
+        stdb = StatusDB()
+        # TODO: assuming that all samples in the run are same type if not we
+        # should reconsider how to organize all the count bits
+        ref = ''
+        if subs:
+            sams = stdb.minilims_select('Sample', None, 'Submission', subs[0])
+            if sams:
+                ref = stdb.minilims_select('Sample', sams[0][0], 'Reference_Genome')
+                if ref:
+                    ref = ref[0][3]
+        ref_file = ''
+        if ref == 'hg19': # human
+            ref_file = '%srefdata-cellranger-GRCh38-1.2.0' % (config['ref_dir'])
+        else: # default to mouse
+            ref_file = '%srefdata-cellranger-mm10-1.2.0' % (config['ref_dir'])
+        with open('%s%s/reference_genome.txt' % (config['source'], wildcards.run), 'w+') as f:
+            f.write(ref_file)
+
 rule count_10x_cmd:
     """
     build a bash file with the demux cmd
     """
     input:
-        #expand("{output}{{run}}/demultiplex.processed", output=config['output'])
-        expand("{source}{{run}}/ody.complete", source=config['source'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
+        ref=ancient(expand("{source}{{run}}/reference_genome.txt", source=config['source']))
     output:
         expand("{output}{{run}}/script/count.sh", output=config['output'])
     shell:
         """
+        ref=$(head -n 1 {input.ref})
+        fastq_path="{config[output]}{wildcards.run}/fastq"
+        if [{config[project]} -ne ""]; then
+            fastq_path+="/{config[project]}"
+        fastq_path+="/{config[sample]}
         cmd="#!/bin/bash\n"
         cmd+="source new-modules.sh\n"
         cmd+="module purge\n"
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
-        cmd+="cellranger count --lanes=1,2,3,4 --id={config[sample]} --transcriptome=/n/boslfs/LABS/informatics/refs/10x/refdata-cellranger-GRCh38-1.2.0 --localcores=12 --sample={config[sample]} --fastqs={config[output]}{wildcards.run}/fastq/{config[sample]}"
+        cmd+="mkdir -p {config[output]}{wildcards.run}/count\n"
+        cmd+="cd {config[output]}{wildcards.run}/count\n"
+        cmd+="cellranger count --lanes=1,2,3,4 --id={config[sample]} --transcriptome=$ref --localcores=12 --sample={config[sample]} --fastqs=$fastq_path"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -95,7 +136,7 @@ rule count_10x:
     input:
         script=expand("{output}{{run}}/script/count.sh", output=config['output'])
     output:
-        touch(expand("{output}{{run}}/count.processed", output=config['output']))
+        touch(expand("{source}{{run}}/status/count.processed", source=config['source']))
     shell:
         """
         {input}
@@ -106,29 +147,28 @@ rule update_lims_db:
     connect the submission with the run in lims
     """
     input:
-        expand("{output}{{run}}/demultiplex.processed", output=config['output']),
-        sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source']),
-        run_folder=expand("{source}{{run}}", source=config['source'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
+        sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
     output:
-        touch(expand("{output}{{run}}/update_lims_db.processed", output=config['output']))
+        touch(expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']))
     run:
         # TODO: use this setup_logger for any logging from ody python functions
         setup_run_logger(wildcards.run, False)
         sample_sheet = SampleSheet(input.sample_sheet[0])
         instrument = sample_sheet.get_instrument()
-        update_lims_db(input.run_folder[0], sample_sheet.sections, instrument)
+        run_folder = config['source'] + wildcards.run
+        update_lims_db(run_folder, sample_sheet.sections, instrument)
 
 rule fastqc_cmd:
     """
     build a bash file with the fastqc cmd
     """
     input:
-        ancient(expand("{output}{{run}}/demultiplex.processed", output=config['output']))
+        ancient(expand("{source}{{run}}/status/demultiplex.processed", source=config['source']))
     output:
         expand("{output}{{run}}/script/fastqc.sh", output=config['output'])
     shell:
         """
-        mkdir -p {config[output]}{wildcards.run}/QC
         cmd="#!/bin/bash\n"
         cmd+="source new-modules.sh\n"
         cmd+="module purge\n"
@@ -147,7 +187,7 @@ rule fastqc:
     input:
         expand("{output}{{run}}/script/fastqc.sh", output=config['output'])
     output:
-        touch(expand("{output}{{run}}/fastqc.processed", output=config['output']))
+        touch(expand("{source}{{run}}/status/fastqc.processed", source=config['source']))
     shell:
         """
         {input}
@@ -158,7 +198,7 @@ rule cp_source_to_output:
     copy a few files from source to output dir
     """
     input:
-        expand("{output}{{run}}/demultiplex.processed", output=config['output'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
     params:
         sample_sheet="SampleSheet.csv",
         run_info="RunInfo.xml",
@@ -201,10 +241,11 @@ rule publish:
     """
     input:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
-        fastqc=expand("{output}{{run}}/fastqc.processed", output=config['output']),
-        lims=expand("{output}{{run}}/update_lims_db.processed", output=config['output'])
+        fastqc=expand("{source}{{run}}/status/fastqc.processed", source=config['source']),
+        lims=expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']),
+        count=expand("{source}{{run}}/status/count.processed", source=config['source'])
     output:
-        touch(expand("{source}{{run}}/ody.complete", source=config['source']))
+        touch(expand("{source}{{run}}/status/ody.complete", source=config['source']))
     shell:
         """
         cp -r {config[output]}{wildcards.run} {config[published]}{wildcards.run}
@@ -212,10 +253,28 @@ rule publish:
 
 onsuccess:
     message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
+    cmd_file = '%s%s/script/demultiplex_10x.sh' % (config['output'], config['run'])
+    cmd = util.get_file_contents(cmd_file)
+    ss_file = '%s%s/SampleSheet.csv' % (config['source'], config['run'])
+    summary_data = get_summary_data(cmd, config['run'], ss_file)
     subject = 'Demultiplex Summary for: %s' % config['run']
-    sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'])
+    sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
 
 onerror:
     message = 'run %s failed\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
     subject = 'Run Failed: %s' % config['run']
     sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'])
+
+def get_summary_data(cmd, run, ss_file):
+    sample_sheet = util.get_file_contents(ss_file)
+    summary_data = {
+        'fastq_url': ody_config.FASTQ_URL,
+        'fastq_dir': ody_config.MOUNT_DIR,
+        'version': 'cellranger 3.0.1',
+        'run': run,
+        'run_folder': run,
+        'cmd': cmd,
+        'sample_sheet_file': ss_file,
+        'sample_sheet': sample_sheet
+    }
+    return summary_data

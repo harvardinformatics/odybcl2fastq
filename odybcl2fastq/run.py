@@ -296,10 +296,9 @@ def get_submissions(sample_sheet, instrument):
     return list(subs)
 
 
-def update_lims_db(run, sample_sheet, instrument):
+def update_lims_db(run, subs, instrument):
     runlogger = logging.getLogger('run_logger')
     runlogger.info('Start db update for %s\n' % run)
-    subs = get_submissions(sample_sheet, instrument)
     stdb = StatusDB()
     stdb.link_run_and_subs(run, subs)
     analysis = stdb.insert_analysis(run, ', '.join(subs))
@@ -549,7 +548,8 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
     # skip everything but billing if run folder flagged
     if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt'):
         runlogger.info("This run is flagged for billing only %s" % run)
-        update_lims_db(run, sample_sheet.sections, instrument)
+        subs = sample_sheet.get_submissions()
+        update_lims_db(run, subs, instrument)
         return
     jobs_tot = len(mask_lists)
     if jobs_tot > 1:
@@ -586,7 +586,8 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
                     # write bcl2fastq cmd
                     write_cmd(cmd, args.BCL_OUTPUT_DIR, run)
                     # update lims db
-                    update_lims_db(run_folder, sample_sheet.sections, instrument)
+                    subs = sample_sheet.get_submissions()
+                    update_lims_db(run_folder, subs, instrument)
                     # run  qc, TODO: consider a seperate job for this
                     error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR)
                     with open(output_log, 'a+') as f:

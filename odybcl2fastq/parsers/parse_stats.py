@@ -53,16 +53,6 @@ def get_summary(output_dir, instrument, sample_sheet_dir, run_folder):
     logging.info("summary_data for email: %s\n" % json.dumps(summary_data))
     return summary_data
 
-def get_sample_sheet(sample_sheet_dir):
-    data = ''
-    # putting sample sheet in the email is a convenience so don't fail if path
-    # for sample sheet is wrong
-    if os.path.exists(sample_sheet_dir):
-        with open(sample_sheet_dir, 'r') as ss:
-            for line in ss:
-                data += line + '<br>'
-    return data
-
 def get_stats(data):
     stats = OrderedDict()
     # get data on from each lane and samples in the lane

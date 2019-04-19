@@ -208,8 +208,24 @@ class SampleSheet(object):
                 types[name] = row['Type']
         return types
 
+    def get_sample_projects(self):
+        sp = {}
+        for key, row in self.sections['Data'].items():
+            name = key.split(':')[1]
+            if 'Sample_Project' in row and row['Sample_Project']:
+                sp[name] = row['Sample_Project']
+        return sp
+
     def get_assay(self):
         if 'Assay' in self.sections['Header'] and self.sections['Header']['Assay']:
             return self.sections['Header']['Assay'].strip().lower()
         else:
             return None
+
+    def get_submissions(self):
+        instrument = self.get_instrument()
+        subs = set()
+        for key, row in self.sections['Data'].items():
+            if row['Description']:
+                subs.add(row['Description'])
+        return list(subs)

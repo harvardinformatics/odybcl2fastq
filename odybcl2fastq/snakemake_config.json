@@ -3,6 +3,7 @@
     "output": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/",
     "published": "/n/boslfs/LABS/informatics/mcorrea/PUBLISHED/",
     "log": "/n/informatics_external/seq/odybcl2fastq_log_test/",
+    "ref_dir": "/n/boslfs/LABS/informatics/refs/10x/",
     "run": "",
     "sample": ""
 }

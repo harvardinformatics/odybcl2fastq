@@ -71,3 +71,12 @@ def alphanumeric(str):
 
 def contains_whitespace(str):
     return (str and re.search(r"\s", str))
+
+def get_file_contents(file_dir):
+    data = ''
+    if os.path.exists(file_dir):
+        with open(file_dir, 'r') as f:
+            for line in f:
+                data += line + '<br>'
+    return data
+

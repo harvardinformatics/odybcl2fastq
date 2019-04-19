@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{subject}}{% endblock title %}
+{% block content %}
+    <h3>{{run_folder}}</h3>
+    <p>
+    Dear Client,<br><br>
+    The fastq files with the read sequences of run {{run}} are available at:<br>
+    <a href="{{fastq_url}}{{run_folder}}">{{fastq_url}}{{run_folder}}</a><br>
+    or under {{fastq_dir}}{{run_folder}} on the cluster.<br><br>
+    Cluster commands used can be found in
+    <a href="{{fastq_url}}{{run_folder}}/script">{{fastq_url}}{{run_folder}}/script</a><br><br>
+    Quality statistics can be found in
+    <a href="{{fastq_url}}{{run_folder}}/QC">{{fastq_url}}{{run_folder}}/QC</a><br><br>
+    Taxonomic classification can be found in
+    <a href="{{fastq_url}}{{run_folder}}/centrifuge">{{fastq_url}}{{run_folder}}/centrifuge</a>, information for interpreting the taxonomy
+    results can be found in the html files in that folder.  Please allow up to one day after receiving this email for that folder to be populated.<br><br>
+    Reads with indices not in {{sample_sheet_file}} are in the fastq
+    Undetermined<br><br>
+    Users must download a local copy of their data,
+    THIS RUN DATA WILL BE DELETED AFTER 30 DAYS from its current location with no exceptions.<br><br>
+
+    For more information, please see our
+    <a href="http://informatics.fas.harvard.edu/category/faq.html">FAQ Page</a>.
+    </p><br>
+
+    <p>Please acknowledge our support when publishing your work by referring to us
+    as "The Bauer Core Facility at Harvard University."</p>
+    <p>
+    <p>Demultiplexing software version: {{version}}</p>
+    <p>Command line run:<br> {{cmd}}</p>
+    <h3>Sample Sheet:</h3>
+    {{sample_sheet}}
+    </p>
+{% endblock content %}

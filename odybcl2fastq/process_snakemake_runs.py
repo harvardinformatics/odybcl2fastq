@@ -149,12 +149,16 @@ def get_ody_snakemake_opts(run_dir):
     ss_path = get_sample_sheet_path(run_dir)
     sample_sheet = SampleSheet(ss_path)
     sam_types = sample_sheet.get_sample_types()
+    sam_projects = sample_sheet.get_sample_projects()
     sample = list(sam_types.keys())[0]
+    project = ''
+    if sample in sam_projects:
+        project = sam_projects[sample]
     runlogger = setup_run_logger(run)
     def sn_logger(sn_dict):
         if 'msg' in sn_dict:
             runlogger.info(sn_dict['msg'])
-    config = {'run': run, 'sample': sample}
+    config = {'run': run, 'sample': sample, 'project': project}
     opts = {
         'config': config,
         'cluster_config': 'snakemake_cluster.json',
@@ -218,6 +222,8 @@ def process_runs():
     logger.info("Processing runs")
 
     run_dirs_tmp = find_runs(need_to_process)
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190412_NS500422_0806_AH52GKBGXB/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
@@ -231,26 +237,27 @@ def process_runs():
     results = {}
     failed_runs = []
     success_runs = []
-    run_dir = run_dirs[0]
+    if run_dirs:
+        run_dir = run_dirs[0]
 
-    logger.info("Current run  %s \n" % (json.dumps(run_dir)))
-    run = os.path.basename(os.path.normpath(run_dir))
-    opts = get_ody_snakemake_opts(run_dir)
-    logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
-    success = run_snakemake(opts)
+        logger.info("Current run  %s \n" % (json.dumps(run_dir)))
+        run = os.path.basename(os.path.normpath(run_dir))
+        opts = get_ody_snakemake_opts(run_dir)
+        logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
+        success = run_snakemake(opts)
 
-    if success:
-        success_runs.append(run)
-        status = 'success'
-    else:
-        failed_runs.append(run)
-        status = 'failure'
-        #failure_email(run, 'cmd', ret_code, 'std_out', 'std_err')
+        if success:
+            success_runs.append(run)
+            status = 'success'
+        else:
+            failed_runs.append(run)
+            status = 'failure'
+            #failure_email(run, 'cmd', ret_code, 'std_out', 'std_err')
 
-    logger.info(
-        "Completed run: success %s and failures %s\n\n\n" %
-        (json.dumps(success_runs), json.dumps(failed_runs))
-    )
+        logger.info(
+            "Completed run: success %s and failures %s\n\n\n" %
+            (json.dumps(success_runs), json.dumps(failed_runs))
+        )
 
 
 def main():
@@ -260,19 +267,19 @@ def main():
         for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR', 'MOUNT_DIR', 'LOG_DIR', 'CONTROL_DIR']:
             logger.info("\t%s\t%s" % (k, config[k]))
         # run continuously
-        while True:
-            # queue new runs for demultiplexing with bcl2fastq2
-            process_runs()
-            # check for any runs that started but never completed demultiplexing
-            #notify_incomplete_runs()
-            # wait before checking for more runs to process
-            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
-            if frequency != FREQUENCY:
-                logger.info("Frequency is not default: %i\n" % frequency)
-            time.sleep(frequency)
+        #while True:
+        # queue new runs for demultiplexing with bcl2fastq2
+        process_runs()
+        # check for any runs that started but never completed demultiplexing
+        #notify_incomplete_runs()
+        # wait before checking for more runs to process
+        frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+        if frequency != FREQUENCY:
+            logger.info("Frequency is not default: %i\n" % frequency)
+        time.sleep(frequency)
     except Exception as e:
         logging.exception(e)
-        send_email(str(e), 'Odybcl2fastq exception')
+        #send_email(str(e), 'Odybcl2fastq exception')
         return 1
 
 

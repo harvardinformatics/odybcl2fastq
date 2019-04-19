@@ -12,7 +12,7 @@ def generateMessageId():
     '''
     return make_msgid()
 
-def composeMessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[]):
+def composeMessage(message, subject, summary_data, fromaddr, toemaillist, template, ccemaillist=[], bccemaillist=[]):
     msg = MIMEMultipart()
     msg['Message-ID'] = generateMessageId()
     msg['From'] = fromaddr
@@ -23,16 +23,18 @@ def composeMessage(message, subject, summary_data, fromaddr, toemaillist, ccemai
     if len(bccemaillist) > 0:
         msg['Bcc'] = COMMASPACE.join(bccemaillist)
     if summary_data:
-        html = get_html(summary_data)
-        msg.attach(MIMEText(html.encode('utf-8'), 'html'))
+        html = get_html(summary_data, template)
+        msg.attach(MIMEText(html, 'html'))
     else:
-        msg.attach(MIMEText(message[-900000:], 'plain'))
+        if len(message) > 900000:
+            message = message[-900000:]
+        msg.attach(MIMEText(message, 'plain'))
     return msg
 
-def buildmessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[], server=None):
+def buildmessage(message, subject, summary_data, fromaddr, toemaillist, template='summary.html', ccemaillist=[], bccemaillist=[], server=None):
     if not server:
         server = config.EMAIL['smtp']
-    msg = composeMessage(message, subject, summary_data, fromaddr, toemaillist, ccemaillist=[], bccemaillist=[])
+    msg = composeMessage(message, subject, summary_data, fromaddr, toemaillist, template, ccemaillist=[], bccemaillist=[])
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)
     success = smtp.sendmail(fromaddr, emails, msg.as_string())
@@ -40,11 +42,11 @@ def buildmessage(message, subject, summary_data, fromaddr, toemaillist, ccemaill
     return success
 
 
-def get_html(summary_data):
+def get_html(summary_data, template):
     # create html message with jinja
     j2_env = Environment(
         loader=PackageLoader('odybcl2fastq', 'templates'),
         trim_blocks=True
     )
-    html = j2_env.get_template('summary.html').render(summary_data)
+    html = j2_env.get_template(template).render(summary_data)
     return html
