@@ -213,7 +213,9 @@ class SampleSheet(object):
         for key, row in self.sections['Data'].items():
             name = key.split(':')[1]
             if 'Sample_Project' in row and row['Sample_Project']:
-                sp[name] = row['Sample_Project']
+                if row['Sample_Project'] not in sp:
+                    sp[row['Sample_Project']] = []
+                sp[row['Sample_Project']].append(name)
         return sp
 
     def get_assay(self):

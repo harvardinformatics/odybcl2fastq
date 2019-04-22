@@ -148,17 +148,19 @@ def get_ody_snakemake_opts(run_dir):
     run = os.path.basename(os.path.normpath(run_dir))
     ss_path = get_sample_sheet_path(run_dir)
     sample_sheet = SampleSheet(ss_path)
-    sam_types = sample_sheet.get_sample_types()
     sam_projects = sample_sheet.get_sample_projects()
-    sample = list(sam_types.keys())[0]
-    project = ''
-    if sample in sam_projects:
-        project = sam_projects[sample]
+    projects = []
+    samples = []
+    for proj, sams in sam_projects.items():
+        for sam in sams:
+            projects.append(proj)
+            samples.append(sam)
+    # send logging to the runlogger
     runlogger = setup_run_logger(run)
     def sn_logger(sn_dict):
         if 'msg' in sn_dict:
             runlogger.info(sn_dict['msg'])
-    config = {'run': run, 'sample': sample, 'project': project}
+    config = {'run': run, 'samples': samples, 'projects': projects}
     opts = {
         'config': config,
         'cluster_config': 'snakemake_cluster.json',
@@ -223,7 +225,8 @@ def process_runs():
 
     run_dirs_tmp = find_runs(need_to_process)
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190412_NS500422_0806_AH52GKBGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
