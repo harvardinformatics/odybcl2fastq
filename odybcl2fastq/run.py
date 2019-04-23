@@ -601,7 +601,8 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
                     # update lims db
                     update_lims_db(run_folder, sample_sheet.sections, instrument)
                     # run  qc, TODO: consider a seperate job for this
-                    error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR, 12, True)
+                    fastqc_threads = os.environ.get('ODYBCL2FASTQ_FASTQC_THREADS', 12)
+                    error_files, fastqc_err, fastqc_out = fastqc_runner(args.BCL_OUTPUT_DIR, fastqc_threads, True)
                     with open(output_log, 'a+') as f:
                         f.write('\n'.join(fastqc_out) + "\n\n")
                         f.write('\n'.join(fastqc_err) + "\n\n")
