@@ -160,6 +160,11 @@ def get_ody_snakemake_opts(run_dir):
     def sn_logger(sn_dict):
         if 'msg' in sn_dict:
             runlogger.info(sn_dict['msg'])
+    output_dir = sample_sheet.get_output_dir()
+    if output_dir:
+        analysis =  output_dir
+    else:
+        analysis = run
     config = {'run': run, 'samples': samples, 'projects': projects}
     opts = {
         'config': config,
@@ -167,7 +172,7 @@ def get_ody_snakemake_opts(run_dir):
         'cluster': 'python slurm_submit.py',
         'printshellcmds': True,
         'printreason': True,
-        #'dryrun': True,
+        'dryrun': True,
         #'touch': True,
         'log_handler': sn_logger
     }
@@ -226,7 +231,9 @@ def process_runs():
     run_dirs_tmp = find_runs(need_to_process)
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190412_NS500422_0806_AH52GKBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190307_NB501677_0400_AH2WFKBGXB/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190205_NB551608_0037_AHJYG7BGX9/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
