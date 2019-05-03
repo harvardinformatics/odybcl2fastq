@@ -27,6 +27,7 @@ from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = ody_run.PROCESSED_FILE
 COMPLETE_FILE = ody_run.COMPLETE_FILE
+BILLING_ONLY_FILE = 'billing_only.txt'
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
 DAYS_TO_SEARCH = 7
@@ -88,6 +89,9 @@ def run_is_incomplete(dir):
         return False
     # filter out if modified after reasonable delay to allow for completion
     if ((now - m_time).days) <= INCOMPLETE_AFTER_DAYS:
+        return False
+    # filter out if tagged as billing only
+    if os.path.isfile(dir + BILLING_ONLY_FILE):
         return False
     # filter out if tagged as complete
     if os.path.isfile(dir + COMPLETE_FILE):

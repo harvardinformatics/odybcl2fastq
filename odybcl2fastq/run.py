@@ -33,6 +33,7 @@ from odybcl2fastq.qc.fastqc_runner import fastqc_runner
 
 PROCESSED_FILE = 'odybcl2fastq.processed'
 COMPLETE_FILE = 'odybcl2fastq.complete'
+BILLING_ONLY_FILE = 'billing_only.txt'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
 MASK_SHORT_ADAPTER_READS = 22
@@ -556,10 +557,11 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
     for t, v in sam_types.items():
         if v in types10x:
             is_10x = True
+            util.touch(args.BCL_RUNFOLDER_DIR + '/', BILLING_ONLY_FILE)
             break
     # skip everything but billing if run folder flagged
     # only do billing for 10x
-    if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + 'billing_only.txt') or is_10x:
+    if os.path.exists(args.BCL_RUNFOLDER_DIR + '/' + BILLING_ONLY_FILE):
         runlogger.info("This run is flagged for billing only %s" % run)
         update_lims_db(run, sample_sheet.sections, instrument)
         return
