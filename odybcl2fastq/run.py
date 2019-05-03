@@ -311,10 +311,10 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     # final
     src_root += '/'
     dest_root += '/'
-    if instrument == 'hiseq':
-        run_params_file = 'runParameters.xml'
-    else:  # nextseq
+    if instrument == 'nextseq':
         run_params_file = 'RunParameters.xml'
+    else:  # hiseq and novaseq
+        run_params_file = 'runParameters.xml'
     # get filename part of sample_sheet
     sample_sheet = sample_sheet.replace(src_root, '')
     files_to_copy = {
