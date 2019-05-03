@@ -123,7 +123,7 @@ class SampleSheet(object):
         corrected = False
         proj_by_sample = {}
         for sam, line in self.sections['Data'].items():
-            cols_to_validate = ['Sample_ID', 'Sample_Name', 'Sample_Project']
+            cols_to_validate = ['Sample_ID', 'Sample_Name', 'Sample_Project', 'index', 'index2']
             for col in cols_to_validate:
                 # remove any whitespace
                 if util.contains_whitespace(line[col]):
