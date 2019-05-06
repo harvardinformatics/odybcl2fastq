@@ -27,8 +27,8 @@ from odybcl2fastq.parsers.samplesheet import SampleSheet
 from snakemake import snakemake
 
 LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
-PROCESSED_FILE = 'ody.processed'
-COMPLETE_FILE = 'ody.complete'
+PROCESSED_FILE = 'status/ody.processed'
+COMPLETE_FILE = 'status/ody.complete'
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
 DAYS_TO_SEARCH = 7
@@ -41,7 +41,7 @@ PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
 FREQUENCY = 3
 
-logger = logging.getLogger('odybcl2fastq')
+logger = logging.getLogger('odybcl2fastq10x')
 
 def get_logger():
     return logger
@@ -151,10 +151,12 @@ def get_ody_snakemake_opts(run_dir):
     sam_projects = sample_sheet.get_sample_projects()
     projects = []
     samples = []
+    sources = []
     for proj, sams in sam_projects.items():
         for sam in sams:
             projects.append(proj)
             samples.append(sam)
+            sources.append(config.SOURCE_DIR)
     # send logging to the runlogger
     runlogger = setup_run_logger(run)
     def sn_logger(sn_dict):
@@ -165,14 +167,19 @@ def get_ody_snakemake_opts(run_dir):
         analysis =  output_dir
     else:
         analysis = run
-    config = {'run': run, 'samples': samples, 'projects': projects}
+    sm_config = {'run': run, 'samples': samples, 'projects': projects, 'sources':
+            sources}
     opts = {
-        'config': config,
+        'cores': 16,
+        'nodes': 4,
+        'local_cores': 4,
+        'config': sm_config,
         'cluster_config': 'snakemake_cluster.json',
         'cluster': 'python slurm_submit.py',
+        'cluster-status': 'python cluster_status.py',
         'printshellcmds': True,
         'printreason': True,
-        'dryrun': True,
+        #'dryrun': True,
         #'touch': True,
         'log_handler': sn_logger
     }
@@ -231,24 +238,35 @@ def process_runs():
     run_dirs_tmp = find_runs(need_to_process)
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190412_NS500422_0806_AH52GKBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190307_NB501677_0400_AH2WFKBGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190205_NB551608_0037_AHJYG7BGX9/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190205_NB551608_0037_AHJYG7BGX9/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190423_NB501677_0424_AHFFTFBGXB/','/n/boslfs/INSTRUMENTS/illumina/190424_NS500422_0812_AH3MF3BGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190423_NB501677_0424_AHFFTFBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190424_NS500422_0812_AH3MF3BGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190419_NB501677_0422_AHCGTFBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190422_D00742_0283_BHY3LJBCX2/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190422_D00742_0282_AHYJLWBCX2/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190425_NS500422_0813_AHFH5VBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190426_NS500422_0814_AHFHM5BGXB/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
         sample_sheet = SampleSheet(ss_path)
         sam_types = sample_sheet.get_sample_types()
+        poly_A = sample_sheet.has_poly_A_index()
+        if poly_A:
+            continue
         for t, v in sam_types.items():
-            if v == '10x single cell':
+            if v == '10x single cell' or v == '10x single cell rna':
                 run_dirs.append(run)
                 break
     logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
     results = {}
     failed_runs = []
     success_runs = []
-    if run_dirs:
-        run_dir = run_dirs[0]
+    for run_dir in run_dirs:
+        #run_dir = run_dirs[0]
 
         logger.info("Current run  %s \n" % (json.dumps(run_dir)))
         run = os.path.basename(os.path.normpath(run_dir))

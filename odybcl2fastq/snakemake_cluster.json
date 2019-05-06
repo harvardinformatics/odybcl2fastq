@@ -2,12 +2,12 @@
     "__default__": {
         "time": "0:00:10",
         "N": 1,
-        "cores": 1,
+        "cores": 8,
         "mem": 100,
         "partition": "bos-info",
         "name": "{rule}.{wildcards.run}",
-        "out": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}/log/{rule}.out",
-        "error": "/n/boslfs/LABS/informatics/mcorrea/ANALYSIS/{wildcards.run}/log/{rule}.err"
+        "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.out",
+        "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.err"
 
     },
     "demultiplex_10x": {
@@ -21,9 +21,11 @@
         "mem": 32000
     },
     "count_10x": {
-        "time": "18:00:00",
+        "time": "24:00:00",
         "cores": 12,
-        "mem": 48000
+        "mem": 90000,
+        "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.out",
+        "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.err"
     }
 }
 

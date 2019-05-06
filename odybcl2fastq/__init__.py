@@ -14,9 +14,10 @@ logging.basicConfig(
     format='%(message)s'
 )
 
+"""
 # Setup loggers
-"""logger  = logging.getLogger('odybcl2fastq')
-logfilename = os.environ.get('ODYBCL2FASTQ_LOG_FILE', 'odybcl2fastq.log')
+logger  = logging.getLogger('odybcl2fastq10x')
+logfilename = os.environ.get('ODYBCL2FASTQ_LOG_FILE', 'odybcl2fastq10x.log')
 if not logfilename.startswith('/'):
     logfilename = os.path.join(config.LOG_DIR, logfilename)
 handler = logging.FileHandler(logfilename)

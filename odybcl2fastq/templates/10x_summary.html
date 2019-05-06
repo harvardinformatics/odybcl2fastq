@@ -4,6 +4,11 @@
     <h3>{{run_folder}}</h3>
     <p>
     Dear Client,<br><br>
+    Please note that this 10x pipeline running demultiplexing, fastqc and count
+    is new.  Please let us know if you notice any issue with the processing of
+    your data,
+    you can see the scripts that were used here:<br>
+    <a href="{{fastq_url}}{{run_folder}}/script">{{fastq_url}}{{run_folder}}/script</a><br><br>
     The fastq files with the read sequences of run {{run}} are available at:<br>
     <a href="{{fastq_url}}{{run_folder}}">{{fastq_url}}{{run_folder}}</a><br>
     or under {{fastq_dir}}{{run_folder}} on the cluster.<br><br>

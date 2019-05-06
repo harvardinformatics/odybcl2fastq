@@ -231,3 +231,10 @@ class SampleSheet(object):
             if row['Description']:
                 subs.add(row['Description'])
         return list(subs)
+
+    def has_poly_A_index(self):
+        for k, row in self.sections['Data'].items():
+            if 'AAAA' in row['index']:
+                return True
+            else:
+                return False

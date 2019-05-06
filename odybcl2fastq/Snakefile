@@ -39,7 +39,7 @@ rule all:
         #expand("{output}{run}/script/demultiplex_10x.sh", output=config['output'], run=config['run'])
         #expand("{source}{run}/reference_genome.txt", source=config['source'], run=config['run'])
         #expand("{source}{run}/status/demultiplex.processed", source=config['source'], run=config['run'])
-        #expand("{output}{run}/script/{project}_{sample}_count.sh", output=config['output'], run=config['run'], project=config['projects'], sample=config['samples'])
+        #expand("{output}{run}/script/{project}.{sample}_count.sh", output=config['output'], run=config['run'], project=config['projects'], sample=config['samples'])
 
 rule demultiplex_10x_cmd:
     """
@@ -102,11 +102,12 @@ rule count_reference_genome:
         ref_file = ''
         if ref == 'hg19': # human
             ref_file = '%srefdata-cellranger-GRCh38-1.2.0' % (config['ref_dir'])
+        elif 'Zebrafish' in ref:
+            ref_file = '%szebrafish_ensembl' % (config['ref_dir'])
         else: # default to mouse
             ref_file = '%srefdata-cellranger-mm10-1.2.0' % (config['ref_dir'])
         with open('%s%s/reference_genome.txt' % (config['source'], wildcards.run), 'w+') as f:
             f.write(ref_file)
-
 
 rule count_10x_cmd:
     """
@@ -115,7 +116,7 @@ rule count_10x_cmd:
     input:
         ref=ancient(expand("{source}{{run}}/reference_genome.txt", source=config['source']))
     output:
-        expand("{output}{{run}}/script/{{project}}_{{sample}}_count.sh", output=config['output'])
+        expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=config['output'])
     shell:
         """
         ref=$(head -n 1 {input.ref})
@@ -137,9 +138,9 @@ rule count_10x:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        script=expand("{output}{{run}}/script/{{project}}_{{sample}}_count.sh", output=config['output'])
+        script=expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=config['output'])
     output:
-        touch(expand("{source}{{run}}/status/{{project}}_{{sample}}_count.processed", source=config['source']))
+        touch(expand("{source}{{run}}/status/{{project}}.{{sample}}_count.processed", source=config['source']))
     shell:
         """
         {input}
@@ -246,7 +247,7 @@ rule publish:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
         fastqc=expand("{source}{{run}}/status/fastqc.processed", source=config['source']),
         lims=expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']),
-        count=expand("{source}{{run}}/status/{project}_{sample}_count.processed", source=config['source'], project=config['projects'], sample=config['samples'])
+        count=expand("{source}{{run}}/status/{project}.{sample}_count.processed", zip, source=config['sources'], project=config['projects'], sample=config['samples'])
     output:
         touch(expand("{source}{{run}}/status/ody.complete", source=config['source']))
     shell:
