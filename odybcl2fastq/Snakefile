@@ -9,12 +9,11 @@ Created on  2019-03-25
 '''
 
 configfile: "snakemake_config.json"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, count_reference_genome
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq import config as ody_config
-from odybcl2fastq.status_db import StatusDB
 import odybcl2fastq.util as util
 import os
 
@@ -37,7 +36,6 @@ rule all:
     input:
         expand("{source}{run}/status/ody.complete", source=config['source'], run=config['run'])
         #expand("{output}{run}/script/demultiplex_10x.sh", output=config['output'], run=config['run'])
-        #expand("{source}{run}/reference_genome.txt", source=config['source'], run=config['run'])
         #expand("{source}{run}/status/demultiplex.processed", source=config['source'], run=config['run'])
         #expand("{output}{run}/script/{project}.{sample}_count.sh", output=config['output'], run=config['run'], project=config['projects'], sample=config['samples'])
 
@@ -76,54 +74,16 @@ rule demultiplex_10x:
         {input}
         """
 
-rule count_reference_genome:
-    """
-    determine reference genome for count
-    """
-    input:
-        expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
-        sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
-    output:
-        expand("{source}{{run}}/reference_genome.txt", source=config['source'])
-    run:
-        setup_run_logger(wildcards.run, False)
-        sample_sheet = SampleSheet(input.sample_sheet[0])
-        subs = sample_sheet.get_submissions()
-        stdb = StatusDB()
-        # TODO: assuming that all samples in the run are same type if not we
-        # should reconsider how to organize all the count bits
-        ref = ''
-        if subs:
-            sams = stdb.minilims_select('Sample', None, 'Submission', subs[0])
-            if sams:
-                ref = stdb.minilims_select('Sample', sams[0][0], 'Reference_Genome')
-                if ref:
-                    ref = ref[0][3]
-        ref_file = ''
-        if ref == 'hg19': # human
-            ref_file = '%srefdata-cellranger-GRCh38-1.2.0' % (config['ref_dir'])
-        elif 'Zebrafish' in ref:
-            ref_file = '%szebrafish_ensembl' % (config['ref_dir'])
-        else: # this will cause count to error and then we can add a genome
-            ref_file = ''
-            # email admins to notify we need a reference genome
-            message = "run %s doesn't have a reference genome prepared for: %s\n see logs here: %s%s.log\n" % (config['run'], ref, config['log'], config['run'])
-            subject = 'Run needs reference genome: %s' % config['run']
-            sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
-        with open('%s%s/reference_genome.txt' % (config['source'], wildcards.run), 'w+') as f:
-            f.write(ref_file)
-
 rule count_10x_cmd:
     """
     build a bash file with the demux cmd
     """
     input:
-        ref=ancient(expand("{source}{{run}}/reference_genome.txt", source=config['source']))
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
     output:
         expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=config['output'])
     shell:
         """
-        ref=$(head -n 1 {input.ref})
         fastq_path="{config[output]}{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
         cmd="#!/bin/bash\n"
         cmd+="source new-modules.sh\n"
@@ -131,7 +91,7 @@ rule count_10x_cmd:
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/count\n"
         cmd+="cd {config[output]}{wildcards.run}/count\n"
-        cmd+="cellranger count --lanes=1,2,3,4 --id={wildcards.sample} --transcriptome=$ref --localcores=12 --sample={wildcards.sample} --fastqs=$fastq_path"
+        cmd+="cellranger count --lanes=1,2,3,4 --id={wildcards.sample} --transcriptome={config[ref]} --localcores=12 --sample={wildcards.sample} --fastqs=$fastq_path"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -243,16 +203,22 @@ rule checksum:
         md5sum $files > {output.checksum}
         """
 
-def get_publish_input(wildcards):
-    return {
-        'checksum': ("%s%s/md5.txt" % (config['output'], wildcards.run)),
-        'count': "%s%s/status/%s.%s_count.processed{source}{{run}}/status/{project}.{sample}_count.processed", zip, source=config['sources'], project=config['projects'], sample=config['samples'])
+def publish_input(wildcards):
+    """
+    determine which files need to be ready to publish the run
+    count is not run if there is not reference genome
+    """
+    input = {
+        'checksum': "%s%s/md5sum.txt" % (config['output'], wildcards.run),
+        'fastqc': "%s%s/status/fastqc.processed" % (config['source'], wildcards.run),
+        'lims': "%s%s/status/update_lims_db.processed" % (config['source'], wildcards.run)
     }
-    ref = True
-    if ref:
-        for sample in config['samples']:
-            key = 'count_%s.%s' %
-            input['count'] = []
+    if config['ref']:
+        for i, sample in enumerate(config['samples']):
+            project = config['projects'][i]
+            key = 'count_%s.%s' % (project, sample)
+            input[key] = "%s%s/status/%s.%s_count.processed" % (config['source'], wildcards.run, project, sample)
+    return input
 
 
 rule publish:
@@ -260,10 +226,7 @@ rule publish:
     copy all output to a published location
     """
     input:
-        checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
-        fastqc=expand("{source}{{run}}/status/fastqc.processed", source=config['source']),
-        lims=expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']),
-        count=expand("{source}{{run}}/status/{project}.{sample}_count.processed", zip, source=config['sources'], project=config['projects'], sample=config['samples'])
+        unpack(publish_input)
     output:
         touch(expand("{source}{{run}}/status/ody.complete", source=config['source']))
     shell:

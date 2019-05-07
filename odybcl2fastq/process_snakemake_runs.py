@@ -25,6 +25,7 @@ from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from snakemake import snakemake
+from odybcl2fastq.status_db import StatusDB
 
 LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = 'status/ody.processed'
@@ -128,6 +129,36 @@ def get_sample_sheet_path(run_dir):
             sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
 
+def get_reference(run_dir):
+    ss_path = get_sample_sheet_path(run_dir)
+    run = os.path.basename(os.path.normpath(run_dir))
+    sample_sheet = SampleSheet(ss_path)
+    subs = sample_sheet.get_submissions()
+    stdb = StatusDB()
+    # TODO: assuming that all samples in the run are same type if not we
+    # should reconsider how to organize all the count bits
+    ref = ''
+    if subs:
+        sams = stdb.minilims_select('Sample', None, 'Submission', subs[0])
+        if sams:
+            ref = stdb.minilims_select('Sample', sams[0][0], 'Reference_Genome')
+            if ref:
+                ref = ref[0][3]
+    ref_file = ''
+    if ref == 'hg19': # human
+        ref_file = '%srefdata-cellranger-GRCh38-1.2.0' % config.ody['ref_dir']
+    elif 'Zebrafish' in ref:
+        ref_file = '%szebrafish_ensembl' % (config.ody['ref_dir'])
+    elif 'mouse' in ref:
+        ref_file = '%srefdata-cellranger-mm10-1.2.0' % (config.ody['ref_dir'])
+    else: # this will cause count to error and then we can add a genome
+        ref_file = ''
+        # email admins to notify we need a reference genome
+        message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
+        subject = 'Run needs reference genome: %s' % run
+        sent = buildmessage(message, subject, {}, config.EMAIL['from_email'], config.EMAIL['admin_email'])
+    return ref_file
+
 def get_output_log(run):
     logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
     return os.path.join(logdir, run + '.log')
@@ -159,6 +190,7 @@ def get_ody_snakemake_opts(run_dir):
             sources.append(config.SOURCE_DIR)
     # send logging to the runlogger
     runlogger = setup_run_logger(run)
+    ref_file = get_reference(run_dir)
     def sn_logger(sn_dict):
         if 'msg' in sn_dict:
             runlogger.info(sn_dict['msg'])
@@ -168,7 +200,7 @@ def get_ody_snakemake_opts(run_dir):
     else:
         analysis = run
     sm_config = {'run': run, 'samples': samples, 'projects': projects, 'sources':
-            sources}
+            sources, 'ref': ref_file}
     opts = {
         'cores': 16,
         'nodes': 4,
@@ -176,7 +208,7 @@ def get_ody_snakemake_opts(run_dir):
         'config': sm_config,
         'cluster_config': 'snakemake_cluster.json',
         'cluster': 'python slurm_submit.py',
-        'cluster-status': 'python cluster_status.py',
+        'cluster_status': 'python cluster_status.py',
         'printshellcmds': True,
         'printreason': True,
         #'dryrun': True,
@@ -238,7 +270,7 @@ def process_runs():
     run_dirs_tmp = find_runs(need_to_process)
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190412_NS500422_0806_AH52GKBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190307_NB501677_0400_AH2WFKBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190205_NB551608_0037_AHJYG7BGX9/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190423_NB501677_0424_AHFFTFBGXB/','/n/boslfs/INSTRUMENTS/illumina/190424_NS500422_0812_AH3MF3BGXB/']
@@ -249,6 +281,8 @@ def process_runs():
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190422_D00742_0282_AHYJLWBCX2/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190425_NS500422_0813_AHFH5VBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190426_NS500422_0814_AHFHM5BGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0011_BHJTKKDMXX/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NB502063_0322_AHGGVTBGXB/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
