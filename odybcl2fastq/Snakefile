@@ -104,8 +104,12 @@ rule count_reference_genome:
             ref_file = '%srefdata-cellranger-GRCh38-1.2.0' % (config['ref_dir'])
         elif 'Zebrafish' in ref:
             ref_file = '%szebrafish_ensembl' % (config['ref_dir'])
-        else: # default to mouse
-            ref_file = '%srefdata-cellranger-mm10-1.2.0' % (config['ref_dir'])
+        else: # this will cause count to error and then we can add a genome
+            ref_file = ''
+            # email admins to notify we need a reference genome
+            message = "run %s doesn't have a reference genome prepared for: %s\n see logs here: %s%s.log\n" % (config['run'], ref, config['log'], config['run'])
+            subject = 'Run needs reference genome: %s' % config['run']
+            sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
         with open('%s%s/reference_genome.txt' % (config['source'], wildcards.run), 'w+') as f:
             f.write(ref_file)
 
@@ -238,6 +242,18 @@ rule checksum:
         files=$(find {config[output]}{wildcards.run}/ -name *.fastq.gz -print0 | xargs -0)
         md5sum $files > {output.checksum}
         """
+
+def get_publish_input(wildcards):
+    return {
+        'checksum': ("%s%s/md5.txt" % (config['output'], wildcards.run)),
+        'count': "%s%s/status/%s.%s_count.processed{source}{{run}}/status/{project}.{sample}_count.processed", zip, source=config['sources'], project=config['projects'], sample=config['samples'])
+    }
+    ref = True
+    if ref:
+        for sample in config['samples']:
+            key = 'count_%s.%s' %
+            input['count'] = []
+
 
 rule publish:
     """
