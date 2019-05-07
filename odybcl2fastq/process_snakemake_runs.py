@@ -179,6 +179,7 @@ def get_ody_snakemake_opts(run_dir):
         'cluster_status': 'python cluster_status.py',
         'printshellcmds': True,
         'printreason': True,
+        'latency_wait': 5,
         #'cleanup_shadow': True,
         #'dryrun': True,
         #'touch': True,
@@ -250,7 +251,8 @@ def process_runs():
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190422_D00742_0282_AHYJLWBCX2/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190425_NS500422_0813_AHFH5VBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190426_NS500422_0814_AHFHM5BGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0011_BHJTKKDMXX/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
@@ -264,7 +266,6 @@ def process_runs():
                 run_dirs.append(run)
                 break
     logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
-
     results = {}
     failed_runs = []
     success_runs = []
