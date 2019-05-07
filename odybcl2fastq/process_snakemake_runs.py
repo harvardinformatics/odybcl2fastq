@@ -176,9 +176,10 @@ def get_ody_snakemake_opts(run_dir):
         'config': sm_config,
         'cluster_config': 'snakemake_cluster.json',
         'cluster': 'python slurm_submit.py',
-        'cluster-status': 'python cluster_status.py',
+        'cluster_status': 'python cluster_status.py',
         'printshellcmds': True,
         'printreason': True,
+        #'cleanup_shadow': True,
         #'dryrun': True,
         #'touch': True,
         'log_handler': sn_logger
@@ -238,7 +239,7 @@ def process_runs():
     run_dirs_tmp = find_runs(need_to_process)
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190412_NS500422_0806_AH52GKBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190307_NB501677_0400_AH2WFKBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190205_NB551608_0037_AHJYG7BGX9/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190423_NB501677_0424_AHFFTFBGXB/','/n/boslfs/INSTRUMENTS/illumina/190424_NS500422_0812_AH3MF3BGXB/']
@@ -249,6 +250,7 @@ def process_runs():
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190422_D00742_0282_AHYJLWBCX2/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190425_NS500422_0813_AHFH5VBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190426_NS500422_0814_AHFHM5BGXB/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
@@ -262,6 +264,7 @@ def process_runs():
                 run_dirs.append(run)
                 break
     logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
+
     results = {}
     failed_runs = []
     success_runs = []
