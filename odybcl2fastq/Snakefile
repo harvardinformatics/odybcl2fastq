@@ -35,9 +35,6 @@ rule all:
     """
     input:
         expand("{source}{run}/status/ody.complete", source=config['source'], run=config['run'])
-        #expand("{output}{run}/script/demultiplex_10x.sh", output=config['output'], run=config['run'])
-        #expand("{source}{run}/status/demultiplex.processed", source=config['source'], run=config['run'])
-        #expand("{output}{run}/script/{project}.{sample}_count.sh", output=config['output'], run=config['run'], project=config['projects'], sample=config['samples'])
 
 rule demultiplex_10x_cmd:
     """
@@ -50,7 +47,6 @@ rule demultiplex_10x_cmd:
     shell:
         """
         cmd="#!/bin/bash\n"
-        cmd+="source new-modules.sh\n"
         cmd+="module purge\n"
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/fastq\n"
@@ -86,7 +82,6 @@ rule count_10x_cmd:
         """
         fastq_path="{config[output]}{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
         cmd="#!/bin/bash\n"
-        cmd+="source new-modules.sh\n"
         cmd+="module purge\n"
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/count\n"
@@ -138,7 +133,6 @@ rule fastqc_cmd:
     shell:
         """
         cmd="#!/bin/bash\n"
-        cmd+="source new-modules.sh\n"
         cmd+="module purge\n"
         cmd+="module load fastqc/0.11.5-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/QC\n"
@@ -193,8 +187,7 @@ rule checksum:
     calculate checksum for all the fastq files
     """
     input:
-        expand("{output}{{run}}/SampleSheet.csv", output=config['output']),
-        expand("{output}{{run}}/RunInfo.xml", output=config['output'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
     output:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
     shell:

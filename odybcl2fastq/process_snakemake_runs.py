@@ -32,7 +32,7 @@ PROCESSED_FILE = 'status/ody.processed'
 COMPLETE_FILE = 'status/ody.complete'
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
-DAYS_TO_SEARCH = 7
+DAYS_TO_SEARCH = 3
 INCOMPLETE_AFTER_DAYS = 2
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
@@ -211,10 +211,11 @@ def get_ody_snakemake_opts(run_dir):
         'cluster_status': 'python cluster_status.py',
         'printshellcmds': True,
         'printreason': True,
-        'latency_wait': 5,
         #'cleanup_shadow': True,
         #'dryrun': True,
+        'latency_wait': 7,
         #'touch': True,
+        #'printdag': True,
         'log_handler': sn_logger
     }
     return opts
@@ -270,23 +271,12 @@ def process_runs():
     logger.info("Processing runs")
 
     run_dirs_tmp = find_runs(need_to_process)
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190412_NS500422_0806_AH52GKBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190326_NB502063_0304_AHCFNCBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190325_NB502063_0303_AH7WTYBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190307_NB501677_0400_AH2WFKBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190205_NB551608_0037_AHJYG7BGX9/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190423_NB501677_0424_AHFFTFBGXB/','/n/boslfs/INSTRUMENTS/illumina/190424_NS500422_0812_AH3MF3BGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190423_NB501677_0424_AHFFTFBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190424_NS500422_0812_AH3MF3BGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190419_NB501677_0422_AHCGTFBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190422_D00742_0283_BHY3LJBCX2/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190422_D00742_0282_AHYJLWBCX2/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190425_NS500422_0813_AHFH5VBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190426_NS500422_0814_AHFHM5BGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0011_BHJTKKDMXX/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0011_BHJTKKDMXX/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0011_BHJTKKDMXX/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NB502063_0322_AHGGVTBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NB502063_0322_AHGGVTBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NS500422_0818_AHGJN3BGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190508_NS500422_0820_AHGK5KBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
