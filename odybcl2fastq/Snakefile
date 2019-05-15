@@ -17,6 +17,14 @@ from odybcl2fastq import config as ody_config
 import odybcl2fastq.util as util
 import os
 
+#setup_run_logger(wildcards.run, False)
+#sample_sheet = SampleSheet(input.sample_sheet[0])
+#samples = sample_sheet.get_samples()
+
+# use wildcard constraints to populate the output files with this runs samples
+"""wildcard_constraint:
+    samples: '|'.join(samples['Sample_ID']),
+    projects: '|'.join(samples['Sample_Project'])"""
 
 onstart:
     """
@@ -86,7 +94,7 @@ rule count_10x_cmd:
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/count\n"
         cmd+="cd {config[output]}{wildcards.run}/count\n"
-        cmd+="cellranger count --lanes=1,2,3,4 --id={wildcards.sample} --transcriptome={config[ref]} --localcores=12 --sample={wildcards.sample} --fastqs=$fastq_path"
+        cmd+="cellranger count --id={wildcards.sample} --transcriptome={config[ref]} --localcores=12 --sample={wildcards.sample} --fastqs=$fastq_path"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """

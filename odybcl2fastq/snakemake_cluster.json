@@ -2,7 +2,7 @@
     "__default__": {
         "time": "0:00:10",
         "N": 1,
-        "cores": 8,
+        "cores": 24,
         "mem": 100,
         "partition": "bos-info,general,shared",
         "name": "{rule}.{wildcards.run}",
@@ -12,17 +12,17 @@
     },
     "demultiplex_10x": {
         "time": "4-20:00:00",
-        "cores": 8,
+        "cores": 24,
         "mem": 32000,
     },
     "fastqc": {
         "time": "4-12:00:00",
-        "cores": 8,
+        "cores": 24,
         "mem": 32000
     },
     "count_10x": {
         "time": "4-18:00:00",
-        "cores": 12,
+        "cores": 24,
         "mem": 90000,
         "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.out",
         "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.err"

@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import logging
 import odybcl2fastq.util as util
+import pandas as pd
 import re, os
 
 class SampleSheet(object):
@@ -10,6 +11,11 @@ class SampleSheet(object):
         self.path = path
         self.lanes = []
         self.sections = self.sheet_parse(path)
+        self.samples = self.get_samples()
+
+    def get_samples(self):
+        data = pd.DataFrame(self.sections['Data'].values())
+        return data
 
     def sheet_parse(self, samplesheet=None):
         defaults_by_section = {

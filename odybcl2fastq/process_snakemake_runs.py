@@ -179,15 +179,9 @@ def get_ody_snakemake_opts(run_dir):
     run = os.path.basename(os.path.normpath(run_dir))
     ss_path = get_sample_sheet_path(run_dir)
     sample_sheet = SampleSheet(ss_path)
-    sam_projects = sample_sheet.get_sample_projects()
-    projects = []
-    samples = []
-    sources = []
-    for proj, sams in sam_projects.items():
-        for sam in sams:
-            projects.append(proj)
-            samples.append(sam)
-            sources.append(config.SOURCE_DIR)
+    df = sample_sheet.get_samples()
+    samples = df['Sample_ID']
+    projects = df['Sample_Project']
     # send logging to the runlogger
     runlogger = setup_run_logger(run)
     ref_file = get_reference(run_dir)
@@ -199,11 +193,10 @@ def get_ody_snakemake_opts(run_dir):
         analysis =  output_dir
     else:
         analysis = run
-    sm_config = {'run': run, 'samples': samples, 'projects': projects, 'sources':
-            sources, 'ref': ref_file}
+    sm_config = {'run': run, 'samples': samples, 'projects': projects, 'ref': ref_file}
     opts = {
         'cores': 16,
-        'nodes': 4,
+        'nodes': 99,
         'local_cores': 4,
         'config': sm_config,
         'cluster_config': 'snakemake_cluster.json',
@@ -213,7 +206,7 @@ def get_ody_snakemake_opts(run_dir):
         'printreason': True,
         #'cleanup_shadow': True,
         #'dryrun': True,
-        'latency_wait': 7,
+        'latency_wait': 30,
         #'touch': True,
         #'printdag': True,
         'log_handler': sn_logger
@@ -277,6 +270,14 @@ def process_runs():
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NS500422_0818_AHGJN3BGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190508_NS500422_0820_AHGK5KBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190510_A00794_0015_BHJVWTDMXX/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190513_NB501677_0436_AHCVHGBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190513_NB502063_0327_AHFL7YBGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190513_NB551608_0082_AHCFK3BGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190513_NS500422_0822_AHFFTMBGXB/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190514_NB501677_0437_AHCGN5BGXB/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)
