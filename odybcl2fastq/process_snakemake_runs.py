@@ -47,12 +47,12 @@ logger = logging.getLogger('odybcl2fastq10x')
 def get_logger():
     return logger
 
-def failure_email(run, cmd, ret_code, std_out, std_err):
-    log = ody_run.get_output_log(run)
+def failure_email(run, cmd, ret_code, std_out, std_err = ''):
+    log = get_output_log(run)
     subject = "Run Failed: %s" % run
     message = (
         "%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
-        " error: %s\nsee log: %s\n" % (subject, cmd, ret_code, std_out, std_err, log)
+        " error: %s\nsee log: %s\n" % (subject, cmd, str(ret_code), std_out, std_err, log)
     )
     send_email(message, subject)
 
@@ -200,8 +200,8 @@ def get_ody_snakemake_opts(run_dir):
         analysis =  output_dir
     else:
         analysis = run
-    sm_config = {'run': run, 'samples': samples, 'projects': projects, 'ref': ref_file, 'gtf': gtf}
-    opts = {
+    sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf}
+    """opts = {
         'cores': 16,
         'nodes': 99,
         'local_cores': 4,
@@ -212,17 +212,58 @@ def get_ody_snakemake_opts(run_dir):
         'printshellcmds': True,
         'printreason': True,
         #'cleanup_shadow': True,
-        #'dryrun': True,
+        'dryrun': True,
         'latency_wait': 60,
         #'touch': True,
         #'printdag': True,
         'log_handler': sn_logger
+    }"""
+    opts = {
+        '--cores': 16,
+        '--local-cores': 4,
+        '--max-jobs-per-second': 2,
+        '--config': json.dumps(sm_config),
+        '--cluster-config': 'snakemake_cluster.json',
+        '--cluster': 'python slurm_submit.py',
+        '--printshellcmds': True,
+        '--printreason': True,
+        #'cleanup_shadow': True,
+        #'unlock': True,
+        '--dryrun': True,
+        'latency_wait': 60,
+        #'touch': True,
     }
-    return opts
+    return ['%s %s' % (k, v) for k, v in opts.items()]
 
-def run_snakemake(opts):
-    ret = snakemake('Snakefile', **opts)
-    return ret
+def run_snakemake(cmd, output_log):
+    # run unix cmd, stream out and error, return last lines of out
+    with open(output_log, 'a+') as writer:
+        with open(output_log, 'r') as reader:
+            proc = Popen(cmd, shell=True, stderr=STDOUT, stdout=writer)
+            lines = []
+            # stream output to log, std out
+            while proc.poll() is None:
+                line = reader.readline()
+                # save last 40 lines for email
+                if line:
+                    lines.append(line)
+                    if len(lines) > 40:
+                        lines.pop(0)
+                sys.stdout.write(line)
+            # write any remaining output
+            try:
+                line = reader.readline()
+                lines.append(line)
+                sys.stdout.write(line)
+            except Exception:
+                pass
+            code = proc.wait()
+    return code, ''.join(lines)
+    """proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+    std_out, std_err = proc.communicate()
+    #return snakemake('Snakefile', **opts)
+    return (proc.returncode, std_out, std_err, cmd)"""
 
 def notify_incomplete_runs():
     run_dirs = find_runs(run_is_incomplete)
@@ -262,21 +303,19 @@ def copy_log():
         logger.error('Error creating HTML log file: %s' % str(e))
 
 
-def process_runs():
+def process_runs(pool):
     '''
     Fills up the pool with runs with apply_async
     If anything is ready, result is placed in success_runs or failed_runs
     Then looks for more runs
     '''
     logger.info("Processing runs")
-
     run_dirs_tmp = find_runs(need_to_process)
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0011_BHJTKKDMXX/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NB502063_0322_AHGGVTBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NS500422_0818_AHGJN3BGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190508_NS500422_0820_AHGK5KBGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190508_NS500422_0820_AHGK5KBGXB/', '/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190510_A00794_0015_BHJVWTDMXX/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
@@ -298,42 +337,85 @@ def process_runs():
                 run_dirs.append(run)
                 break
     logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
+
     results = {}
     failed_runs = []
     success_runs = []
-    for run_dir in run_dirs:
-        #run_dir = run_dirs[0]
+    queued_runs = {}
 
-        logger.info("Current run  %s \n" % (json.dumps(run_dir)))
-        run = os.path.basename(os.path.normpath(run_dir))
-        opts = get_ody_snakemake_opts(run_dir)
-        logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
-        success = run_snakemake(opts)
+    while len(run_dirs) > 0 or len(results) > 0:
+        logger.info("Current runs found %s Runs pending results: %s Runs queued: %s\n" % (json.dumps(run_dirs), json.dumps(list(results.keys())),
+                    json.dumps(list(queued_runs.keys()))))
+        while len(run_dirs) > 0:
+            run_dir = run_dirs.pop()
+            run = os.path.basename(os.path.normpath(run_dir))
+            opts = get_ody_snakemake_opts(run_dir)
+            logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
+            run_log = get_output_log(run)
+            cmd = 'snakemake ' + ' '.join(opts)
+            logger.info("Running cmd: %s\n" % cmd)
+            print(test99)
+            results[run] = pool.apply_async(run_snakemake, (cmd, run_log,))
+            queued_runs[run] = 1
+        for run in list(results.keys()):
+            result = results[run]
+            if result.ready():
+                # 5 day timeout
+                timeout = (5 * 24 * 60 * 60)
+                ret_code, lines = results.get(timeout)
+                if ret_code == 0:
+                    success_runs.append(run)
+                    status = 'success'
+                else:
+                    failed_runs.append(run)
+                    status = 'failure'
+                    failure_email(run, cmd, ret_code, lines)
+                    logging.info('Run failed: %s with code %s\n %s\n %s' % (run, str(ret_code), cmd, lines))
+                del results[run]
+                del queued_runs[run]
 
-        if success:
-            success_runs.append(run)
-            status = 'success'
-        else:
-            failed_runs.append(run)
-            status = 'failure'
-            #failure_email(run, 'cmd', ret_code, 'std_out', 'std_err')
-
-        logger.info(
-            "Completed run: success %s and failures %s\n\n\n" %
-            (json.dumps(success_runs), json.dumps(failed_runs))
-        )
-
+        logger.info("After checking results, runs found %s Runs pending results: %s Runs queued: %s\n"
+                % (json.dumps(run_dirs), json.dumps(list(results.keys())),
+                    json.dumps(list(queued_runs.keys()))))
+        sleep(10)
+        #new_run_dirs = find_runs(need_to_process)
+        new_run_dirs = []
+        for new_run_dir in new_run_dirs:
+            new_run = os.path.basename(os.path.normpath(new_run_dir))
+            if new_run not in queued_runs:
+                run_dirs.append(new_run_dir)
+        if len(run_dirs) > 0:
+            logger.info("Found %s more runs: %s\n" % (len(run_dirs),
+                json.dumps(run_dirs)))
+    logger.info(
+        "Completed %s runs: %s success %s and %s failures %s\n\n\n" %
+        (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs))
+    )
+def setup_main_logger():
+    LOGLEVELSTR = os.environ.get('ODYBCL2FASTQ_LOG_LEVEL', 'INFO')
+    logger  = logging.getLogger('odybcl2fastq10x')
+    logfilename = os.environ.get('ODYBCL2FASTQ_LOG_FILE', 'odybcl2fastq10x.log')
+    if not logfilename.startswith('/'):
+        logfilename = os.path.join(config.LOG_DIR, logfilename)
+    handler = logging.FileHandler(logfilename)
+    handler.setLevel(logging.getLevelName(LOGLEVELSTR))
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 def main():
     try:
+        setup_main_logger()
         logger.info("Starting ody10x processing")
         logger.info("Running with ")
         for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR', 'MOUNT_DIR', 'LOG_DIR', 'CONTROL_DIR']:
             logger.info("\t%s\t%s" % (k, config[k]))
+        proc_num = PROC_NUM
+        pool = Pool(proc_num)
         # run continuously
         #while True:
         # queue new runs for demultiplexing with bcl2fastq2
-        process_runs()
+        process_runs(pool)
         # check for any runs that started but never completed demultiplexing
         #notify_incomplete_runs()
         # wait before checking for more runs to process

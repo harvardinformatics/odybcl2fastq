@@ -300,4 +300,4 @@ def send_success_email(subject):
     cmd = util.get_file_contents(cmd_file)
     ss_file = '%s%s/SampleSheet.csv' % (config['source'], config['run'])
     summary_data = get_summary_data(cmd, config['run'], ss_file)
-    sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
+    #sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
