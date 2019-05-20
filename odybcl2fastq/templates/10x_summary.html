@@ -4,10 +4,18 @@
     <h3>{{run_folder}}</h3>
     <p>
     Dear Client,<br><br>
-    Please note that this 10x pipeline running demultiplexing, fastqc and count
-    is new.  Please let us know if you notice any issue with the processing of
-    your data,
-    you can see the scripts that were used here:<br>
+    The following assumptions were made in processing your data based off
+    information in the submission.<br>
+    <ul style="list-style-type:circle;">
+    {% for assumption in assumptions %}
+        <li>{{assumption}}</li>
+    {% endfor %}
+    </ul>
+    If any of these
+    assumptions are incorrect for your data then the results provided may not
+    be accurate.  Please do not hesitate to reach out to the core with
+    questions.<br><br>
+    Please examine the scripts used to process your data here:<br>
     <a href="{{fastq_url}}{{run_folder}}/script">{{fastq_url}}{{run_folder}}/script</a><br><br>
     The fastq files with the read sequences of run {{run}} are available at:<br>
     <a href="{{fastq_url}}{{run_folder}}">{{fastq_url}}{{run_folder}}</a><br>
@@ -31,7 +39,12 @@
     <p>Please acknowledge our support when publishing your work by referring to us
     as "The Bauer Core Facility at Harvard University."</p>
     <p>
-    <p>Demultiplexing software version: {{version}}</p>
+    <p>Software versions:</p>
+    <ul style="list-style-type:circle;">
+    {% for version in versions %}
+        <li>{{version}}</li>
+    {% endfor %}
+    </ul>
     <p>Command line run:<br> {{cmd}}</p>
     <h3>Sample Sheet:</h3>
     {{sample_sheet}}

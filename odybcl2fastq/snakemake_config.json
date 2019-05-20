@@ -3,7 +3,7 @@
     "output": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/",
     "published": "/n/boslfs/LABS/informatics/sequencing/PUBLISHED/",
     "log": "/n/informatics_external/seq/odybcl2fastq_log/",
-    "ref_dir": "/n/boslfs/LABS/informatics/refs/10x/",
+    "ref_dir": "/n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger/",
     "run": "",
     "sample": ""
 }

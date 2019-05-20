@@ -145,19 +145,26 @@ def get_reference(run_dir):
             if ref:
                 ref = ref[0][3]
     ref_file = ''
+    gtf = ''
     if ref == 'hg19': # human
-        ref_file = '%srefdata-cellranger-GRCh38-1.2.0' % config.ody['ref_dir']
+        ref_file = '%srefdata-cellranger-hg19-3.3.0' % config.ody['ref_dir']
+    elif ref == 'GRCh': # human
+        ref_file = '%srefdata-cellranger-GRCh38-3.0.0' % config.ody['ref_dir']
     elif 'Zebrafish' in ref:
         ref_file = '%szebrafish_ensembl' % (config.ody['ref_dir'])
     elif 'mouse' in ref:
-        ref_file = '%srefdata-cellranger-mm10-1.2.0' % (config.ody['ref_dir'])
+        ref_file = '%srefdata-cellranger-mm10-3.0.0' % (config.ody['ref_dir'])
     else: # this will cause count to error and then we can add a genome
-        ref_file = ''
         # email admins to notify we need a reference genome
         message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
         subject = 'Run needs reference genome: %s' % run
         sent = buildmessage(message, subject, {}, config.EMAIL['from_email'], config.EMAIL['admin_email'])
-    return ref_file
+    # get gtf file
+    with open(ref_file + '/reference.json', 'r') as f:
+        data = json.load(f)
+        if 'input_gtf_files' in data:
+            gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
+    return (ref_file, gtf)
 
 def get_output_log(run):
     logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
@@ -184,7 +191,7 @@ def get_ody_snakemake_opts(run_dir):
     projects = df['Sample_Project']
     # send logging to the runlogger
     runlogger = setup_run_logger(run)
-    ref_file = get_reference(run_dir)
+    ref_file, gtf = get_reference(run_dir)
     def sn_logger(sn_dict):
         if 'msg' in sn_dict:
             runlogger.info(sn_dict['msg'])
@@ -193,7 +200,7 @@ def get_ody_snakemake_opts(run_dir):
         analysis =  output_dir
     else:
         analysis = run
-    sm_config = {'run': run, 'samples': samples, 'projects': projects, 'ref': ref_file}
+    sm_config = {'run': run, 'samples': samples, 'projects': projects, 'ref': ref_file, 'gtf': gtf}
     opts = {
         'cores': 16,
         'nodes': 99,
@@ -206,7 +213,7 @@ def get_ody_snakemake_opts(run_dir):
         'printreason': True,
         #'cleanup_shadow': True,
         #'dryrun': True,
-        'latency_wait': 30,
+        'latency_wait': 60,
         #'touch': True,
         #'printdag': True,
         'log_handler': sn_logger
@@ -269,7 +276,7 @@ def process_runs():
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NB502063_0322_AHGGVTBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_NS500422_0818_AHGJN3BGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190508_NS500422_0820_AHGK5KBGXB/']
-    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
+    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190510_A00794_0015_BHJVWTDMXX/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190506_A00794_0012_AHJTFFDMXX/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/181011_NS500422_0732_AHMYF2BGX7/']
@@ -277,7 +284,7 @@ def process_runs():
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190513_NB502063_0327_AHFL7YBGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190513_NB551608_0082_AHCFK3BGXB/']
     #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190513_NS500422_0822_AHFFTMBGXB/']
-    run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190514_NB501677_0437_AHCGN5BGXB/']
+    #run_dirs_tmp = ['/n/boslfs/INSTRUMENTS/illumina/190514_NB501677_0437_AHCGN5BGXB/']
     run_dirs = []
     for run in run_dirs_tmp:
         ss_path = get_sample_sheet_path(run)

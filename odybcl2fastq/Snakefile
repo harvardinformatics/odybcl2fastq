@@ -9,22 +9,13 @@ Created on  2019-03-25
 '''
 
 configfile: "snakemake_config.json"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, fastq_publish
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq import config as ody_config
 import odybcl2fastq.util as util
 import os
-
-#setup_run_logger(wildcards.run, False)
-#sample_sheet = SampleSheet(input.sample_sheet[0])
-#samples = sample_sheet.get_samples()
-
-# use wildcard constraints to populate the output files with this runs samples
-"""wildcard_constraint:
-    samples: '|'.join(samples['Sample_ID']),
-    projects: '|'.join(samples['Sample_Project'])"""
 
 onstart:
     """
@@ -204,6 +195,35 @@ rule checksum:
         md5sum $files > {output.checksum}
         """
 
+rule fastq_publish:
+    """
+    copy all output to a published location
+    """
+    input:
+        checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
+        fastqc=expand("{source}{{run}}/status/fastqc.processed", source=config['source']),
+        lims=expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']),
+        demultiplex=expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
+    output:
+        touch(expand("{source}{{run}}/status/fastq_publish.processed", source=config['source']))
+    shell:
+        """
+        cp -r {config[output]}{wildcards.run} {config[published]}
+        """
+
+rule fastq_email:
+    """
+    copy fastq files to final and send an email that fastq files are ready, this step is run only for jobs
+    running count
+    """
+    input:
+        expand("{source}{{run}}/status/fastq_publish.processed", source=config['source'])
+    output:
+        touch(expand("{source}{{run}}/status/fastq_email.processed", source=config['source']))
+    run:
+        subject = 'Demultiplex Summary for: %s (count pending)' % config['run']
+        send_success_email(subject)
+
 def publish_input(wildcards):
     """
     determine which files need to be ready to publish the run
@@ -214,7 +234,10 @@ def publish_input(wildcards):
         'fastqc': "%s%s/status/fastqc.processed" % (config['source'], wildcards.run),
         'lims': "%s%s/status/update_lims_db.processed" % (config['source'], wildcards.run)
     }
+    # if reference is provided then run count
     if config['ref']:
+        # copy fastq to final and send an email that count is pending
+        input['email'] = "%s%s/status/fastq_email.processed" % (config['source'], wildcards.run)
         for i, sample in enumerate(config['samples']):
             project = config['projects'][i]
             key = 'count_%s.%s' % (project, sample)
@@ -236,13 +259,8 @@ rule publish:
         """
 
 onsuccess:
-    message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
-    cmd_file = '%s%s/script/demultiplex_10x.sh' % (config['output'], config['run'])
-    cmd = util.get_file_contents(cmd_file)
-    ss_file = '%s%s/SampleSheet.csv' % (config['source'], config['run'])
-    summary_data = get_summary_data(cmd, config['run'], ss_file)
     subject = 'Demultiplex Summary for: %s' % config['run']
-    sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
+    send_success_email(subject)
 
 onerror:
     message = 'run %s failed\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
@@ -251,14 +269,35 @@ onerror:
 
 def get_summary_data(cmd, run, ss_file):
     sample_sheet = util.get_file_contents(ss_file)
+    assumptions = [
+        'chromium single-cell RNA-seq',
+        'ignoring the second index on a dual-indexed flowcell'
+    ]
+    versions = [
+        'cellranger 3.0.1',
+        'fastqc 0.11.5'
+    ]
+    if config['ref']:
+        assumptions.append('reference genome %s, see annotation under versions below' % os.path.basename(config['ref']))
+        assumptions.append('samples are full cell, not nuclei')
+        versions.append('annotation gtf: %s' % config['gtf'])
     summary_data = {
         'fastq_url': ody_config.FASTQ_URL,
         'fastq_dir': ody_config.MOUNT_DIR,
-        'version': 'cellranger 3.0.1',
+        'versions': versions,
         'run': run,
         'run_folder': run,
         'cmd': cmd,
         'sample_sheet_file': ss_file,
-        'sample_sheet': sample_sheet
+        'sample_sheet': sample_sheet,
+        'assumptions': assumptions
     }
     return summary_data
+
+def send_success_email(subject):
+    message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
+    cmd_file = '%s%s/script/demultiplex_10x.sh' % (config['output'], config['run'])
+    cmd = util.get_file_contents(cmd_file)
+    ss_file = '%s%s/SampleSheet.csv' % (config['source'], config['run'])
+    summary_data = get_summary_data(cmd, config['run'], ss_file)
+    sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
