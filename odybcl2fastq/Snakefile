@@ -15,7 +15,17 @@ from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq import config as ody_config
 import odybcl2fastq.util as util
+import pandas as pd
 import os
+
+# parse sample sheet for sample names
+sample_sheet_path = "%s%s/SampleSheet.csv" % (config['source'], config['run'])
+with open(sample_sheet_path, 'r') as ln:
+    idx = next(i for i, j in enumerate(ln) if j.startswith('[Data]'))
+data = pd.read_csv(sample_sheet_path, skiprows=idx+1)
+
+samples = list(data['Sample_ID']),
+projects = list(data['Sample_Project'])
 
 onstart:
     """
@@ -114,7 +124,6 @@ rule update_lims_db:
     output:
         touch(expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']))
     run:
-        # TODO: use this setup_logger for any logging from ody python functions
         setup_run_logger(wildcards.run, False)
         sample_sheet = SampleSheet(input.sample_sheet[0])
         instrument = sample_sheet.get_instrument()
@@ -238,8 +247,8 @@ def publish_input(wildcards):
     if config['ref']:
         # copy fastq to final and send an email that count is pending
         input['email'] = "%s%s/status/fastq_email.processed" % (config['source'], wildcards.run)
-        for i, sample in enumerate(config['samples']):
-            project = config['projects'][i]
+        for i, sample in enumerate(samples):
+            project = projects[i]
             key = 'count_%s.%s' % (project, sample)
             input[key] = "%s%s/status/%s.%s_count.processed" % (config['source'], wildcards.run, project, sample)
     return input
