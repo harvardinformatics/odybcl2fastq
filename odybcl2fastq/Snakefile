@@ -9,7 +9,7 @@ Created on  2019-03-25
 '''
 
 configfile: "snakemake_config.json"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, fastq_publish
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
@@ -204,9 +204,10 @@ rule checksum:
         md5sum $files > {output.checksum}
         """
 
-rule fastq_publish:
+rule fastq_email:
     """
-    copy all output to a published location
+    copy fastq files to final and send an email that fastq files are ready, this step is run only for jobs
+    running count
     """
     input:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
@@ -214,22 +215,9 @@ rule fastq_publish:
         lims=expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']),
         demultiplex=expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
     output:
-        touch(expand("{source}{{run}}/status/fastq_publish.processed", source=config['source']))
-    shell:
-        """
-        cp -r {config[output]}{wildcards.run} {config[published]}
-        """
-
-rule fastq_email:
-    """
-    copy fastq files to final and send an email that fastq files are ready, this step is run only for jobs
-    running count
-    """
-    input:
-        expand("{source}{{run}}/status/fastq_publish.processed", source=config['source'])
-    output:
         touch(expand("{source}{{run}}/status/fastq_email.processed", source=config['source']))
     run:
+        shell(cp -r {config[output]}{wildcards.run} {config[published]})
         subject = 'Demultiplex Summary for: %s (count pending)' % config['run']
         send_success_email(subject)
 
