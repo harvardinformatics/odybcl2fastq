@@ -535,6 +535,8 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
 
     runlogger = setup_run_logger(run, test)
     runlogger.info("***** START Odybcl2fastq *****\n\n")
+    # allow group write on the run log
+    os.chmod(get_output_log(run), FINAL_FILE_PERMISSIONS)
     check_sample_sheet(args.BCL_SAMPLE_SHEET, run)
     runlogger.info("Beginning to process run: %s\n args: %s\n" % (run, json.dumps(vars(args))))
     sample_sheet = SampleSheet(args.BCL_SAMPLE_SHEET)
