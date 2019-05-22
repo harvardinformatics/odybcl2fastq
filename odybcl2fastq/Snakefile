@@ -217,7 +217,7 @@ rule fastq_email:
     output:
         touch(expand("{source}{{run}}/status/fastq_email.processed", source=config['source']))
     run:
-        shell(cp -r {config[output]}{wildcards.run} {config[published]})
+        shell("cp -r {config[output]}{wildcards.run} {config[published]}")
         subject = 'Demultiplex Summary for: %s (count pending)' % config['run']
         send_success_email(subject)
 

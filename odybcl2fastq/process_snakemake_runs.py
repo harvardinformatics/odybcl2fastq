@@ -53,7 +53,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err = ''):
     subject = "Run Failed: %s" % run
     message = (
         "%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
-        " error: %s\nsee log: %s\n" % (subject, cmd, str(ret_code), std_out, std_err, log)
+        " error: %s\nsee log: %s\n" % (subject, cmd, ret_code, std_out, std_err, log)
     )
     send_email(message, subject)
 
@@ -160,11 +160,12 @@ def get_reference(run_dir):
         message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
         subject = 'Run needs reference genome: %s' % run
         sent = buildmessage(message, subject, {}, config.EMAIL['from_email'], config.EMAIL['admin_email'])
-    # get gtf file
-    with open(ref_file + '/reference.json', 'r') as f:
-        data = json.load(f)
-        if 'input_gtf_files' in data:
-            gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
+    if ref_file:
+        # get gtf file
+        with open(ref_file + '/reference.json', 'r') as f:
+            data = json.load(f)
+            if 'input_gtf_files' in data:
+                gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
     return (ref_file, gtf)
 
 def get_output_log(run):
@@ -213,7 +214,7 @@ def get_ody_snakemake_opts(run_dir):
         'printshellcmds': True,
         'printreason': True,
         #'cleanup_shadow': True,
-        'dryrun': True,
+        #'dryrun': True,
         'latency_wait': 60,
         #'touch': True,
         #'printdag': True,
@@ -225,12 +226,12 @@ def get_ody_snakemake_opts(run_dir):
         '--max-jobs-per-second': 2,
         '--config': ' '.join(['%s=%s' % (k, v) for k, v in sm_config.items()]),
         '--cluster-config': 'snakemake_cluster.json',
-        '--cluster': 'slurm_submit.py',
+        '--cluster': "'python slurm_submit.py'",
         '--printshellcmds': None,
         '--reason': None,
         #'cleanup-shadow': None,
         #'unlock': None,
-        '--dryrun': None,
+        #'--dryrun': None,
         '--latency-wait': 60,
         #'touch': None,
     }
