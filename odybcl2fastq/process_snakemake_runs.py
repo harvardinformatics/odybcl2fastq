@@ -148,7 +148,7 @@ def get_reference(run_dir):
     ref_file = ''
     gtf = ''
     if ref == 'hg19': # human
-        ref_file = '%srefdata-cellranger-hg19-3.3.0' % config.ody['ref_dir']
+        ref_file = '%srefdata-cellranger-hg19-3.0.0' % config.ody['ref_dir']
     elif ref == 'GRCh': # human
         ref_file = '%srefdata-cellranger-GRCh38-3.0.0' % config.ody['ref_dir']
     elif 'Zebrafish' in ref:
@@ -191,17 +191,12 @@ def get_ody_snakemake_opts(run_dir):
     df = sample_sheet.get_samples()
     samples = df['Sample_ID']
     projects = df['Sample_Project']
-    # send logging to the runlogger
-    runlogger = setup_run_logger(run)
-    ref_file, gtf = get_reference(run_dir)
-    def sn_logger(sn_dict):
-        if 'msg' in sn_dict:
-            runlogger.info(sn_dict['msg'])
     output_dir = sample_sheet.get_output_dir()
     if output_dir:
         analysis =  output_dir
     else:
         analysis = run
+    ref_file, gtf = get_reference(run_dir)
     sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf}
     """opts = {
         'cores': 16,
@@ -301,16 +296,19 @@ def get_runs():
     run_dirs_tmp = find_runs(need_to_process)
     run_dirs = []
     for run in run_dirs_tmp:
-        ss_path = get_sample_sheet_path(run)
-        sample_sheet = SampleSheet(ss_path)
-        sam_types = sample_sheet.get_sample_types()
-        poly_A = sample_sheet.has_poly_A_index()
-        if poly_A:
-            continue
-        for t, v in sam_types.items():
-            if v == '10x single cell' or v == '10x single cell rna':
-                run_dirs.append(run)
-                break
+        try:
+            ss_path = get_sample_sheet_path(run)
+            sample_sheet = SampleSheet(ss_path)
+            sam_types = sample_sheet.get_sample_types()
+            poly_A = sample_sheet.has_poly_A_index()
+            if poly_A:
+                continue
+            for t, v in sam_types.items():
+                if v == '10x single cell' or v == '10x single cell rna':
+                    run_dirs.append(run)
+                    break
+        except:
+            pass
     return run_dirs
 
 def process_runs(pool):
@@ -338,7 +336,10 @@ def process_runs(pool):
             logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
             run_log = get_output_log(run)
             cmd = 'snakemake ' + ' '.join(opts)
-            logger.info("Running cmd: %s\n" % cmd)
+            msg = "Running cmd: %s\n" % cmd
+            logger.info(msg)
+            runlogger = setup_run_logger(run)
+            runlogger.info(msg)
             results[run] = pool.apply_async(run_snakemake, (cmd, run_log,))
             queued_runs[run] = 1
         for run in list(results.keys()):
