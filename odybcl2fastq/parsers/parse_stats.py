@@ -32,10 +32,8 @@ def get_summary(output_dir, instrument, sample_sheet_dir, run_folder):
         lane_sum = get_lane_sum(lanes)
         lanes = aggregate_nextseq_lanes(lanes)
         undetermined = format_undetermined_nextseq(data['UnknownBarcodes'])
-    elif instrument == 'hiseq':
+    else: # hiseq and novaseq
         undetermined = format_undetermined(data['UnknownBarcodes'])
-    else:
-        raise Exception('instrument unknonw: ' + instrument)
     # format lane summary tables
     lanes = format_lane_table(lanes)
     summary_data = {
