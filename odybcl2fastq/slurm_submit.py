@@ -26,7 +26,8 @@ slurm_opts = OrderedDict([
         ('mem', '--mem'),
         ('name', '-J'),
         ('out', '-o'),
-        ('error', '-e')
+        ('error', '-e'),
+        ('exclude', '-x')
 ])
 jobscript = sys.argv[1]
 job_props = read_job_properties(jobscript)

@@ -4,7 +4,8 @@
         "N": 1,
         "cores": 24,
         "mem": 100,
-        "partition": "bos-info,general,shared",
+        "partition": "bos-info",
+        "exclude":"holy2a09203",
         "name": "{rule}.{wildcards.run}",
         "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.out",
         "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.err"

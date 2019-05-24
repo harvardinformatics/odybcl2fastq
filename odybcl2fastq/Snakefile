@@ -24,7 +24,7 @@ with open(sample_sheet_path, 'r') as ln:
     idx = next(i for i, j in enumerate(ln) if j.startswith('[Data]'))
 data = pd.read_csv(sample_sheet_path, skiprows=idx+1)
 
-samples = list(data['Sample_ID']),
+samples = list(data['Sample_ID'])
 projects = list(data['Sample_Project'])
 
 onstart:
