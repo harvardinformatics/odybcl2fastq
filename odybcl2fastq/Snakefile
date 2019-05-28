@@ -60,7 +60,7 @@ rule demultiplex_10x_cmd:
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/fastq\n"
         cmd+="cd {config[output]}{wildcards.run}/fastq\n"
-        cmd+="cellranger mkfastq --localcores=8 --ignore-dual-index --run={config[source]}{wildcards.run} --samplesheet={input.run_dir} --output-dir={config[output]}{wildcards.run}/fastq"
+        cmd+="cellranger mkfastq --ignore-dual-index --run={config[source]}{wildcards.run} --samplesheet={input.run_dir} --output-dir={config[output]}{wildcards.run}/fastq"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -95,7 +95,7 @@ rule count_10x_cmd:
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/count\n"
         cmd+="cd {config[output]}{wildcards.run}/count\n"
-        cmd+="cellranger count --id={wildcards.sample} --transcriptome={config[ref]} --localcores=12 --sample={wildcards.sample} --fastqs=$fastq_path"
+        cmd+="cellranger count --id={wildcards.sample} --transcriptome={config[ref]} --sample={wildcards.sample} --fastqs=$fastq_path"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """

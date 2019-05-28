@@ -41,7 +41,7 @@ SEARCH_AFTER_DATE = datetime.strptime('Mar 20 2019', '%b %d %Y')
 REQUIRED_FILES = ['InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 2))
 
-FREQUENCY = 3
+FREQUENCY = 60
 
 logger = logging.getLogger('odybcl2fastq10x')
 
