@@ -84,7 +84,8 @@ rule count_10x_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
+        expand("{source}{{run}}/status/fastq_email.processed", source=config['source'])
     output:
         expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=config['output'])
     shell:
@@ -183,7 +184,7 @@ rule cp_source_to_output:
         """
         cp {config[source]}{wildcards.run}/{params.sample_sheet} {output.sample_sheet}
         cp {config[source]}{wildcards.run}/{params.run_info} {output.run_info}
-        cp -r {config[source]}{wildcards.run}/{params.interop} {output.interop}
+        rsync -rt {config[source]}{wildcards.run}/{params.interop}/ {output.interop}/
         # copy these if they exist
         cp {config[source]}{wildcards.run}/{params.nextseq_run_params} {config[output]}{wildcards.run}/{params.nextseq_run_params} 2>/dev/null || :
         cp {config[source]}{wildcards.run}/{params.hiseq_run_params} {config[output]}{wildcards.run}/{params.hiseq_run_params} 2>/dev/null || :
@@ -252,7 +253,7 @@ rule publish:
         touch(expand("{source}{{run}}/status/ody.complete", source=config['source']))
     shell:
         """
-        cp -r {config[output]}{wildcards.run} {config[published]}
+        rsync -rt --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {config[output]}{wildcards.run}/ {config[published]}{wildcards.run}/
         """
 
 onsuccess:
