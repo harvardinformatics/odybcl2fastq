@@ -13,7 +13,7 @@
     },
     "demultiplex_10x": {
         "time": "4-20:00:00",
-        "cores": 8,
+        "cores": 12,
         "mem": 32000,
     },
     "fastqc": {

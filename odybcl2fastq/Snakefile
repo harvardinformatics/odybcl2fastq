@@ -45,8 +45,7 @@ rule all:
     """
     input:
         #expand("{source}{run}/{status}/ody.complete", source=config['source'], run=config['run'], status=STATUS_DIR)
-        #expand("{source}{run}/{status}/demultiplex.processed", source=config['source'], run=config['run'], status=STATUS_DIR)
-        expand("{output}{run}/script/demultiplex_10x.sh", output=config['output'], run=config['run'])
+        expand("{source}{run}/{status}/demultiplex.processed", source=config['source'], run=config['run'], status=STATUS_DIR)
 
 rule demultiplex_10x_cmd:
     """
