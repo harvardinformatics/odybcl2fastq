@@ -550,10 +550,11 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
     run_type = sample_sheet.get_run_type()
     sam_types = sample_sheet.get_sample_types()
     types10x = [
-        '10x single cell',
         '10x genome',
         '10x single cell rna',
-        '10x singel cell atac'
+        '10x single nuclei rna',
+        '10x single cell atac',
+        '10x single cell vdj'
     ]
     is_10x = False
     for t, v in sam_types.items():
