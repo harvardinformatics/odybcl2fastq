@@ -214,7 +214,9 @@ rule fastq_email:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
         fastqc=expand("{source}{{run}}/status/fastqc.processed", source=config['source']),
         lims=expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']),
-        demultiplex=expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
+        demultiplex=expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
+        sample_sheet=expand("{output}{{run}}/SampleSheet.csv", output=config['output']),
+        run_info=expand("{output}{{run}}/RunInfo.xml", output=config['output'])
     output:
         touch(expand("{source}{{run}}/status/fastq_email.processed", source=config['source']))
     run:
@@ -230,7 +232,9 @@ def publish_input(wildcards):
     input = {
         'checksum': "%s%s/md5sum.txt" % (config['output'], wildcards.run),
         'fastqc': "%s%s/status/fastqc.processed" % (config['source'], wildcards.run),
-        'lims': "%s%s/status/update_lims_db.processed" % (config['source'], wildcards.run)
+        'lims': "%s%s/status/update_lims_db.processed" % (config['source'], wildcards.run),
+        'sample_sheet': "%s%s/SampleSheet.csv" % (config['output'], wildcards.run),
+        'run_info': "%s%s/RunInfo.xml" % (config['output'], wildcards.run)
     }
     # if reference is provided then run count
     if config['ref']:
