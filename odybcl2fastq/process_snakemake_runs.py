@@ -155,7 +155,7 @@ def get_reference(run_dir):
         ref_file = '%szebrafish_ensembl/Danio_rerio.GRCz11' % (config.ody['ref_dir'])
     elif 'mouse' in ref or ref == 'mouse_mm10':
         ref_file = '%srefdata-cellranger-mm10-3.0.0' % (config.ody['ref_dir'])
-    else: # this will cause count to error and then we can add a genome
+    elif ref not in ['', 'None', 'Other']: # this will cause count to error and then we can add a genome
         # email admins to notify we need a reference genome
         message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
         subject = 'Run needs reference genome: %s' % run
@@ -210,9 +210,9 @@ def get_ody_snakemake_opts(run_dir, run_type):
         'nodes': 99,
         'local_cores': 4,
         'config': sm_config,
-        'cluster_config': 'snakemake_cluster.json',
-        'cluster': 'python slurm_submit.py',
-        'cluster_status': 'python cluster_status.py',
+        'cluster_config': '/app/odybcl2fastq/snakemake_cluster.json',
+        'cluster': 'python /app/odybcl2fastq/slurm_submit.py',
+        'cluster_status': 'python /app/odybcl2fastq/cluster_status.py',
         'printshellcmds': True,
         'printreason': True,
         #'cleanup_shadow': True,
@@ -227,14 +227,19 @@ def get_ody_snakemake_opts(run_dir, run_type):
         '--local-cores': 4,
         '--max-jobs-per-second': 2,
         '--config': ' '.join(['%s=%s' % (k, v) for k, v in sm_config.items()]),
-        '--cluster-config': 'snakemake_cluster.json',
-        '--cluster': "'python slurm_submit.py'",
+        '--cluster-config': '/app/odybcl2fastq/snakemake_cluster.json',
+        '--cluster': "'python /app/odybcl2fastq/slurm_submit.py'",
+        '--cluster-status': "'python /app/odybcl2fastq/cluster_status.py'",
         '--printshellcmds': None,
         '--reason': None,
-        #'cleanup-shadow': None,
+        '-s': '/app/odybcl2fastq/Snakefile',
+        '-d': '/app/odybcl2fastq',
+        #'-d': '/n/informatics/repos/odybcl2fastq_10x/odybcl2fastq/odybcl2fastq',
+        #'--configfile': '/app/odybcl2fastq/snakemake_config.json',
+        #'--cleanup-shadow': None,
         #'unlock': None,
         #'--dryrun': None,
-        '--latency-wait': 60,
+        '--latency-wait': 120,
         #'touch': None,
     }
     return [k + ((' %s' % v) if v else '') for k, v in opts.items()]
@@ -328,13 +333,15 @@ def process_runs(pool):
     '''
     logger.info("Processing runs")
     run_dirs = get_runs()
+    run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190522_NB551608_0087_AH3NMWBGXB/']
+    #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190604_NB502063_0338_AHCFKKBGXB/']
+    #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190607_NB551608_0097_AHLTKMAFXY/']
     logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
 
     results = {}
     failed_runs = []
     success_runs = []
     queued_runs = {}
-
     while len(run_dirs) > 0 or len(results) > 0:
         logger.info("Current runs found %s Runs pending results: %s Runs queued: %s\n" % (json.dumps(run_dirs), json.dumps(list(results.keys())),
                     json.dumps(list(queued_runs.keys()))))
@@ -375,6 +382,7 @@ def process_runs(pool):
                     json.dumps(list(queued_runs.keys()))))
         sleep(10)
         new_run_dirs = get_runs()
+        new_run_dirs = []
         for new_run_dir in new_run_dirs:
             new_run = os.path.basename(os.path.normpath(new_run_dir['run']))
             if new_run not in queued_runs:
@@ -408,16 +416,16 @@ def main():
         proc_num = PROC_NUM
         pool = Pool(proc_num)
         # run continuously
-        while True:
-            # queue new runs for demultiplexing with bcl2fastq2
-            process_runs(pool)
-            # check for any runs that started but never completed demultiplexing
-            #notify_incomplete_runs()
-            # wait before checking for more runs to process
-            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
-            if frequency != FREQUENCY:
-                logger.info("Frequency is not default: %i\n" % frequency)
-            time.sleep(frequency)
+        #while True:
+        # queue new runs for demultiplexing with bcl2fastq2
+        process_runs(pool)
+        # check for any runs that started but never completed demultiplexing
+        #notify_incomplete_runs()
+        # wait before checking for more runs to process
+        frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+        if frequency != FREQUENCY:
+            logger.info("Frequency is not default: %i\n" % frequency)
+        time.sleep(frequency)
     except Exception as e:
         logging.exception(e)
         #send_email(str(e), 'Odybcl2fastq exception')

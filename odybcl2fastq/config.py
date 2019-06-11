@@ -1,7 +1,7 @@
 from odybcl2fastq import util
 import os
 
-CONFIG_FILE = os.environ.get('ODYBCL2FASTQ_CONFIG_FILE', os.path.join('/etc', 'odybcl2fastq', 'config.json'))
+CONFIG_FILE = os.environ.get('ODYBCL2FASTQ_CONFIG_FILE', os.path.join('config.json'))
 
 
 class Config(object):
