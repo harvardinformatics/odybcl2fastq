@@ -1,9 +1,14 @@
 {
-    "source": "/n/boslfs/INSTRUMENTS/illumina/",
-    "output": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/",
-    "published": "/n/boslfs/LABS/informatics/sequencing/PUBLISHED/",
-    "log": "/n/informatics_external/seq/odybcl2fastq_log/",
-    "ref_dir": "/n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger/",
+    "source": "/source/",
+    "source_slurm": "/n/boslfs/INSTRUMENTS/illumina/",
+    "output": "/output/",
+    "output_slurm": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/odytest/",
+    "published": "/published/",
+    "published_slurm": "/n/boslfs/LABS/informatics/sequencing/PUBLISHED/odybcl2fastq_test/",
+    "log": "/log/",
+    "log_slurm": "/n/informatics_external/seq/odybcl2fastq_log_test/",
+    "ref": "/ref/",
+    "ref_slurm": "/n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger/",
     "run": "",
     "sample": ""
 }

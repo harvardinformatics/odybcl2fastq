@@ -13,7 +13,7 @@ Created on  2019-03-25
 
 import os
 import sys
-from shutil import copyfile
+import shutil
 from collections import OrderedDict
 
 from snakemake.utils import read_job_properties
@@ -26,10 +26,18 @@ slurm_opts = OrderedDict([
         ('mem', '--mem'),
         ('name', '-J'),
         ('out', '-o'),
-        ('error', '-e')
+        ('error', '-e'),
+        ('chdir', '--chdir')
 ])
 jobscript = sys.argv[1]
 job_props = read_job_properties(jobscript)
+with open(job_props['input'][0] + 'test', 'w') as fh:
+    with open(jobscript) as r:
+        for l in r:
+            if 'cd /app' in l:
+                l = 'singularity exec ody_dev.sif ' + l
+            fh.write(l)
+shutil.copyfile((job_props['input'][0] + 'test'), jobscript)
 
 # the input file is a bash script to submit to slurm, read cmd in
 with open(job_props['input'][0], 'r') as fh:
@@ -47,6 +55,8 @@ new_cmd = [cmd[0]] + prefix + cmd[1:]
 with open(job_props['input'][0], 'w') as fh:
     for l in new_cmd:
         fh.write(l)
+
+
 cli_opt_str = ' '.join(cli_opts)
 
 #os.system("hex exec sbatch {cli_opts} {script}".format(cli_opts=cli_opt_str, script=jobscript))
