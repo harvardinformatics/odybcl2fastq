@@ -38,7 +38,7 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
                 l = 'singularity exec -B /n/boslfs/INSTRUMENTS/illumina:/source \
                 -B /n/boslfs/LABS/informatics/sequencing/PUBLISHED/odybcl2fastq_test:/final \
                 -B /n/boslfs/LABS/informatics/sequencing/ANALYSIS/odytest:/output \
-                -B ~/odybcl2fastq_log_test:/log \
+                -B /n/informatics_external/seq/odybcl2fastq_log_test:/log \
                 -B /n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
                 -B /usr/bin/sbatch:/usr/bin/sbatch -B /usr/bin/sacct:/usr/bin/sacct \
                 -B /etc/slurm:/etc/slurm -B /slurm:/slurm \
