@@ -232,7 +232,7 @@ def get_ody_snakemake_opts(run_dir):
         #'--cleanup-shadow': None,
         #'unlock': None,
         #'--dryrun': None,
-        '--latency-wait': 60,
+        '--latency-wait': 120,
         #'touch': None,
     }
     return [k + ((' %s' % v) if v else '') for k, v in opts.items()]

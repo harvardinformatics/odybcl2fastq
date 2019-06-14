@@ -6,9 +6,9 @@
         "mem": 100,
         "partition": "bos-info",
         "name": "{rule}.{wildcards.run}",
-        "out": "{config[output]}{wildcards.run}/log/{rule}.out",
-        "error": "{config[output]}{wildcards.run}/log/{rule}.err",
-        "chdir": "{config[output]}{wildcards.run}"
+        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.out",
+        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.err",
+        "chdir": "{config[output_slurm]}{wildcards.run}"
 
     },
     "demultiplex_10x": {

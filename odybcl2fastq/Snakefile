@@ -60,9 +60,9 @@ rule demultiplex_10x_cmd:
         cmd="#!/bin/bash\n"
         cmd+="module purge\n"
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
-        cmd+="mkdir -p {config[output]}{wildcards.run}/fastq\n"
-        cmd+="cd {config[output]}{wildcards.run}/fastq\n"
-        cmd+="cellranger mkfastq --ignore-dual-index --run={config[source]}{wildcards.run} --samplesheet={config[source]}{wildcards.run}/SampleSheet.csv --output-dir={config[output]}{wildcards.run}/fastq"
+        cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
+        cmd+="cd {config[output_slurm]}{wildcards.run}/fastq\n"
+        cmd+="cellranger mkfastq --ignore-dual-index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir={config[output_slurm]}{wildcards.run}/fastq"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
