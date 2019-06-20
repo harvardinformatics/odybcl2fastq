@@ -2,9 +2,9 @@
     "__default__": {
         "time": "0:00:10",
         "N": 1,
-        "cores": 24,
+        "cores": 8,
         "mem": 100,
-        "partition": "bos-info",
+        "partition": "bos-info_priority",
         "name": "{rule}.{wildcards.run}",
         "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.out",
         "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.err"
@@ -12,18 +12,18 @@
     },
     "demultiplex_10x": {
         "time": "4-20:00:00",
-        "cores": 24,
+        "cores": 8,
         "mem": 32000,
     },
     "fastqc": {
         "time": "4-12:00:00",
-        "cores": 24,
+        "cores": 8,
         "mem": 32000
     },
     "count_10x": {
         "time": "4-18:00:00",
-        "cores": 24,
-        "mem": 100000,
+        "cores": 20,
+        "mem": 50000,
         "name": "{rule}.{wildcards.run}_{wildcards.sample}",
         "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.out",
         "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.err"
