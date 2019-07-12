@@ -184,7 +184,7 @@ def setup_run_logger(run):
     runlogger.addHandler(handler)
     return runlogger
 
-def get_ody_snakemake_opts(run_dir):
+def get_ody_snakemake_opts(run_dir, run_type):
     run = os.path.basename(os.path.normpath(run_dir))
     ss_path = get_sample_sheet_path(run_dir)
     sample_sheet = SampleSheet(ss_path)
@@ -197,7 +197,10 @@ def get_ody_snakemake_opts(run_dir):
     else:
         analysis = run
     ref_file, gtf = get_reference(run_dir)
-    sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf}
+    atac = ''
+    if 'atac' in run_type:
+        atac = '-atac'
+    sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac}
     """opts = {
         'cores': 16,
         'nodes': 99,
@@ -306,7 +309,7 @@ def get_runs():
                 continue
             for t, v in sam_types.items():
                 if v in types:
-                    run_dirs.append(run)
+                    run_dirs.append({'run':run, 'type':v})
                     break
         except:
             pass
@@ -331,9 +334,11 @@ def process_runs(pool):
         logger.info("Current runs found %s Runs pending results: %s Runs queued: %s\n" % (json.dumps(run_dirs), json.dumps(list(results.keys())),
                     json.dumps(list(queued_runs.keys()))))
         while len(run_dirs) > 0:
-            run_dir = run_dirs.pop()
+            run_info = run_dirs.pop()
+            run_type = run_info['type']
+            run_dir = run_info['run']
             run = os.path.basename(os.path.normpath(run_dir))
-            opts = get_ody_snakemake_opts(run_dir)
+            opts = get_ody_snakemake_opts(run_dir, run_type)
             logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
             run_log = get_output_log(run)
             cmd = 'snakemake ' + ' '.join(opts)
@@ -366,7 +371,7 @@ def process_runs(pool):
         sleep(10)
         new_run_dirs = get_runs()
         for new_run_dir in new_run_dirs:
-            new_run = os.path.basename(os.path.normpath(new_run_dir))
+            new_run = os.path.basename(os.path.normpath(new_run_dir['run']))
             if new_run not in queued_runs:
                 run_dirs.append(new_run_dir)
         if len(run_dirs) > 0:
