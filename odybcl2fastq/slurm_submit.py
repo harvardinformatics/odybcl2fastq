@@ -42,7 +42,7 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
                 -B /n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
                 -B /etc/slurm:/etc/slurm -B /slurm:/slurm \
                 -B /usr/bin/sbatch:/usr/bin/sbatch -B /usr/bin/sacct:/usr/bin/sacct \
-                -B /n/informatics/repos/odybcl2fastq_10x/odybcl2fastq:/app \
+                -B ~/repos/odybcl2fastq_10x/odybcl2fastq:/app \
                 -B /etc/sssd/sssd.conf:/etc/sssd/sssd.conf \
                 -B /usr/lib64/slurm:/usr/lib64/slurm \
                 -B /usr/lib64/libmunge.so.2:/usr/lib64/libmunge.so.2 \
@@ -51,7 +51,6 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
                 -B /var/run/munge:/var/run/munge \
                 -B /etc/nsswitch.conf:/etc/nsswitch.conf \
                 -B /etc/sssd/:/etc/sssd/ \
-                -B /usr/share/lua:/usr/share/lua \
                 -B /var/lib/sss:/var/lib/sss ~/ody_dev.sif ' + l
             fh.write(l)
 shutil.copyfile((job_props['input'][0] + 'test'), jobscript)

@@ -58,8 +58,6 @@ rule demultiplex_10x_cmd:
     shell:
         """
         cmd="#!/bin/bash\n"
-        cmd+="module purge\n"
-        cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="cd {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="cellranger mkfastq --ignore-dual-index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir={config[output_slurm]}{wildcards.run}/fastq"
@@ -98,7 +96,7 @@ rule count_10x_cmd:
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/count\n"
         cmd+="cd {config[output_slurm]}{wildcards.run}/count\n"
-        cmd+="cellranger count --id={wildcards.sample} --transcriptome={config[ref_slurm]} --sample={wildcards.sample} --fastqs=$fastq_path"
+        cmd+="cellranger count --id={wildcards.sample} --transcriptome={config[ref_slurm]} --sample={wildcards.sample} --fastqs=$fastq_path --localcores=2 --localmem=10000"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """

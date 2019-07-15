@@ -2,7 +2,7 @@
     "__default__": {
         "time": "0:00:10",
         "N": 1,
-        "cores": 24,
+        "cores": 8,
         "mem": 100,
         "partition": "bos-info",
         "name": "{rule}.{wildcards.run}",
@@ -13,7 +13,7 @@
     },
     "demultiplex_10x": {
         "time": "4-20:00:00",
-        "cores": 24,
+        "cores": 6,
         "mem": 32000
     },
     "fastqc": {
@@ -23,8 +23,8 @@
     },
     "count_10x": {
         "time": "4-18:00:00",
-        "cores": 24,
-        "mem": 100000,
+        "cores": 8,
+        "mem": 10000,
         "name": "{rule}.{wildcards.run}_{wildcards.sample}",
         "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}.out",
         "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}.err"
