@@ -45,7 +45,8 @@ rule all:
     """
     input:
         #expand("{source}{run}/{status}/ody.complete", source=config['source'], run=config['run'], status=STATUS_DIR)
-        expand("{source}{run}/{status}/demultiplex.processed", source=config['source'], run=config['run'], status=STATUS_DIR)
+        #expand("{source}{run}/{status}/demultiplex.processed", source=config['source'], run=config['run'], status=STATUS_DIR)
+        expand("{output}{run}/script/demultiplex_10x.sh", output=config['output'], run=config['run'])
 
 rule demultiplex_10x_cmd:
     """
@@ -61,7 +62,7 @@ rule demultiplex_10x_cmd:
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq\n"
         cmd+="cd /scratch/{wildcards.run}_fastq\n"
-        cmd+="cellranger mkfastq --ignore-dual-index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir=/scratch/{wildcards.run}_fastq\n"
+        cmd+="cellranger mkfastq --ignore-dual-index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir=/scratch/{wildcards.run}_fastq --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE\n"
         cmd+="rsync -rtv /scratch/{wildcards.run}_fastq/ {config[output_slurm]}{wildcards.run}/fastq/"
         echo "$cmd" >> {output}
         chmod 777 {output}
@@ -98,7 +99,7 @@ rule count_10x_cmd:
         cmd+="module load cellranger/3.0.1-fasrc01\n\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/count\n"
         cmd+="cd {config[output_slurm]}{wildcards.run}/count\n"
-        cmd+="cellranger count --id={wildcards.sample} --transcriptome={config[ref_slurm]} --sample={wildcards.sample} --fastqs=$fastq_path --localcores=2 --localmem=10000"
+        cmd+="cellranger count --id={wildcards.sample} --transcriptome={config[ref_slurm]} --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
