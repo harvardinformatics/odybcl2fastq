@@ -152,7 +152,7 @@ def get_reference(run_dir):
     elif ref == 'GRCh' or ref == 'human_GRC38': # human
         ref_file = '%srefdata-cellranger-GRCh38-3.0.0' % config.ody['ref_dir']
     elif 'Zebrafish' in ref or ref =='Zebrafish_GRCz11':
-        ref_file = '%szebrafish_ensembl' % (config.ody['ref_dir'])
+        ref_file = '%szebrafish_ensembl/Danio_rerio.GRCz11' % (config.ody['ref_dir'])
     elif 'mouse' in ref or ref == 'mouse_mm10':
         ref_file = '%srefdata-cellranger-mm10-3.0.0' % (config.ody['ref_dir'])
     else: # this will cause count to error and then we can add a genome
@@ -196,10 +196,14 @@ def get_ody_snakemake_opts(run_dir, run_type):
         analysis =  output_dir
     else:
         analysis = run
-    ref_file, gtf = get_reference(run_dir)
     atac = ''
     if 'atac' in run_type:
         atac = '-atac'
+
+    ref_file = ''
+    gtf = ''
+    if not 'nuclei' in run_type:
+        ref_file, gtf = get_reference(run_dir)
     sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac}
     """opts = {
         'cores': 16,
@@ -219,7 +223,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
         'log_handler': sn_logger
     }"""
     opts = {
-        '--cores': 16,
+        '--cores': 99,
         '--local-cores': 4,
         '--max-jobs-per-second': 2,
         '--config': ' '.join(['%s=%s' % (k, v) for k, v in sm_config.items()]),
@@ -298,8 +302,9 @@ def copy_log():
 def get_runs():
     run_dirs_tmp = find_runs(need_to_process)
     run_dirs = []
-    types = ['10x single cell', '10x single cell rna', '10x single nuclei rna', '10x singel cell vdj']
+    types = ['10x single cell', '10x single cell rna', '10x single nuclei rna', '10x single cell vdj', '10x single cell atac']
     for run in run_dirs_tmp:
+        run_info = {}
         try:
             ss_path = get_sample_sheet_path(run)
             sample_sheet = SampleSheet(ss_path)
