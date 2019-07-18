@@ -4,7 +4,7 @@
         "N": 1,
         "cores": 8,
         "mem": 100,
-        "partition": "bos-info",
+        "partition": "bos-info,holy-info,shared,general",
         "name": "{rule}.{wildcards.run}",
         "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.out",
         "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.err",
