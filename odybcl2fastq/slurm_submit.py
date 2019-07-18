@@ -27,7 +27,7 @@ slurm_opts = OrderedDict([
         ('name', '-J'),
         ('out', '-o'),
         ('error', '-e'),
-        ('chdir', '--chdir')
+        ('x', '-x')
 ])
 jobscript = sys.argv[1]
 job_props = read_job_properties(jobscript)
@@ -64,8 +64,9 @@ prefix = []
 cli_opts = []
 # get slurm opts as a prefix for cmd
 for prop, val in slurm_opts.items():
-    prefix.append('#SBATCH %s %s\n' % (val, job_props['cluster'][prop]))
-    cli_opts.append('%s %s' % (val, job_props['cluster'][prop]))
+    if prop in job_props['cluster']:
+        prefix.append('#SBATCH %s %s\n' % (val, job_props['cluster'][prop]))
+        cli_opts.append('%s %s' % (val, job_props['cluster'][prop]))
 
 # write new prefixed cmd to the file
 new_cmd = [cmd[0]] + prefix + cmd[1:]
