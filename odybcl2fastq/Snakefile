@@ -98,7 +98,8 @@ rule count_10x_cmd:
         cmd+="mkdir -p /scratch/{wildcards.run}_count\n"
         cmd+="cd /scratch/{wildcards.run}_count\n"
         cmd+="cellranger{config[atac]} count --id={wildcards.sample} --transcriptome={config[ref]} --sample={wildcards.sample} --fastqs=$fastq_path --localcores=12 --localmem=90\n"
-        cmd+="rsync /scratch/{wildcards.run}_count/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/"
+        cmd+="rsync /scratch/{wildcards.run}_count/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/\n"
+        cmd+="rm -rf /scratch/{wildcards.run}_count/{wildcards.sample}"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
