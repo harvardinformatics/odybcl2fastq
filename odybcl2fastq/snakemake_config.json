@@ -3,7 +3,7 @@
     "source_slurm": "/n/boslfs/INSTRUMENTS/illumina/",
     "output": "/output/",
     "output_slurm": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/odytest/",
-    "published": "/published/",
+    "published": "/final/",
     "published_slurm": "/n/boslfs/LABS/informatics/sequencing/PUBLISHED/odybcl2fastq_test/",
     "log": "/log/",
     "log_slurm": "~/odybcl2fastq_log_test/",
