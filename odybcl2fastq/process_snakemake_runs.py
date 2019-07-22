@@ -333,7 +333,7 @@ def process_runs(pool):
     '''
     logger.info("Processing runs")
     run_dirs = get_runs()
-    run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190522_NB551608_0087_AH3NMWBGXB/']
+    run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190522_NB551608_0087_AH3NMWBGXB/', 'type':''}]
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190604_NB502063_0338_AHCFKKBGXB/']
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190607_NB551608_0097_AHLTKMAFXY/']
     logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
@@ -347,6 +347,7 @@ def process_runs(pool):
                     json.dumps(list(queued_runs.keys()))))
         while len(run_dirs) > 0:
             run_info = run_dirs.pop()
+            print(run_info)
             run_type = run_info['type']
             run_dir = run_info['run']
             run = os.path.basename(os.path.normpath(run_dir))
