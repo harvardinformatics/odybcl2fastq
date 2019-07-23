@@ -240,7 +240,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
         #'unlock': None,
         #'--dryrun': None,
         '--latency-wait': 120,
-        #'touch': None,
+        #'--touch': None,
     }
     return [k + ((' %s' % v) if v else '') for k, v in opts.items()]
 
@@ -334,7 +334,8 @@ def process_runs(pool):
     logger.info("Processing runs")
     run_dirs = get_runs()
     #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190522_NB551608_0087_AH3NMWBGXB/', 'type':''}]
-    run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190711_NB502063_0348_AH3NH3BGXB/', 'type':''}]
+    #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190711_NB502063_0348_AH3NH3BGXB/', 'type':''}]
+    run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190624_A00794_0043_AH7HMTDRXX/', 'type':''}]
 
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190604_NB502063_0338_AHCFKKBGXB/']
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190607_NB551608_0097_AHLTKMAFXY/']

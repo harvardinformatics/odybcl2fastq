@@ -58,11 +58,11 @@ rule demultiplex_10x_cmd:
         """
         cmd="#!/bin/bash\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
-        cmd+="mkdir -p /scratch/{wildcards.run}_fastq\n"
-        cmd+="cd /scratch/{wildcards.run}_fastq\n"
-        cmd+="cellranger{config[atac]} mkfastq --ignore-dual-index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir=/scratch/{wildcards.run}_fastq --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE\n"
-        cmd+="rsync -rt /scratch/{wildcards.run}_fastq/ {config[output_slurm]}{wildcards.run}/fastq/\n"
-        cmd+="rm -rf /scratch/{wildcards.run}_fastq"
+        cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
+        cmd+="cd /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
+        cmd+="cellranger{config[atac]} mkfastq --ignore-dual-index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir=/scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE\n"
+        cmd+="rsync -rt /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/\n"
+        cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -95,11 +95,11 @@ rule count_10x_cmd:
         fastq_path="{config[output_slurm]}{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
         cmd="#!/bin/bash\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/count\n"
-        cmd+="mkdir -p /scratch/{wildcards.run}_count\n"
-        cmd+="cd /scratch/{wildcards.run}_count\n"
-        cmd+="cellranger{config[atac]} count --id={wildcards.sample} --transcriptome={config[ref_slurm]} --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE"
-        cmd+="rsync -rt /scratch/{wildcards.run}_count/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/\n"
-        cmd+="rm -rf /scratch/{wildcards.run}_count"
+        cmd+="mkdir -p /scratch/{wildcards.run}_count_\$SLURM_JOB_ID\n"
+        cmd+="cd /scratch/{wildcards.run}_count_\$SLURM_JOB_ID\n"
+        cmd+="cellranger{config[atac]} count --id={wildcards.sample} --transcriptome={config[ref]} --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE\n\n"
+        cmd+="rsync -rt /scratch/{wildcards.run}_count_\$SLURM_JOB_ID/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/\n"
+        cmd+="rm -rf /scratch/{wildcards.run}_count_\$SLURM_JOB_ID\n"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -146,7 +146,7 @@ rule fastqc_cmd:
         """
         cmd="#!/bin/bash\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/QC\n"
-        cmd+="fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads 1 -b $(find {config[output_slurm]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
+        cmd+="fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads 1 $(find {config[output_slurm]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
