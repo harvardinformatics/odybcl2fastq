@@ -202,7 +202,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
 
     ref_file = ''
     gtf = ''
-    if not 'nuclei' in run_type:
+    if not 'nuclei' in run_type and not run_type == '10x single cell vdj':
         ref_file, gtf = get_reference(run_dir)
     sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac}
     """opts = {
