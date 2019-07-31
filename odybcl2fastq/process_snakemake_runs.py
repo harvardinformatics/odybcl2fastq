@@ -130,7 +130,7 @@ def get_sample_sheet_path(run_dir):
             sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
 
-def get_reference(run_dir):
+def get_reference(run_dir, run_type):
     ss_path = get_sample_sheet_path(run_dir)
     run = os.path.basename(os.path.normpath(run_dir))
     sample_sheet = SampleSheet(ss_path)
@@ -150,11 +150,17 @@ def get_reference(run_dir):
     if ref == 'hg19' or ref == 'human_hg19': # human
         ref_file = '%srefdata-cellranger-hg19-3.0.0' % config.ody['ref_dir']
     elif ref == 'GRCh' or ref == 'human_GRC38': # human
-        ref_file = '%srefdata-cellranger-GRCh38-3.0.0' % config.ody['ref_dir']
+        if run_type == '10x single cell atac':
+            ref_file = '%satac-seq/refdata-cellranger-atac-GRCh38-1.0.1' % config.ody['ref_dir']
+        else:
+            ref_file = '%srefdata-cellranger-GRCh38-3.0.0' % config.ody['ref_dir']
     elif 'Zebrafish' in ref or ref =='Zebrafish_GRCz11':
         ref_file = '%szebrafish_ensembl/Danio_rerio.GRCz11' % (config.ody['ref_dir'])
     elif 'mouse' in ref or ref == 'mouse_mm10':
-        ref_file = '%srefdata-cellranger-mm10-3.0.0' % (config.ody['ref_dir'])
+        if run_type == '10x single cell atac':
+            ref_file = '%satac-seq/refdata-cellranger-atac-mm10-1.0.1' % (config.ody['ref_dir'])
+        else:
+            ref_file = '%srefdata-cellranger-mm10-3.0.0' % (config.ody['ref_dir'])
     else: # this will cause count to error and then we can add a genome
         # email admins to notify we need a reference genome
         message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
@@ -203,7 +209,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
     ref_file = ''
     gtf = ''
     if not 'nuclei' in run_type and not run_type == '10x single cell vdj':
-        ref_file, gtf = get_reference(run_dir)
+        ref_file, gtf = get_reference(run_dir, run_type)
     sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac}
     """opts = {
         'cores': 16,

@@ -55,12 +55,18 @@ rule demultiplex_10x_cmd:
         expand("{output}{{run}}/script/demultiplex_10x.sh", output=config['output'])
     shell:
         """
+        cellranger_mod="cellranger/3.0.1-fasrc01"
+        dual_index="--ignore-dual-index"
+        if [ ! -z "{config[atac]}" ]; then
+            cellranger_mod="cellranger-atac/1.1.0-fasrc01"
+            dual_index = ""
+        fi
         cmd="#!/bin/bash\n"
         cmd+="module purge\n"
-        cmd+="module load cellranger/3.0.1-fasrc01\n\n"
+        cmd+="module load $cellranger_mod\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/fastq\n"
         cmd+="cd {config[output]}{wildcards.run}/fastq\n"
-        cmd+="cellranger{config[atac]} mkfastq --ignore-dual-index --run={config[source]}{wildcards.run} --samplesheet={input.run_dir} --output-dir={config[output]}{wildcards.run}/fastq"
+        cmd+="cellranger{config[atac]} mkfastq $dual_index --run={config[source]}{wildcards.run} --samplesheet={input.run_dir} --output-dir={config[output]}{wildcards.run}/fastq"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -91,13 +97,19 @@ rule count_10x_cmd:
     shell:
         """
         fastq_path="{config[output]}{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
+        cellranger_mod="cellranger/3.0.1-fasrc01"
+        transcriptome="--transcriptome={config[ref]}"
+        if [ ! -z "{config[atac]}" ]; then
+            cellranger_mod="cellranger-atac/1.1.0-fasrc01"
+            transcriptome="--reference={config[ref]}"
+        fi
         cmd="#!/bin/bash\n"
         cmd+="module purge\n"
-        cmd+="module load cellranger/3.0.1-fasrc01\n\n"
+        cmd+="module load $cellranger_mod\n\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/count\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_count_{wildcards.sample}\n"
         cmd+="cd /scratch/{wildcards.run}_count_{wildcards.sample}\n"
-        cmd+="cellranger{config[atac]} count --id={wildcards.sample} --transcriptome={config[ref]} --sample={wildcards.sample} --fastqs=$fastq_path --localcores=12 --localmem=90\n"
+        cmd+="cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localcores=12 --localmem=90\n"
         cmd+="rsync -rt /scratch/{wildcards.run}_count_{wildcards.sample}/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/\n"
         cmd+="rm -rf /scratch/{wildcards.run}_count_{wildcards.sample}"
         echo "$cmd" >> {output}
