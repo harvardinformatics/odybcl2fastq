@@ -59,7 +59,7 @@ rule demultiplex_10x_cmd:
         dual_index="--ignore-dual-index"
         if [ ! -z "{config[atac]}" ]; then
             cellranger_mod="cellranger-atac/1.1.0-fasrc01"
-            dual_index = ""
+            dual_index=""
         fi
         cmd="#!/bin/bash\n"
         cmd+="module purge\n"
