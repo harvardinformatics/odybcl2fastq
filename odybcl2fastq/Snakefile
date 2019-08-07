@@ -106,12 +106,14 @@ rule count_10x_cmd:
         cmd="#!/bin/bash\n"
         cmd+="module purge\n"
         cmd+="module load $cellranger_mod\n\n"
+        cmd+="exit_code=0\n"
         cmd+="mkdir -p {config[output]}{wildcards.run}/count\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_count_{wildcards.sample}\n"
         cmd+="cd /scratch/{wildcards.run}_count_{wildcards.sample}\n"
-        cmd+="cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localcores=12 --localmem=90\n"
-        cmd+="rsync -rt /scratch/{wildcards.run}_count_{wildcards.sample}/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/\n"
-        cmd+="rm -rf /scratch/{wildcards.run}_count_{wildcards.sample}"
+        cmd+="cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localcores=12 --localmem=90 || exit_code=$?/n"
+        cmd+="rsync -rt /scratch/{wildcards.run}_count_{wildcards.sample}/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/ || exit_code=!(exit_code | $?)/n"
+        cmd+="rm -rf /scratch/{wildcards.run}_count_{wildcards.sample}\n"
+        cmd+="exit $exit_code"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
