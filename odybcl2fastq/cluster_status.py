@@ -8,7 +8,8 @@ https://snakemake.readthedocs.io/en/stable/tutorial/additional_features.html#usi
 '''
 import sys
 import subprocess
-
+if len(sys.argv) < 5:
+    print("failed")
 jobid = sys.argv[4]
 
 cmd = "sacct -j %s --format State --noheader | head -1 | awk '{print $1}'" % jobid
