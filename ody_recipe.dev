@@ -20,10 +20,10 @@ ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 conda install -y jinja2 numpy
 conda install -y -c bioconda mysqlclient
 conda install -y -c bioconda -c conda-forge snakemake
-conda install -c bioconda fastqc
+conda install -y -c bioconda fastqc
 
 %environment
-export TZ=America/New_York
+export TZ=$TZ
 export PYTHONPATH=/app
 export ODYBCL2FASTQ_CONFIG_FILE=/app/odybcl2fastq/config.json
 %runscript

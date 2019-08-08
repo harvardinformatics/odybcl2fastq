@@ -1,24 +1,28 @@
 #
 # Docker container for dev odybcl2fastq
 #
-FROM conda/miniconda3-centos7
+FROM centos:7.4.1708
 
-RUN yum -y update
-RUN yum install -y gcc
-RUN yum install -y sssd
+RUN yum -y update && yum install -y python wget mysql-devel gcc make python-devel unzip libffi-devel libssl-devel pyOpenSSL
+RUN yum -y install epel-release
+RUN yum -y install python-pip
+RUN yum -y install java-1.8.0-openjdk
+RUN yum -y install perl
 
 ENV TZ=America/New_York
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
+RUN wget https://support.illumina.com/content/dam/illumina-support/documents/downloads/software/bcl2fastq/bcl2fastq2-v2-20-0-linux-x86-64.zip && unzip bcl2fastq*.zip && rpm -i *.rpm
+RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.8.zip && unzip fastqc*.zip
 
-RUN conda install -y jinja2 numpy
-RUN conda install -y -c bioconda mysqlclient
-RUN conda install -y -c bioconda -c conda-forge snakemake
+ADD . /app
+
+RUN chmod 755 /app/FastQC/fastqc
+RUN ln -s /app/FastQC/fastqc /usr/local/bin/fastqc
+
+RUN pip install jinja2 numpy MySQL-python
 
 ENV PYTHONPATH=/app
-ADD . /app
-RUN chown -R 559147:403265 /app
-WORKDIR /app/odybcl2fastq
 
-CMD ["python", "/app/odybcl2fastq/process_snakemake_runs.py"]
+CMD ["python", "odybcl2fastq/process_runs.py"]
