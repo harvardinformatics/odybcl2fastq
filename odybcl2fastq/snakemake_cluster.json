@@ -14,7 +14,7 @@
         "time": "4-20:00:00",
         "cores": 8,
         "mem": 32000,
-        "x": "bos2-01-020[7-8]",
+        "x": "adams[01-07]",
     },
     "fastqc": {
         "time": "4-12:00:00",
@@ -25,7 +25,7 @@
     "count_10x": {
         "time": "4-18:00:00",
         "cores": 12,
-        "x": "bos2-01-02[09-12],adams[01-07]",
+        "x": "adams[01-07]",
         "mem": 90000,
         "name": "{rule}.{wildcards.run}_{wildcards.sample}",
         "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.out",
