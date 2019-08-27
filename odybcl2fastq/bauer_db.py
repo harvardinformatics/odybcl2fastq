@@ -1,6 +1,7 @@
 import json
 import logging
 import requests
+import os
 from odybcl2fastq import config
 from odybcl2fastq.parsers.parse_runinfoxml import get_readinfo_from_runinfo, get_runinfo
 from odybcl2fastq.parsers.samplesheet import SampleSheet
@@ -13,8 +14,9 @@ class BauerDB(object):
         self.sample_sheet_path = sample_sheet_path
         self.token =  self.get_token()
 
-    def insert_run(self, run):
+    def insert_run(self):
         # insert run
+        run = os.path.dirname(self.sample_sheet_path) + '/'
         runinfo_file = run + 'RunInfo.xml'
         run_data = get_runinfo(runinfo_file)
         run_id = self.post_data('runs', run_data)
@@ -65,6 +67,7 @@ class BauerDB(object):
 
     def post_data(self, endpoint, data):
         url = self.seq_api + endpoint + '/'
+        print(url)
         headers = {'Authorization': 'Token %s' % self.token}
         r = requests.post(url = url, data = data, headers=headers)
         try:
