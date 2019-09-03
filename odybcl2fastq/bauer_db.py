@@ -19,7 +19,7 @@ class BauerDB(object):
         run = os.path.dirname(self.sample_sheet_path) + '/'
         runinfo_file = run + 'RunInfo.xml'
         run_data = get_runinfo(runinfo_file)
-        run_id = self.post_data('runs', run_data)
+        run_id = self.send_data('runs', run_data)
 
         # insert read
         reads = get_readinfo_from_runinfo(runinfo_file)
@@ -30,7 +30,7 @@ class BauerDB(object):
                     'indexed':  (1 if read['IsIndexedRead'] == 'Y' else 0),
                     'length': read['NumCycles']
             }
-            read_id = self.post_data('reads', read_data)
+            read_id = self.send_data('reads', read_data)
 
         # insert lanes
         sample_sheet = SampleSheet(self.sample_sheet_path)
@@ -40,7 +40,7 @@ class BauerDB(object):
                     'run': run_id,
                     'number': lane,
             }
-            lane_ids[lane] = self.post_data('lanes', lane_data)
+            lane_ids[lane] = self.send_data('lanes', lane_data)
 
         # insert samples
         for sample_name, sample_row in sample_sheet.sections['Data'].items():
@@ -59,17 +59,19 @@ class BauerDB(object):
             else:
                 lane = lane_ids['1']
             sample_data['lane'] = lane
-            sample_id = self.post_data('samples', sample_data)
+            sample_id = self.send_data('samples', sample_data)
         return True
 
     def get_token(self):
         return config.BAUER_DB['password']
 
-    def post_data(self, endpoint, data):
+    def send_data(self, endpoint, data, method = 'POST'):
         url = self.seq_api + endpoint + '/'
-        print(url)
         headers = {'Authorization': 'Token %s' % self.token}
-        r = requests.post(url = url, data = data, headers=headers)
+        if method == 'PATCH':
+            r = requests.patch(url = url, data = data, headers=headers)
+        else:
+            r = requests.post(url = url, data = data, headers=headers)
         try:
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -105,3 +107,7 @@ class BauerDB(object):
             return sample_type
         else:
             return None
+
+    def update_data(self, endpoint, id, data):
+        endpoint = '%s/%s' % (endpoint, id)
+        self.send_data(endpoint, data, 'PATCH')

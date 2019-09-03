@@ -28,13 +28,16 @@ data = pd.read_csv(sample_sheet_path, skiprows=idx+1)
 samples = list(data['Sample_ID'])
 projects = list(data['Sample_Project'])
 
+# set up bauer db for step updates
+bauer = BauerDB(sample_sheet_path)
+
 onstart:
     """
     touch processed file to prevent reprocessing
-    prepare log, script and status_test dirs
+    prepare log, script and status dirs
     """
-    shell("mkdir -p {source}{run}/status_test", source={config['source']}, run=config['run'])
-    shell("touch {source}{run}/status_test/ody.processed", source=config['source'], run=config['run'])
+    shell("mkdir -p {source}{run}/status", source={config['source']}, run=config['run'])
+    shell("touch {source}{run}/status/ody.processed", source=config['source'], run=config['run'])
     shell("mkdir -p {output}{run}", output={config['output']}, run=config['run'])
     shell("mkdir -p {output}{run}/log", output={config['output']}, run=config['run'])
     shell("mkdir -p {output}{run}/script", output={config['output']}, run=config['run'])
@@ -44,7 +47,7 @@ rule all:
     final output of workflow
     """
     input:
-        expand("{source}{run}/status_test/insert_run.processed", source=config['source'], run=config['run'])
+        expand("{source}{run}/status/ody.complete", source=config['source'], run=config['run'])
 
 rule insert_run_into_bauer_db:
     """
@@ -53,10 +56,14 @@ rule insert_run_into_bauer_db:
     input:
         sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
     output:
-        touch(expand("{source}{{run}}/status_test/insert_run.processed", source=config['source']))
+        expand("{source}{{run}}/status/analysis_id", source=config['source'])
     run:
         bauer = BauerDB(input.sample_sheet[0])
         bauer.insert_run()
+        analysis_id = bauer.send_data('requests', {"run": wildcards.run, "status":"processing", "step":"demultiplex"})
+        analysis_file_path = '%s%s/status/analysis_id' % (config['source'], wildcards.run)
+        with open(analysis_file_path, 'w+') as f:
+            f.write(str(analysis_id))
 
 rule demultiplex_10x_cmd:
     """
@@ -92,7 +99,7 @@ rule demultiplex_10x:
     input:
         expand("{output}{{run}}/script/demultiplex_10x.sh", output=config['output'])
     output:
-        touch(expand("{source}{{run}}/status_test/demultiplex.processed", source=config['source']))
+        touch(expand("{source}{{run}}/status/demultiplex.processed", source=config['source']))
     shell:
         """
         {input}
@@ -103,8 +110,8 @@ rule count_10x_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("{source}{{run}}/status_test/demultiplex.processed", source=config['source']),
-        expand("{source}{{run}}/status_test/fastq_email.processed", source=config['source'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
+        expand("{source}{{run}}/status/fastq_email.processed", source=config['source'])
     output:
         expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=config['output'])
     shell:
@@ -139,7 +146,7 @@ rule count_10x:
     input:
         script=expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=config['output'])
     output:
-        touch(expand("{source}{{run}}/status_test/{{project}}.{{sample}}_count.processed", source=config['source']))
+        touch(expand("{source}{{run}}/status/{{project}}.{{sample}}_count.processed", source=config['source']))
     shell:
         """
         {input}
@@ -150,23 +157,25 @@ rule update_lims_db:
     connect the submission with the run in lims
     """
     input:
-        expand("{source}{{run}}/status_test/demultiplex.processed", source=config['source']),
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
         sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
     output:
-        touch(expand("{source}{{run}}/status_test/update_lims_db.processed", source=config['source']))
+        touch(expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']))
     run:
         setup_run_logger(wildcards.run, False)
         sample_sheet = SampleSheet(input.sample_sheet[0])
         instrument = sample_sheet.get_instrument()
         run_folder = config['source'] + wildcards.run
         update_lims_db(run_folder, sample_sheet.sections, instrument)
+        # also update step to fastqc
+        update_analysis({'step': 'fastqc'})
 
 rule fastqc_cmd:
     """
     build a bash file with the fastqc cmd
     """
     input:
-        ancient(expand("{source}{{run}}/status_test/demultiplex.processed", source=config['source']))
+        ancient(expand("{source}{{run}}/status/demultiplex.processed", source=config['source']))
     output:
         expand("{output}{{run}}/script/fastqc.sh", output=config['output'])
     shell:
@@ -188,7 +197,7 @@ rule fastqc:
     input:
         expand("{output}{{run}}/script/fastqc.sh", output=config['output'])
     output:
-        touch(expand("{source}{{run}}/status_test/fastqc.processed", source=config['source']))
+        touch(expand("{source}{{run}}/status/fastqc.processed", source=config['source']))
     shell:
         """
         {input}
@@ -199,7 +208,7 @@ rule cp_source_to_output:
     copy a few files from source to output dir
     """
     input:
-        expand("{source}{{run}}/status_test/demultiplex.processed", source=config['source'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
     params:
         sample_sheet="SampleSheet.csv",
         run_info="RunInfo.xml",
@@ -226,7 +235,7 @@ rule checksum:
     calculate checksum for all the fastq files
     """
     input:
-        expand("{source}{{run}}/status_test/demultiplex.processed", source=config['source'])
+        expand("{source}{{run}}/status/demultiplex.processed", source=config['source'])
     output:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
     shell:
@@ -242,14 +251,15 @@ rule fastq_email:
     """
     input:
         checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
-        fastqc=expand("{source}{{run}}/status_test/fastqc.processed", source=config['source']),
-        lims=expand("{source}{{run}}/status_test/update_lims_db.processed", source=config['source']),
-        demultiplex=expand("{source}{{run}}/status_test/demultiplex.processed", source=config['source']),
+        fastqc=expand("{source}{{run}}/status/fastqc.processed", source=config['source']),
+        lims=expand("{source}{{run}}/status/update_lims_db.processed", source=config['source']),
+        demultiplex=expand("{source}{{run}}/status/demultiplex.processed", source=config['source']),
         sample_sheet=expand("{output}{{run}}/SampleSheet.csv", output=config['output']),
         run_info=expand("{output}{{run}}/RunInfo.xml", output=config['output'])
     output:
-        touch(expand("{source}{{run}}/status_test/fastq_email.processed", source=config['source']))
+        touch(expand("{source}{{run}}/status/fastq_email.processed", source=config['source']))
     run:
+        update_analysis({'step': 'count'})
         shell("cp -r {config[output]}{wildcards.run} {config[published]}")
         subject = 'Demultiplex Summary for: %s (count pending)' % config['run']
         send_success_email(subject)
@@ -261,19 +271,19 @@ def publish_input(wildcards):
     """
     input = {
         'checksum': "%s%s/md5sum.txt" % (config['output'], wildcards.run),
-        'fastqc': "%s%s/status_test/fastqc.processed" % (config['source'], wildcards.run),
-        'lims': "%s%s/status_test/update_lims_db.processed" % (config['source'], wildcards.run),
+        'fastqc': "%s%s/status/fastqc.processed" % (config['source'], wildcards.run),
+        'lims': "%s%s/status/update_lims_db.processed" % (config['source'], wildcards.run),
         'sample_sheet': "%s%s/SampleSheet.csv" % (config['output'], wildcards.run),
         'run_info': "%s%s/RunInfo.xml" % (config['output'], wildcards.run)
     }
     # if reference is provided then run count
     if config['ref']:
         # copy fastq to final and send an email that count is pending
-        input['email'] = "%s%s/status_test/fastq_email.processed" % (config['source'], wildcards.run)
+        input['email'] = "%s%s/status/fastq_email.processed" % (config['source'], wildcards.run)
         for i, sample in enumerate(samples):
             project = projects[i]
             key = 'count_%s.%s' % (project, sample)
-            input[key] = "%s%s/status_test/%s.%s_count.processed" % (config['source'], wildcards.run, project, sample)
+            input[key] = "%s%s/status/%s.%s_count.processed" % (config['source'], wildcards.run, project, sample)
     return input
 
 
@@ -284,7 +294,7 @@ rule publish:
     input:
         unpack(publish_input)
     output:
-        touch(expand("{source}{{run}}/status_test/ody.complete", source=config['source']))
+        touch(expand("{source}{{run}}/status/ody.complete", source=config['source']))
     shell:
         """
         rsync -rt --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {config[output]}{wildcards.run}/ {config[published]}{wildcards.run}/
@@ -293,11 +303,13 @@ rule publish:
 onsuccess:
     subject = 'Demultiplex Summary for: %s' % config['run']
     send_success_email(subject)
+    update_analysis({'status': 'complete'})
 
 onerror:
     message = 'run %s failed\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
     subject = 'Run Failed: %s' % config['run']
-    #sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
+    sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
+    update_analysis({'status': 'fail'})
 
 def get_summary_data(cmd, run, ss_file):
     sample_sheet = util.get_file_contents(ss_file)
@@ -333,3 +345,9 @@ def send_success_email(subject):
     ss_file = '%s%s/SampleSheet.csv' % (config['source'], config['run'])
     summary_data = get_summary_data(cmd, config['run'], ss_file)
     sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
+
+def update_analysis(data):
+    analysis_file_path = '%s%s/status/analysis_id' % (config['source'], config['run'])
+    with open(analysis_file_path, 'r') as ln:
+        analysis_id = ln.readline().strip()
+    bauer.update_data('requests', analysis_id, data)

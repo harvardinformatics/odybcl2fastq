@@ -64,8 +64,6 @@ class SampleSheet(object):
                 if line[0] == '[':
                     defaults_section = linelist[0][1:-1]
                 else:
-                    print(linelist)
-                    print(defaults_section)
                     if defaults_section in ['Settings','Header']:
                         defaults_by_section[defaults_section][linelist[0]] = linelist[1]
 
