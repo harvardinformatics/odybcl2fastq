@@ -27,7 +27,7 @@ data = pd.read_csv(sample_sheet_path, skiprows=idx+1)
 
 samples = list(data['Sample_ID'])
 projects = list(data['Sample_Project'])
-STATUS_DIR = 'status_test'
+STATUS_DIR = 'status'
 
 # set up bauer db for step updates
 bauer = BauerDB(sample_sheet_path)
@@ -57,12 +57,12 @@ rule insert_run_into_bauer_db:
     input:
         sample_sheet=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
     output:
-        expand("{source}{{run}}/status/analysis_id", source=config['source'])
+        expand("{source}{{run}}/{status}/analysis_id", source=config['source'], status=STATUS_DIR)
     run:
         bauer = BauerDB(input.sample_sheet[0])
         bauer.insert_run()
         analysis_id = bauer.send_data('requests', {"run": wildcards.run, "status":"processing", "step":"demultiplex"})
-        analysis_file_path = '%s%s/status/analysis_id' % (config['source'], wildcards.run)
+        analysis_file_path = '%s%s/%s/analysis_id' % (config['source'], wildcards.run, STATUS_DIR)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
 
@@ -339,7 +339,7 @@ def send_success_email(subject):
     sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
 
 def update_analysis(data):
-    analysis_file_path = '%s%s/status/analysis_id' % (config['source'], config['run'])
+    analysis_file_path = '%s%s/%s/analysis_id' % (config['source'], config['run'], STATUS_DIR)
     with open(analysis_file_path, 'r') as ln:
         analysis_id = ln.readline().strip()
     bauer.update_data('requests', analysis_id, data)

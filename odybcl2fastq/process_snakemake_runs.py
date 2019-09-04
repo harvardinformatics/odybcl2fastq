@@ -342,7 +342,7 @@ def process_runs(pool):
     #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190522_NB551608_0087_AH3NMWBGXB/', 'type':''}]
     #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190711_NB502063_0348_AH3NH3BGXB/', 'type':''}]
     #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190624_A00794_0043_AH7HMTDRXX/', 'type':''}]
-    run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190617_A00794_0035_BHKNMJDMXX/', 'type':'atac'}]
+    #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190807_NB551608_0113_AH2LN3BGXC/', 'type':''}]
 
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190604_NB502063_0338_AHCFKKBGXB/']
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190607_NB551608_0097_AHLTKMAFXY/']
