@@ -71,6 +71,7 @@ rule demultiplex_10x_cmd:
     build a bash file with the demux cmd
     """
     input:
+        expand("{source}{{run}}/{status}/analysis_id", source=config['source'], status=STATUS_DIR),
         run_dir=expand("{source}{{run}}/SampleSheet.csv", source=config['source'])
     output:
         expand("{output}{{run}}/script/demultiplex_10x.sh", output=config['output'])
@@ -100,10 +101,9 @@ rule demultiplex_10x:
         expand("{output}{{run}}/script/demultiplex_10x.sh", output=config['output'])
     output:
         touch(expand("{source}{{run}}/{status}/demultiplex.processed", source=config['source'], status=STATUS_DIR))
-    shell:
-        """
-        {input}
-        """
+    run:
+        update_analysis({'step': 'demultiplex', 'status': 'processing'})
+        shell("{input}")
 
 rule count_10x_cmd:
     """
@@ -162,7 +162,7 @@ rule update_lims_db:
         run_folder = config['source'] + wildcards.run
         update_lims_db(run_folder, sample_sheet.sections, instrument)
         # also update step to fastqc
-        update_analysis({'step': 'fastqc'})
+        update_analysis({'step': 'fastqc', 'status': 'processing'})
 
 rule fastqc_cmd:
     """
@@ -251,7 +251,7 @@ rule fastq_email:
     output:
         touch(expand("{source}{{run}}/{status}/fastq_email.processed", source=config['source'], status=STATUS_DIR))
     run:
-        update_analysis({'step': 'count'})
+        update_analysis({'step': 'count', 'status': 'processing'})
         shell("cp -r {config[output]}{wildcards.run} {config[published]}")
         subject = 'Demultiplex Summary for: %s (count pending)' % config['run']
         send_success_email(subject)
@@ -301,7 +301,7 @@ onerror:
     message = 'run %s failed\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
     subject = 'Run Failed: %s' % config['run']
     sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
-    update_analysis({'status': 'fail'})
+    update_analysis({'status': 'failed'})
 
 def get_summary_data(cmd, run, ss_file):
     sample_sheet = util.get_file_contents(ss_file)

@@ -4,7 +4,7 @@
         "N": 1,
         "cores": 8,
         "mem": 100,
-        "partition": "bos-info_priority,holy-info,shared,general",
+        "partition": "bos-info_priority",
         "name": "{rule}.{wildcards.run}",
         "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.out",
         "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.err"
@@ -18,8 +18,7 @@
     "fastqc": {
         "time": "4-12:00:00",
         "cores": 8,
-        "mem": 32000,
-        "x": "bos2-01-020[7-8]",
+        "mem": 32000
     },
     "count_10x": {
         "time": "4-18:00:00",

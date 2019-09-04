@@ -55,12 +55,12 @@ def failure_email(run, cmd, ret_code, std_out, std_err = ''):
         "%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
         " error: %s\nsee log: %s\n" % (subject, cmd, ret_code, std_out, std_err, log)
     )
-    send_email(message, subject)
+    send_email(message, subject, 'admin_email')
 
 
-def send_email(message, subject):
+def send_email(message, subject, to = 'to_email'):
     fromaddr = config.EMAIL['from_email']
-    toemaillist = config.EMAIL['to_email']
+    toemaillist = config.EMAIL[to]
     buildmessage(message, subject, None, fromaddr, toemaillist)
 
 
@@ -392,7 +392,6 @@ def process_runs(pool):
                     json.dumps(list(queued_runs.keys()))))
         sleep(10)
         new_run_dirs = get_runs()
-        new_run_dirs = []
         for new_run_dir in new_run_dirs:
             new_run = os.path.basename(os.path.normpath(new_run_dir['run']))
             if new_run not in queued_runs:
