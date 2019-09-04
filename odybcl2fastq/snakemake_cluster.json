@@ -6,13 +6,12 @@
         "mem": 100,
         "partition": "bos-info_priority,holy-info,shared,general",
         "name": "{rule}.{wildcards.run}",
-        "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.out",
-        "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.err"
-
+        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.out",
+        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.err"
     },
     "demultiplex_10x": {
         "time": "4-20:00:00",
-        "cores": 8,
+        "cores": 12,
         "mem": 32000,
         "x": "adams[01-07]",
     },
@@ -25,11 +24,11 @@
     "count_10x": {
         "time": "4-18:00:00",
         "cores": 12,
-        "x": "adams[01-07]",
         "mem": 90000,
+        "x": "adams[01-07]",
         "name": "{rule}.{wildcards.run}_{wildcards.sample}",
-        "out": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.out",
-        "error": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/{wildcards.run}/log/{rule}.{wildcards.sample}.err"
+        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}.out",
+        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}.err"
     }
 }
 
