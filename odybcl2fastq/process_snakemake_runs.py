@@ -32,12 +32,12 @@ LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = 'status/ody.processed'
 COMPLETE_FILE = 'status/ody.complete'
 SKIP_FILE = 'odybcl2fastq.skip'
-INCOMPLETE_NOTIFIED_FILE = 'odybcl2fastq.incomplete_notified'
+INCOMPLETE_NOTIFIED_FILE = 'status/ody.incomplete_notified'
 DAYS_TO_SEARCH = 3
-INCOMPLETE_AFTER_DAYS = 2
+INCOMPLETE_AFTER_DAYS = 4
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
-SEARCH_AFTER_DATE = datetime.strptime('Mar 20 2019', '%b %d %Y')
+SEARCH_AFTER_DATE = datetime.strptime('Aug 10 2019', '%b %d %Y')
 REQUIRED_FILES = ['InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
 PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 7))
 
@@ -425,16 +425,16 @@ def main():
         proc_num = PROC_NUM
         pool = Pool(proc_num)
         # run continuously
-        #while True:
-        # queue new runs for demultiplexing with bcl2fastq2
-        process_runs(pool)
-        # check for any runs that started but never completed demultiplexing
-        #notify_incomplete_runs()
-        # wait before checking for more runs to process
-        frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
-        if frequency != FREQUENCY:
-            logger.info("Frequency is not default: %i\n" % frequency)
-        time.sleep(frequency)
+        while True:
+            # queue new runs for demultiplexing with bcl2fastq2
+            process_runs(pool)
+            # check for any runs that started but never completed demultiplexing
+            notify_incomplete_runs()
+            # wait before checking for more runs to process
+            frequency = os.getenv('ODYBCL2FASTQ_FREQUENCY', FREQUENCY)
+            if frequency != FREQUENCY:
+                logger.info("Frequency is not default: %i\n" % frequency)
+            time.sleep(frequency)
     except Exception as e:
         logging.exception(e)
         #send_email(str(e), 'Odybcl2fastq exception')

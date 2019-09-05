@@ -162,7 +162,7 @@ rule update_lims_db:
         run_folder = config['source'] + wildcards.run
         update_lims_db(run_folder, sample_sheet.sections, instrument)
         # also update step to fastqc
-        update_analysis({'step': 'fastqc', 'status': 'processing'})
+        update_analysis({'step': 'quality', 'status': 'processing'})
 
 rule fastqc_cmd:
     """
@@ -287,10 +287,9 @@ rule publish:
         unpack(publish_input)
     output:
         touch(expand("{source}{{run}}/{status}/ody.complete", source=config['source'], status=STATUS_DIR))
-    shell:
-        """
-        rsync -rt --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {config[output]}{wildcards.run}/ {config[published]}{wildcards.run}/
-        """
+    run:
+        update_analysis({'step': 'publish', 'status': 'processing'})
+        shell("rsync -rt --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {config[output]}{wildcards.run}/ {config[published]}{wildcards.run}/")
 
 onsuccess:
     subject = 'Demultiplex Summary for: %s' % config['run']
