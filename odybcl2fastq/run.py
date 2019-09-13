@@ -37,6 +37,7 @@ BILLING_ONLY_FILE = 'billing_only.txt'
 FINAL_DIR_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
 FINAL_FILE_PERMISSIONS = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
 MASK_SHORT_ADAPTER_READS = 22
+MINIMUM_TRIMMED_READ_LENGTH = 35
 STORAGE_CAPACITY_WARN = 0.96
 STORAGE_CAPACITY_ERROR = 0.99
 
@@ -454,6 +455,7 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     # check for short reads, do not mask
     if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MASK_SHORT_ADAPTER_READS:
         cmd_dict['--mask-short-adapter-reads'] = 0
+    if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MINIMUM_TRIMMED_READ_LENGTH:
         cmd_dict['--minimum-trimmed-read-length'] = 0
     # grab any manually added params from sample sheet
     ss_params = get_params_from_sample_sheet(sample_sheet, bcl_params)
