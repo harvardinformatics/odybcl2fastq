@@ -21,7 +21,8 @@ ADD . /app
 RUN chmod 755 /app/FastQC/fastqc
 RUN ln -s /app/FastQC/fastqc /usr/local/bin/fastqc
 
-RUN pip install jinja2 numpy MySQL-python
+RUN pip install --upgrade pip
+RUN pip install numpy jinja2 MySQL-python
 
 ENV PYTHONPATH=/app
 

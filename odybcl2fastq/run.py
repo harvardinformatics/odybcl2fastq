@@ -454,6 +454,7 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
     # check for short reads, do not mask
     if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MASK_SHORT_ADAPTER_READS:
         cmd_dict['--mask-short-adapter-reads'] = 0
+        cmd_dict['--minimum-trimmed-read-length'] = 0
     # grab any manually added params from sample sheet
     ss_params = get_params_from_sample_sheet(sample_sheet, bcl_params)
     cmd_dict.update(ss_params)
