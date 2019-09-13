@@ -148,7 +148,7 @@ def initArgs():
             'switches'  : ['--minimum-trimmed-read-length'],
             'required'  : False,
             'help'      : 'minimum read length after adapter trimming',
-            'default'   : False,
+            'default'   : 1,
             'type'      : int,
         },
         {
