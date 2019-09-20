@@ -40,21 +40,11 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
                 -B /n/boslfs/LABS/informatics/sequencing/ANALYSIS:/output \
                 -B /n/informatics_external/seq/odybcl2fastq_log:/log \
                 -B /n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
-                -B /usr/bin/sbatch:/usr/bin/sbatch -B /usr/bin/sacct:/usr/bin/sacct \
-                -B /etc/slurm:/etc/slurm -B /slurm:/slurm \
                 -B /n/informatics/repos/odybcl2fastq_10x/odybcl2fastq:/app \
-                -B /usr/lib64/slurm:/usr/lib64/slurm \
-                -B /usr/lib64/libmunge.so.2:/usr/lib64/libmunge.so.2 \
-                -B /usr/lib64/libmunge.so.2.0.0:/usr/lib64/libmunge.so.2.0.0 \
-                -B /usr/lib64/libslurmdb.so.33:/usr/lib64/libslurmdb.so.33 \
-                -B /var/run/munge:/var/run/munge \
-                -B /etc/nsswitch.conf:/etc/nsswitch.conf \
-                -B /etc/sssd/:/etc/sssd/ \
-                -B /var/lib/sss:/var/lib/sss \
-                -B /etc/sssd/sssd.conf:/etc/sssd/sssd.conf \
                 /n/informatics/repos/odybcl2fastq_10x/odybcl2fastq/ody_dev.sif ' + l
             fh.write(l)
 shutil.copyfile((job_props['input'][0] + 'test'), jobscript)
+# comment out the removal of the script to see the contents
 os.remove((job_props['input'][0] + 'test'))
 
 # the input file is a bash script to submit to slurm, read cmd in

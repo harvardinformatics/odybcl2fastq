@@ -82,12 +82,14 @@ rule demultiplex_10x_cmd:
             dual_index=""
         fi
         cmd="#!/bin/bash\n"
+        cmd+="exit_code=0\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir=/scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE\n"
-        cmd+="rsync -rt /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/\n"
-        cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID"
+        cmd+="cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir=/scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n"
+        cmd+="rsync -rt /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/ || exit_code=\$((exit_code + \$?))\n"
+        cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
+        cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -122,12 +124,14 @@ rule count_10x_cmd:
             transcriptome="--reference={config[ref]}"
         fi
         cmd="#!/bin/bash\n"
+        cmd+="exit_code=0\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/count\n"
-        cmd+="mkdir -p /scratch/{wildcards.run}_count_\$SLURM_JOB_ID\n"
-        cmd+="cd /scratch/{wildcards.run}_count_\$SLURM_JOB_ID\n"
-        cmd+="cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE\n\n"
-        cmd+="rsync -rt /scratch/{wildcards.run}_count_\$SLURM_JOB_ID/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/\n"
-        cmd+="rm -rf /scratch/{wildcards.run}_count_\$SLURM_JOB_ID\n"
+        cmd+="mkdir -p /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
+        cmd+="cd /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
+        cmd+="cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$SLURM_MEM_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
+        cmd+="rsync -rt /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID/{wildcards.sample}/ {config[output]}{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code + \$?))\n"
+        cmd+="rm -rf /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
+        cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -209,13 +213,12 @@ rule cp_source_to_output:
         hiseq_run_params="runParameters.xml"
     output:
         sample_sheet=expand("{output}{{run}}/SampleSheet.csv", output=config['output']),
-        run_info=expand("{output}{{run}}/RunInfo.xml", output=config['output']),
-        interop=directory(expand("{output}{{run}}/InterOp", output=config['output']))
+        run_info=expand("{output}{{run}}/RunInfo.xml", output=config['output'])
     shell:
         """
         cp {config[source]}{wildcards.run}/{params.sample_sheet} {output.sample_sheet}
         cp {config[source]}{wildcards.run}/{params.run_info} {output.run_info}
-        rsync -rt {config[source]}{wildcards.run}/{params.interop}/ {output.interop}/
+        rsync -rt {config[source]}{wildcards.run}/{params.interop}/ {config[output]}{wildcards.run}/InterOp/
         # copy these if they exist
         cp {config[source]}{wildcards.run}/{params.nextseq_run_params} {config[output]}{wildcards.run}/{params.nextseq_run_params} 2>/dev/null || :
         cp {config[source]}{wildcards.run}/{params.hiseq_run_params} {config[output]}{wildcards.run}/{params.hiseq_run_params} 2>/dev/null || :
@@ -339,6 +342,7 @@ def send_success_email(subject):
 
 def update_analysis(data):
     analysis_file_path = '%s%s/%s/analysis_id' % (config['source'], config['run'], STATUS_DIR)
-    with open(analysis_file_path, 'r') as ln:
-        analysis_id = ln.readline().strip()
-    bauer.update_data('requests', analysis_id, data)
+    if os.path.isfile(analysis_file_path):
+        with open(analysis_file_path, 'r') as ln:
+            analysis_id = ln.readline().strip()
+        bauer.update_data('requests', analysis_id, data)

@@ -155,7 +155,10 @@ def get_reference(run_dir, run_type):
         else:
             ref_file = '%srefdata-cellranger-GRCh38-3.0.0' % config.ody['ref_dir']
     elif 'Zebrafish' in ref or ref =='Zebrafish_GRCz11':
-        ref_file = '%szebrafish_ensembl/Danio_rerio.GRCz11' % (config.ody['ref_dir'])
+        if run_type == '10x single cell atac':
+            ref_file = '%satac-seq/refdata-cellranger-atac-zebrafish/Danio_rerio.GRCz11' % config.ody['ref_dir']
+        else:
+            ref_file = '%szebrafish_ensembl/Danio_rerio.GRCz11' % (config.ody['ref_dir'])
     elif 'mouse' in ref or ref == 'mouse_mm10':
         if run_type == '10x single cell atac':
             ref_file = '%satac-seq/refdata-cellranger-atac-mm10-1.0.1' % (config.ody['ref_dir'])

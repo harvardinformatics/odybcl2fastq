@@ -10,7 +10,7 @@ class BauerDB(object):
     def __init__(self, sample_sheet_path):
         self.api = config.BAUER_DB['api']
         # use the seq app api for entering seq data
-        self.seq_api = self.api + 'sequencing/api/'
+        self.seq_api = self.api + 'api/sequencing/'
         self.sample_sheet_path = sample_sheet_path
         self.token =  self.get_token()
 
@@ -19,7 +19,9 @@ class BauerDB(object):
         run = os.path.dirname(self.sample_sheet_path) + '/'
         runinfo_file = run + 'RunInfo.xml'
         run_data = get_runinfo(runinfo_file)
+        logging.info('Run data for %s data: %s' % (run, json.dumps(run_data)))
         run_id = self.send_data('runs', run_data)
+        logging.info('Run id %s' % (str(run_id)))
 
         # insert read
         reads = get_readinfo_from_runinfo(runinfo_file)
