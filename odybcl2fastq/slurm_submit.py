@@ -40,8 +40,7 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
                 -B /n/boslfs/LABS/informatics/sequencing/ANALYSIS:/output \
                 -B /n/informatics_external/seq/odybcl2fastq_log:/log \
                 -B /n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
-                -B /n/informatics/repos/odybcl2fastq_10x/odybcl2fastq:/app \
-                /n/informatics/repos/odybcl2fastq_10x/odybcl2fastq/ody_dev.sif ' + l
+                /n/boslfs/LABS/informatics/singularity_images/ody.sif ' + l
             fh.write(l)
 shutil.copyfile((job_props['input'][0] + 'test'), jobscript)
 # comment out the removal of the script to see the contents

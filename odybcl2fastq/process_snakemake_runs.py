@@ -214,23 +214,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
     if not 'nuclei' in run_type and not run_type == '10x single cell vdj':
         ref_file, gtf = get_reference(run_dir, run_type)
     sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac}
-    """opts = {
-        'cores': 16,
-        'nodes': 99,
-        'local_cores': 4,
-        'config': sm_config,
-        'cluster_config': '/app/odybcl2fastq/snakemake_cluster.json',
-        'cluster': 'python /app/odybcl2fastq/slurm_submit.py',
-        'cluster_status': 'python /app/odybcl2fastq/cluster_status.py',
-        'printshellcmds': True,
-        'printreason': True,
-        #'cleanup_shadow': True,
-        #'dryrun': True,
-        'latency_wait': 60,
-        #'touch': True,
-        #'printdag': True,
-        'log_handler': sn_logger
-    }"""
+
     opts = {
         '--cores': 99,
         '--local-cores': 4,
@@ -242,8 +226,8 @@ def get_ody_snakemake_opts(run_dir, run_type):
         '--printshellcmds': None,
         '--reason': None,
         '-s': '/app/odybcl2fastq/Snakefile',
-        '-d': '/app/odybcl2fastq',
-        #'-d': '/n/informatics/repos/odybcl2fastq_10x/odybcl2fastq/odybcl2fastq',
+        #'-d': '/app/odybcl2fastq',
+        '-d': '/n/boslfs/LABS/informatics/snakemake/ody',
         #'--configfile': '/app/odybcl2fastq/snakemake_config.json',
         #'--cleanup-shadow': None,
         #'unlock': None,

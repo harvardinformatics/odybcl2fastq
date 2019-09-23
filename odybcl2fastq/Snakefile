@@ -8,7 +8,7 @@ Created on  2019-03-25
 @license: GPL v2.0
 '''
 
-configfile: "snakemake_config.json"
+configfile: "/app/odybcl2fastq/snakemake_config.json"
 localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, insert_run_into_bauer_db
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
@@ -42,6 +42,7 @@ onstart:
     shell("mkdir -p {output}{run}", output={config['output']}, run=config['run'])
     shell("mkdir -p {output}{run}/log", output={config['output']}, run=config['run'])
     shell("mkdir -p {output}{run}/script", output={config['output']}, run=config['run'])
+    update_analysis({'status': 'processing'})
 
 rule all:
     """
