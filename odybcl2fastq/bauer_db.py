@@ -10,7 +10,8 @@ class BauerDB(object):
     def __init__(self, sample_sheet_path):
         self.api = config.BAUER_DB['api']
         # use the seq app api for entering seq data
-        self.seq_api = self.api + 'api/sequencing/'
+        self.root_api = self.api + 'api/'
+        self.seq_api = self.root_api + 'sequencing/'
         self.sample_sheet_path = sample_sheet_path
         self.token =  self.get_token()
 
@@ -86,7 +87,7 @@ class BauerDB(object):
         return item_id
 
     def get_data(self, endpoint):
-        url = self.seq_api + endpoint + '/'
+        url = self.root_api + endpoint
         headers = {'Authorization': 'Token %s' % self.token}
         r = requests.get(url = url, headers=headers)
         try:
@@ -102,8 +103,8 @@ class BauerDB(object):
     def get_sample_type(self, sample_type):
         sample_type = sample_type.lower()
         # get valid sample_types
-        sample_types = self.get_data('sample_types')
-        valid_sample_types = dict((t['name'].lower(), t['id']) for t in sample_types)
+        sample_types = self.get_data('djvocab/vocabularies/?sample.sample_type')
+        valid_sample_types = [t['value'].lower() for t in sample_types]
         # return valid sample_type or null
         if sample_type in valid_sample_types:
             return sample_type
