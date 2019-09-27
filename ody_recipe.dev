@@ -13,6 +13,7 @@ yum install -y epel-release
 yum install -y lua
 yum install -y lua-posix
 yum install -y lua-filesystem
+yum install -y vim
 
 TZ=America/New_York
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
