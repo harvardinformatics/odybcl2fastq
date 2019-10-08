@@ -21,7 +21,10 @@ class BauerDB(object):
         runinfo_file = run + 'RunInfo.xml'
         run_data = get_runinfo(runinfo_file)
         logging.info('Run data for %s data: %s' % (run, json.dumps(run_data)))
-        run_id = self.send_data('runs', run_data)
+        # don't try to reenter a run
+        if pk_exists(run_data['name'], endpoint):
+            return
+        run_id = self.safe_send_data(run_data['name'], 'runs', run_data)
         logging.info('Run id %s' % (str(run_id)))
 
         # insert read
@@ -67,6 +70,14 @@ class BauerDB(object):
 
     def get_token(self):
         return config.BAUER_DB['password']
+
+    def pk_exists(self, pk, endpoint):
+        get_url = '%s/%s' % (endpoint, pk)
+        try:
+            exists = get_data(get_url)
+            return exists
+        except: # does not exists
+            return False
 
     def send_data(self, endpoint, data, method = 'POST'):
         url = self.seq_api + endpoint + '/'
