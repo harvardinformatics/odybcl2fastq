@@ -305,7 +305,7 @@ onsuccess:
 onerror:
     message = 'run %s failed\n see logs here: %s%s.log\n' % (config['run'], config['log'], config['run'])
     subject = 'Run Failed: %s' % config['run']
-    sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
+    sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'])
     update_analysis({'status': 'failed'})
 
 def get_summary_data(cmd, run, ss_file):
