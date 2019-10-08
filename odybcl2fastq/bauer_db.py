@@ -22,9 +22,10 @@ class BauerDB(object):
         run_data = get_runinfo(runinfo_file)
         logging.info('Run data for %s data: %s' % (run, json.dumps(run_data)))
         # don't try to reenter a run
-        if pk_exists(run_data['name'], endpoint):
+        endpoint = 'runs'
+        if self.pk_exists(run_data['name'], endpoint):
             return
-        run_id = self.safe_send_data(run_data['name'], 'runs', run_data)
+        run_id = self.send_data(endpoint, run_data)
         logging.info('Run id %s' % (str(run_id)))
 
         # insert read
@@ -74,7 +75,7 @@ class BauerDB(object):
     def pk_exists(self, pk, endpoint):
         get_url = '%s/%s' % (endpoint, pk)
         try:
-            exists = get_data(get_url)
+            exists = self.get_data(get_url)
             return exists
         except: # does not exists
             return False
@@ -98,7 +99,7 @@ class BauerDB(object):
         return item_id
 
     def get_data(self, endpoint):
-        url = self.root_api + endpoint
+        url = self.seq_api + endpoint + '/'
         headers = {'Authorization': 'Token %s' % self.token}
         r = requests.get(url = url, headers=headers)
         try:
@@ -106,7 +107,6 @@ class BauerDB(object):
         except requests.exceptions.HTTPError as e:
             logging.error('Api Error at %s: %s' % (url, e.response.text))
             raise e
-
         res = json.loads(r.text)
         logging.info('Retreived data for %s: %s' % (endpoint, json.dumps(res)))
         return res
