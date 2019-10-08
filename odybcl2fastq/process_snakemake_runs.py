@@ -55,7 +55,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err = ''):
         "%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
         " error: %s\nsee log: %s\n" % (subject, cmd, ret_code, std_out, std_err, log)
     )
-    send_email(message, subject, 'admin_email')
+    send_email(message, subject)
 
 
 def send_email(message, subject, to = 'to_email'):
