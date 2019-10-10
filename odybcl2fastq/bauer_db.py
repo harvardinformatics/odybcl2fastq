@@ -66,6 +66,7 @@ class BauerDB(object):
             else:
                 lane = lane_ids['1']
             sample_data['lane'] = lane
+            logging.info('Sample data for %s data: %s' % (sample_name, json.dumps(sample_data)))
             sample_id = self.send_data('samples', sample_data)
         return True
 
@@ -73,7 +74,7 @@ class BauerDB(object):
         return config.BAUER_DB['password']
 
     def pk_exists(self, pk, endpoint):
-        get_url = '%s/%s' % (endpoint, pk)
+        get_url = 'sequencing/%s/%s' % (endpoint, pk)
         try:
             exists = self.get_data(get_url)
             return exists
@@ -99,7 +100,7 @@ class BauerDB(object):
         return item_id
 
     def get_data(self, endpoint):
-        url = self.seq_api + endpoint + '/'
+        url = self.root_api + endpoint + '/'
         headers = {'Authorization': 'Token %s' % self.token}
         r = requests.get(url = url, headers=headers)
         try:
