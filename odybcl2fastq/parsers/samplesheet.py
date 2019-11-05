@@ -117,13 +117,28 @@ class SampleSheet(object):
         return instrument
 
     def validate(self):
-        if self.validate_sample_names():
+        if self.validate_sample_names() | self.validate_index2():
             # copy orig sample sheet as backup and record
             util.copy(self.path, self.path.replace('.csv', '_orig.csv'))
             # write a corrected sheet
             corrected_sample_sheet = self.write_new_sample_sheet(self.sections['Data'].values(), 'corrected')
             # copy corrected to sample sheet path, leave corrected file as record
             util.copy(corrected_sample_sheet, self.path)
+
+    def validate_index2(self):
+        corrected = False
+        fixed = self.samples
+        if 'index2' in fixed.columns:
+            if fixed[fixed.index2!=''].empty:
+                # we have a totally empty index2 column so delete
+                fixed = fixed.drop('index2', axis = 1)
+                if 'I5_index_ID' in fixed.columns:
+                    fixed = fixed.drop('I5_index_ID', axis = 1)
+                corrected = True
+                fixed_rows = fixed.to_dict('records')
+                for i, k in enumerate(self.sections['Data'].keys()):
+                    self.sections['Data'][k] = OrderedDict(fixed_rows[i])
+        return corrected
 
     def validate_sample_names(self):
         corrected = False
@@ -177,17 +192,20 @@ class SampleSheet(object):
         new_sample_sheet = os.path.dirname(self.path) + '/' + self.SAMPLE_SHEET_FILE
         new_sample_sheet = new_sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
         input = open(self.path, 'r')
-        output = open(new_sample_sheet, 'wb')
+        output = open(new_sample_sheet, 'w')
         for line in input:
             if not line.startswith('[Data]'):
                 output.write(line)
             else:
                 output.write(line)
                 break
-        # print data headers
-        output.write(next(input))
         # write new samples to sheet
-        new_lines = [(','.join(row.values()) + "\r\n") for row in new_samples]
+        new_lines = []
+        for i, row in enumerate(new_samples):
+            # print data headers
+            if i == 0:
+                new_lines.append(','.join(row.keys()) + "\r\n")
+            new_lines.append(','.join(row.values()) + "\r\n")
         output.writelines(new_lines)
         output.close()
         input.close()

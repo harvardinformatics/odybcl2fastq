@@ -130,10 +130,8 @@ def get_sample_sheet_path(run_dir):
             sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
 
-def get_reference(run_dir, run_type):
-    ss_path = get_sample_sheet_path(run_dir)
+def get_reference(run_dir, run_type, sample_sheet):
     run = os.path.basename(os.path.normpath(run_dir))
-    sample_sheet = SampleSheet(ss_path)
     subs = sample_sheet.get_submissions()
     stdb = StatusDB()
     # TODO: assuming that all samples in the run are same type if not we
@@ -197,6 +195,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
     run = os.path.basename(os.path.normpath(run_dir))
     ss_path = get_sample_sheet_path(run_dir)
     sample_sheet = SampleSheet(ss_path)
+    sample_sheet.validate()
     df = sample_sheet.get_samples()
     samples = df['Sample_ID']
     projects = df['Sample_Project']
@@ -212,7 +211,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
     ref_file = ''
     gtf = ''
     if not 'nuclei' in run_type and not run_type == '10x single cell vdj':
-        ref_file, gtf = get_reference(run_dir, run_type)
+        ref_file, gtf = get_reference(run_dir, run_type, sample_sheet)
     sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac}
 
     opts = {
@@ -329,7 +328,7 @@ def process_runs(pool):
     #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190522_NB551608_0087_AH3NMWBGXB/', 'type':''}]
     #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190711_NB502063_0348_AH3NH3BGXB/', 'type':''}]
     #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190624_A00794_0043_AH7HMTDRXX/', 'type':''}]
-    #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190807_NB551608_0113_AH2LN3BGXC/', 'type':''}]
+    #run_dirs = [{'run':'/Users/portermahoney/runs/191030_A00794_0114_AHH5W3DRXX/', 'type':'atac'}]
 
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190604_NB502063_0338_AHCFKKBGXB/']
     #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190607_NB551608_0097_AHLTKMAFXY/']
