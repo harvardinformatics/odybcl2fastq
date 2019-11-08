@@ -55,9 +55,12 @@ class BauerDB(object):
                     'name': sample_name,
                     'run': run_data['name'],
                     'description': sample_row['Description'],
-                    'index1': sample_row['index'],
-                    'index2': sample_row['index2']
+                    'index1': sample_row['index']
             }
+            # not all sample sheets with have an index2 (atac)
+            if 'index2' in sample_row:
+                sample_data['index2'] = sample_row['index2']
+
             # add a type if one was entered into sample sheet
             if 'Type' in sample_row and sample_row['Type']:
                 sample_data['sample_type'] = self.get_sample_type(sample_row['Type'])
