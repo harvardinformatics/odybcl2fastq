@@ -34,7 +34,7 @@ job_props = read_job_properties(jobscript)
 with open(job_props['input'][0] + 'test', 'w') as fh:
     with open(jobscript) as r:
         for l in r:
-            if 'cd /app' in l or 'python3.6' in l:
+            if 'cd /app' in l or 'python3' in l:
                 l = 'singularity exec -B /n/boslfs/INSTRUMENTS/illumina:/source \
                 -B /n/boslfs/LABS/informatics/sequencing/PUBLISHED:/final \
                 -B /n/boslfs/LABS/informatics/sequencing/ANALYSIS:/output \

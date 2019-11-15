@@ -18,10 +18,9 @@ yum install -y vim
 TZ=America/New_York
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-conda install -y jinja2 numpy
-conda install -y -c bioconda mysqlclient
+conda install -y jinja2=2.10.1=py37_0 numpy=1.17.3=py37hd14ec0e_0
+conda install -y -c bioconda mysqlclient fastqc
 conda install -y -c bioconda -c conda-forge snakemake
-conda install -y -c bioconda fastqc
 
 %files
 /n/boslfs/LABS/informatics/repos/odybcl2fastq_10x/odybcl2fastq /app
