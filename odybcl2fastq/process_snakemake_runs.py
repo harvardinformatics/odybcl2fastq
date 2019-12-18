@@ -58,7 +58,7 @@ def failure_email(run, cmd, ret_code, std_out, std_err = ''):
     send_email(message, subject)
 
 
-def send_email(message, subject, to = 'to_email'):
+def send_email(message, subject, to = 'to_email_error'):
     fromaddr = config.EMAIL['from_email']
     toemaillist = config.EMAIL[to]
     buildmessage(message, subject, None, fromaddr, toemaillist)

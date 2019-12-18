@@ -38,7 +38,7 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
                 l = 'singularity exec -B /n/boslfs/INSTRUMENTS/illumina:/source \
                 -B /n/boslfs/LABS/informatics/sequencing/PUBLISHED:/final \
                 -B /n/boslfs/LABS/informatics/sequencing/ANALYSIS:/output \
-                -B /n/informatics_external/seq/odybcl2fastq_log:/log \
+                -B /n/boslfs/LABS/informatics/sequencing/log:/log \
                 -B /n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
                 /n/boslfs/LABS/informatics/singularity_images/ody.sif ' + l
             fh.write(l)
