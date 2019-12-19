@@ -313,8 +313,8 @@ def get_summary_data(cmd, run, ss_file):
         'ignoring the second index on a dual-indexed flowcell'
     ]
     versions = [
-        'cellranger 3.0.1',
-        'fastqc 0.11.5'
+        'cellranger 3.1.0',
+        'fastqc 0.11.8'
     ]
     if config['ref']:
         assumptions.append('reference genome %s, see annotation under versions below' % os.path.basename(config['ref']))
