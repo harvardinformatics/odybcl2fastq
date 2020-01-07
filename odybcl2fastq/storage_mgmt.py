@@ -27,9 +27,9 @@ logger = initLogger('storage_mgmt')
 # Set named storage paths
 # If config file is identified, use those values
 STORAGEPATHS = {
-    'SOURCE_DIR' : '/n/boslfs/INSTRUMENTS/illumina/',
-    'OUTPUT_DIR' : '/n/boslfs/ANALYSIS/',
-    'FINAL_DIR'  : '/n/ngsdata/',
+    'SOURCE_DIR' : '/n/boslfs02/LABS/informatics/sequenging/source/',
+    'OUTPUT_DIR' : '/n/boslfs02/LABS/informatics/sequencing/analysis/',
+    'FINAL_DIR'  : '/n/boslfs02/LABS/informatics/sequencing/published/',
 }
 for k, v in STORAGEPATHS.iteritems():
     if k in config:
