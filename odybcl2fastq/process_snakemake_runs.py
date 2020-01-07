@@ -226,7 +226,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
         '--reason': None,
         '-s': '/app/odybcl2fastq/Snakefile',
         #'-d': '/app/odybcl2fastq',
-        '-d': '/n/boslfs/LABS/informatics/snakemake/ody',
+        '-d': '/snakemake/ody',
         #'--configfile': '/app/odybcl2fastq/snakemake_config.json',
         #'--cleanup-shadow': None,
         #'unlock': None,
@@ -325,13 +325,6 @@ def process_runs(pool):
     '''
     logger.info("Processing runs")
     run_dirs = get_runs()
-    #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190522_NB551608_0087_AH3NMWBGXB/', 'type':''}]
-    #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190711_NB502063_0348_AH3NH3BGXB/', 'type':''}]
-    #run_dirs = [{'run':'/n/boslfs/INSTRUMENTS/illumina/190624_A00794_0043_AH7HMTDRXX/', 'type':''}]
-    #run_dirs = [{'run':'/Users/portermahoney/runs/191030_A00794_0114_AHH5W3DRXX/', 'type':'atac'}]
-
-    #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190604_NB502063_0338_AHCFKKBGXB/']
-    #run_dirs = ['/n/boslfs/INSTRUMENTS/illumina/190607_NB551608_0097_AHLTKMAFXY/']
     logger.info("Found %s runs: %s\n" % (len(run_dirs), json.dumps(run_dirs)))
 
     results = {}

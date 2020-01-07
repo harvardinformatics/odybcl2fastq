@@ -1,14 +1,14 @@
 {
     "source": "/source/",
-    "source_slurm": "/n/boslfs/INSTRUMENTS/illumina/",
+    "source_slurm": "/n/boslfs02/LABS/informatics/sequencing/source/",
     "output": "/output/",
-    "output_slurm": "/n/boslfs/LABS/informatics/sequencing/ANALYSIS/",
+    "output_slurm": "/n/boslfs02/LABS/informatics/sequencing/analysis/",
     "published": "/final/",
-    "published_slurm": "/n/boslfs/LABS/informatics/sequencing/PUBLISHED/",
+    "published_slurm": "/n/boslfs02/LABS/informatics/sequencing/published/",
     "log": "/log/",
-    "log_slurm": "/n/boslfs/LABS/informatics/sequencing/log/",
+    "log_slurm": "/n/boslfs02/LABS/informatics/sequencing/log/",
     "ref": "/ref/",
-    "ref_slurm": "/n/boslfs/LABS/informatics/refs/10x/2019.05.19/cellranger/",
+    "ref_slurm": "/n/boslfs02/LABS/informatics/refs/10x/2019.05.19/cellranger/",
     "run": "",
     "sample": ""
 }
