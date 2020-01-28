@@ -83,6 +83,7 @@ rule demultiplex_10x_cmd:
             dual_index=""
         fi
         cmd="#!/bin/bash\n"
+        cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
@@ -125,6 +126,7 @@ rule count_10x_cmd:
             transcriptome="--reference={config[ref]}"
         fi
         cmd="#!/bin/bash\n"
+        cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/count\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
@@ -180,6 +182,7 @@ rule fastqc_cmd:
     shell:
         """
         cmd="#!/bin/bash\n"
+        cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/QC\n"
         cmd+="fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads 1 $(find {config[output_slurm]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
         echo "$cmd" >> {output}
