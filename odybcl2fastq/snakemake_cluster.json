@@ -6,8 +6,8 @@
         "mem": 100,
         "partition": "bos-info_priority",
         "name": "{rule}.{wildcards.run}",
-        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.out",
-        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.err"
+        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}-%j.out",
+        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}-%j.err"
     },
     "demultiplex_10x": {
         "time": "4-20:00:00",
@@ -24,8 +24,8 @@
         "cores": 12,
         "mem": 90000,
         "name": "{rule}.{wildcards.run}_{wildcards.sample}",
-        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}.out",
-        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}.err"
+        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.out",
+        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.err"
     }
 }
 
