@@ -50,8 +50,8 @@ os.remove((job_props['input'][0] + 'test'))
 with open(job_props['input'][0], 'r') as fh:
     cmd = fh.readlines()
 
-prefix = []
-cli_opts = []
+prefix = ["#SBATCH --exclusive\n"]
+cli_opts = ["--exclusive"]
 # get slurm opts as a prefix for cmd
 for prop, val in slurm_opts.items():
     if prop in job_props['cluster']:
