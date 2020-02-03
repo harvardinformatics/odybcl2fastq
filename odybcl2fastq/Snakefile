@@ -88,8 +88,8 @@ rule demultiplex_10x_cmd:
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir=/scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID --localmem=\$((9*\$(ulimit -m)/10000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\${SLURM_JOB_CPUS_PER_NODE} --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n"
-        cmd+="rsync -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/ || exit_code=\$((exit_code + \$?))\n"
+        cmd+="cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir={config[output_slurm]}{wildcards.run}/fastq --localmem=\$((9*\$(ulimit -m)/10000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\${SLURM_JOB_CPUS_PER_NODE} --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 --fastq-compression-level=9 || exit_code=\$?\n"
+        cmd+="rsync -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -132,7 +132,7 @@ rule count_10x_cmd:
         cmd+="mkdir -p /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
-        cmd+="rsync -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID/{wildcards.sample}/ {config[output_slurm]}{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code + \$?))\n"
+        cmd+="rsync -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID/{wildcards.sample}/ {config[output_slurm]}{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
