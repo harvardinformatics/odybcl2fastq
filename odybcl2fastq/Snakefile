@@ -88,8 +88,8 @@ rule demultiplex_10x_cmd:
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir={config[output_slurm]}{wildcards.run}/fastq --localmem=\$((9*\$(ulimit -m)/10000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\${SLURM_JOB_CPUS_PER_NODE} --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 --fastq-compression-level=9 || exit_code=\$?\n"
-        cmd+="rsync -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir={config[output_slurm]}{wildcards.run}/fastq --localmem=\$((9*\$(ulimit -m)/10000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\${SLURM_JOB_CPUS_PER_NODE} --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 --fastq-compression-level=9 || exit_code=\$?\n"
+        cmd+="rsync --info=STATS -rtl --info=STATS --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -131,8 +131,8 @@ rule count_10x_cmd:
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/count\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
-        cmd+="cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
-        cmd+="rsync -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID/{wildcards.sample}/ {config[output_slurm]}{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
+        cmd+="rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID/{wildcards.sample}/ {config[output_slurm]}{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -184,7 +184,7 @@ rule fastqc_cmd:
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/QC\n"
-        cmd+="fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads \${SLURM_JOB_CPUS_PER_NODE} $(find {config[output_slurm]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
+        cmd+="/usr/bin/time -v fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads \${SLURM_JOB_CPUS_PER_NODE} $(find {config[output_slurm]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
         echo "$cmd" >> {output}
         chmod 777 {output}
         """
@@ -222,7 +222,7 @@ rule cp_source_to_output:
         """
         cp {config[source]}{wildcards.run}/{params.sample_sheet} {output.sample_sheet}
         cp {config[source]}{wildcards.run}/{params.run_info} {output.run_info}
-        rsync -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {config[source]}{wildcards.run}/{params.interop}/ {config[output]}{wildcards.run}/InterOp/
+        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {config[source]}{wildcards.run}/{params.interop}/ {config[output]}{wildcards.run}/InterOp/
         # copy these if they exist
         cp {config[source]}{wildcards.run}/{params.nextseq_run_params} {config[output]}{wildcards.run}/{params.nextseq_run_params} 2>/dev/null || :
         cp {config[source]}{wildcards.run}/{params.hiseq_run_params} {config[output]}{wildcards.run}/{params.hiseq_run_params} 2>/dev/null || :
@@ -296,7 +296,7 @@ rule publish:
         touch(expand("{source}{{run}}/{status}/ody.complete", source=config['source'], status=STATUS_DIR))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {config[output]}{wildcards.run}/ {config[published]}{wildcards.run}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {config[output]}{wildcards.run}/ {config[published]}{wildcards.run}/")
         subject = 'Demultiplex Summary for: %s' % config['run']
         send_success_email(subject)
 
