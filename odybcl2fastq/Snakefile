@@ -93,7 +93,7 @@ rule demultiplex_10x_cmd:
         cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
-        chmod 777 {output}
+        chmod 775 {output}
         """
 
 rule demultiplex_10x:
@@ -136,7 +136,7 @@ rule count_10x_cmd:
         cmd+="rm -rf /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
-        chmod 777 {output}
+        chmod 775 {output}
         """
 
 rule count_10x:
@@ -186,7 +186,7 @@ rule fastqc_cmd:
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/QC\n"
         cmd+="/usr/bin/time -v fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads \${SLURM_JOB_CPUS_PER_NODE} $(find {config[output_slurm]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
         echo "$cmd" >> {output}
-        chmod 777 {output}
+        chmod 775 {output}
         """
 
 rule fastqc:
