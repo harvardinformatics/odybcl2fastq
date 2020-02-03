@@ -88,7 +88,7 @@ rule demultiplex_10x_cmd:
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir={config[output_slurm]}{wildcards.run}/fastq --localmem=\$((9*\$(ulimit -m)/10000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\${SLURM_JOB_CPUS_PER_NODE} --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 --fastq-compression-level=9 || exit_code=\$?\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq $dual_index --run={config[source_slurm]}{wildcards.run} --samplesheet={config[source_slurm]}{wildcards.run}/SampleSheet.csv --output-dir={config[output_slurm]}{wildcards.run}/fastq --localmem=\$((9*\$(ulimit -m)/10000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 --fastq-compression-level=9 || exit_code=\$?\n"
         cmd+="rsync --info=STATS -rtl --info=STATS --safe-links --perms --chmod=Dug=rwx,Fug=rw /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID/ {config[output_slurm]}{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
@@ -184,7 +184,8 @@ rule fastqc_cmd:
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/QC\n"
-        cmd+="/usr/bin/time -v fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads \${SLURM_JOB_CPUS_PER_NODE} $(find {config[output_slurm]}{wildcards.run}/fastq/ -name *.fastq.gz -not -name Undetermined* -print0 | xargs -0)"
+        cmd+="cd {config[output_slurm]}{wildcards.run}/fastq/\n"
+        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
         echo "$cmd" >> {output}
         chmod 775 {output}
         """
