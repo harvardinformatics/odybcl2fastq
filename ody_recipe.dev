@@ -14,6 +14,7 @@ yum install -y lua
 yum install -y lua-posix
 yum install -y lua-filesystem
 yum install -y vim
+yum install -y time
 
 TZ=America/New_York
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
