@@ -25,6 +25,7 @@ slurm_opts = OrderedDict([
         ('time', '-t'),
         ('mem', '--mem'),
         ('name', '-J'),
+        ('nice', '--nice'),
         ('out', '-o'),
         ('error', '-e'),
         ('x', '-x')
