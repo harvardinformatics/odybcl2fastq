@@ -9,7 +9,7 @@ Created on  2019-03-25
 '''
 
 configfile: "/app/odybcl2fastq/snakemake_config.json"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, insert_run_into_bauer_db
+localrules: all, update_lims_db, cp_source_to_output, checksum_cmd, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, insert_run_into_bauer_db
 from odybcl2fastq.run import update_lims_db, setup_run_logger
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
@@ -230,18 +230,38 @@ rule cp_source_to_output:
 
         """
 
-rule checksum:
+rule checksum_cmd:
     """
-    calculate checksum for all the fastq files
+    build a bash script with the md5sum command to calculate checksum for all fastq files
     """
     input:
         expand("{source}{{run}}/{status}/demultiplex.processed", source=config['source'], status=STATUS_DIR)
     output:
-        checksum=expand("{output}{{run}}/md5sum.txt", output=config['output']),
+        expand("{output}{{run}}/script/md5sum.sh", output=config['output'])
     shell:
         """
-        files=$(find {config[output]}{wildcards.run}/ -name *.fastq.gz -print0 | xargs -0)
-        md5sum $files > {output.checksum}
+        cmd="#!/bin/bash\n"
+        cmd+="set -o errexit -o pipefail\n"
+        cmd+="cd {config[output]}{wildcards.run}\n"
+        cmd+="find fastq/ -name '*.fastq.gz' -print0 | /usr/bin/time -v xargs -0 -n 1 -P \$SLURM_JOB_CPUS_PER_NODE md5sum > {output.checksum}.unsorted\n"
+        cmd+="sort -k 2,2 -o {output.checksum} {output.checksum}.unsorted\n"
+        cmd+="rm -f {output.checksum}.unsorted\n"
+        echo "$cmd" >> {output}
+        chmod 775 {output}
+        """
+
+rule checksum:
+    """
+    submit job script for checksum
+    the slurm_submit.py script will add slurm params to the top of this file
+    """
+    input:
+        expand("{output}{{run}}/script/md5sum.sh", output=config['output'])
+    output:
+        expand("{output}{{run}}/md5sum.txt", output=config['output']),
+    shell:
+        """
+        {input}
         """
 
 rule fastq_email:
