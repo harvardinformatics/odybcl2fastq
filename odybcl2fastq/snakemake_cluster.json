@@ -16,6 +16,7 @@
     },
     "count_10x": {
         "time": "4-18:00:00",
+        "nice": "100",
         "name": "{rule}.{wildcards.run}_{wildcards.sample}",
         "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.out",
         "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.err"
