@@ -18,18 +18,6 @@ from collections import OrderedDict
 
 from snakemake.utils import read_job_properties
 
-slurm_opts = OrderedDict([
-        ('partition', '-p'),
-        ('N', '-N'),
-        ('cores', '-n'),
-        ('time', '-t'),
-        ('mem', '--mem'),
-        ('name', '-J'),
-        ('nice', '--nice'),
-        ('out', '-o'),
-        ('error', '-e'),
-        ('x', '-x')
-])
 jobscript = sys.argv[1]
 job_props = read_job_properties(jobscript)
 with open(job_props['input'][0] + 'test', 'w') as fh:
@@ -37,7 +25,7 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
         for l in r:
             if 'cd /app' in l or 'python3' in l:
                 l = 'singularity exec -B /n/boslfs02/LABS/informatics/sequencing/source:/source \
-                -B /n/boslfs02/LABS/informatics/sequencing/published:/final \
+                -B /n/boslfs/LABS/informatics/sequencing/test/PUBLISHED:/final \
                 -B /n/boslfs02/LABS/informatics/sequencing/analysis:/output \
                 -B /n/boslfs02/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
                 /n/boslfs02/LABS/informatics/singularity_images/ody.sif ' + l
@@ -50,13 +38,15 @@ os.remove((job_props['input'][0] + 'test'))
 with open(job_props['input'][0], 'r') as fh:
     cmd = fh.readlines()
 
-prefix = ["#SBATCH --exclusive\n"]
-cli_opts = ["--exclusive"]
+prefix = []
+cli_opts = []
 # get slurm opts as a prefix for cmd
-for prop, val in slurm_opts.items():
-    if prop in job_props['cluster']:
-        prefix.append('#SBATCH %s %s\n' % (val, job_props['cluster'][prop]))
-        cli_opts.append('%s %s' % (val, job_props['cluster'][prop]))
+for prop, val in job_props['cluster'].items():
+    sbatch_val = ''
+    if val != '':
+        sbatch_val = '=%s' % val
+    prefix.append('#SBATCH --%s%s\n' % (prop, sbatch_val))
+    cli_opts.append('--%s%s' % (prop, sbatch_val))
 
 # write new prefixed cmd to the file
 new_cmd = [cmd[0]] + prefix + cmd[1:]

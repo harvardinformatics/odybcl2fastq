@@ -1,12 +1,13 @@
 {
     "__default__": {
         "time": "0:00:10",
-        "N": 1,
+        "nodes": 1,
         "mem": 0,
         "partition": "bos-info_priority",
-        "name": "{rule}.{wildcards.run}",
-        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}-%j.out",
-        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}-%j.err"
+        "job-name": "{rule}.{wildcards.run}",
+        "output": "{config[output_slurm]}{wildcards.run}/log/{rule}-%j.out",
+        "error": "{config[output_slurm]}{wildcards.run}/log/{rule}-%j.err",
+        "exclusive": ""
     },
     "demultiplex_10x": {
         "time": "4-20:00:00"
@@ -16,9 +17,9 @@
     },
     "count_10x": {
         "time": "4-18:00:00",
-        "nice": "100",
-        "name": "{rule}.{wildcards.run}_{wildcards.sample}",
-        "out": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.out",
+        "nice": "",
+        "job-name": "{rule}.{wildcards.run}_{wildcards.sample}",
+        "output": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.out",
         "error": "{config[output_slurm]}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.err"
     }
 }
