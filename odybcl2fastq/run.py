@@ -312,10 +312,9 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     # final
     src_root += '/'
     dest_root += '/'
-    if instrument == 'hiseq':
-        run_params_file = 'runParameters.xml'
-    else:  # nextseq and novaseq
-        run_params_file = 'RunParameters.xml'
+    run_params_file = 'RunParameters.xml'
+    if not os.path.exists(src_root + run_params_file):
+        util.copy(src + 'runParameters.xml', src + run_params_file)
     # get filename part of sample_sheet
     sample_sheet = sample_sheet.replace(src_root, '')
     files_to_copy = {
@@ -449,7 +448,7 @@ def bcl2fastq_build_cmd(args, switches_to_names, mask_list, instrument, run_type
                 cmd_dict[switch] = None
             else:
                 cmd_dict[switch] = argvalue
-    if instrument == 'nextseq':
+    if instrument in ['nextseq', 'miseq']:
         cmd_dict['--no-lane-splitting'] = None
     # check for short reads, do not mask
     if run_type == 'indrop' or shortest_read(sample_sheet['Reads']) < MASK_SHORT_ADAPTER_READS:

@@ -14,7 +14,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
-RUN wget https://support.illumina.com/content/dam/illumina-support/documents/downloads/software/bcl2fastq/bcl2fastq2-v2-20-0-linux-x86-64.zip && unzip bcl2fastq*.zip && rpm -i *.rpm
+RUN wget -O bcl2fastq2-v2-20-0-linux-x86-64.zip "https://files.softwaredownloads.illumina.com/e8ed3335-5201-48ff-a2bc-db4bfb792c85/bcl2fastq2-v2-20-0-linux-x86-64.zip?Expires=1582222614&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9maWxlcy5zb2Z0d2FyZWRvd25sb2Fkcy5pbGx1bWluYS5jb20vZThlZDMzMzUtNTIwMS00OGZmLWEyYmMtZGI0YmZiNzkyYzg1L2JjbDJmYXN0cTItdjItMjAtMC1saW51eC14ODYtNjQuemlwIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNTgyMjIyNjE0fX19XX0_&Signature=dglfOkVZI--xz6nwC5IfHEL49BhHTBQCGr6ybWfZbOVKxCvHRn7l5vYUlbtgBSYerFlYWl4eXPVc2aVF4R7-uAsoyD3xRA-nfltq9K93qY5otWUQ5X16Bl2L5mKxDHXW7OBC2nXJvJVtsG80IH3TXqTWqvVPXGiJpTFsVF6AXCxbE-IxMZ1XMwBJpcp8r-HrYU6GpGoKRXuhFSc-0BuZwui5Io6kT6fTyZHeV21f-ugXi1eu7G47g~TWOe0bravTVHCGR0S7Kvm7y4YLB6xu52Ljy-rz0PeV9kU9pxpMAtAu7Nam2E8ABdsVZb4HPkfK-Vd6F8-hcF4khSkFxYVOeg__&Key-Pair-Id=APKAJO3UYWPXK4A26FPQ" && unzip bcl2fastq*.zip && rpm -i *.rpm
 RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.8.zip && unzip fastqc*.zip
 
 ADD . /app
@@ -22,10 +22,10 @@ ADD . /app
 RUN chmod 755 /app/FastQC/fastqc
 RUN ln -s /app/FastQC/fastqc /usr/local/bin/fastqc
 
-RUN pip install nose
-RUN pip install jinja2 numpy MySQL-python
+RUN pip install --upgrade pip
+RUN pip install numpy jinja2 MySQL-python
 
 ENV PYTHONPATH=/app
-ENV ODYBCL2FASTQ_CONFIG_FILE=/app/dev.config.json
+ENV ODYBCL2FASTQ_CONFIG_FILE=/app/odybcl2fastq/config.dev.json
 
 CMD ["python", "odybcl2fastq/process_runs.py"]
