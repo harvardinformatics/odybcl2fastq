@@ -4,7 +4,7 @@
     "output": "/output/",
     "output_slurm": "/n/boslfs02/LABS/informatics/sequencing/analysis/",
     "published": "/final/",
-    "published_slurm": "/n/boslfs/LABS/informatics/sequencing/test/PUBLISHED/",
+    "published_slurm": "/n/boslfs02/LABS/informatics/sequencing/published/",
     "log": "/log/",
     "log_slurm": "/n/boslfs02/LABS/informatics/sequencing/log/",
     "ref": "/ref/",

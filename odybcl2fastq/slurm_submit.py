@@ -25,7 +25,7 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
         for l in r:
             if 'cd /app' in l or 'python3' in l:
                 l = 'singularity exec -B /n/boslfs02/LABS/informatics/sequencing/source:/source \
-                -B /n/boslfs/LABS/informatics/sequencing/test/PUBLISHED:/final \
+                -B /n/boslfs02/LABS/informatics/sequencing/published:/final \
                 -B /n/boslfs02/LABS/informatics/sequencing/analysis:/output \
                 -B /n/boslfs02/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
                 /n/boslfs02/LABS/informatics/singularity_images/ody.sif ' + l
