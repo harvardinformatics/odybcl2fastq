@@ -629,9 +629,10 @@ def bcl2fastq_process_runs(args=None, switches_to_names=None):
                 summary_data['cmd'] = cmd
                 summary_data['version'] = 'bcl2fastq2 v2.2'
                 subject = 'Demultiplex Summary for ' + run_folder
+                toemaillist = config.EMAIL['to_email']
             else:
                 subject = 'Run Failed: ' + run_folder
-            toemaillist = config.EMAIL['to_email']
+                toemaillist = config.EMAIL['to_email_error']
             fromaddr = config.EMAIL['from_email']
             runlogger.info('Sending email summary to %s\n' % json.dumps(toemaillist))
             sent = buildmessage(message, subject, summary_data, fromaddr, toemaillist)

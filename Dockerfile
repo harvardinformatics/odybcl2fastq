@@ -21,6 +21,7 @@ ADD . /app
 RUN chmod 755 /app/FastQC/fastqc
 RUN ln -s /app/FastQC/fastqc /usr/local/bin/fastqc
 
+RUN yum -y install vim
 RUN pip install --upgrade pip
 RUN pip install numpy jinja2 MySQL-python
 
