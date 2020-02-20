@@ -113,6 +113,8 @@ class SampleSheet(object):
             instrument = 'nextseq'
         elif instrument_name.startswith('A'):
             instrument = 'novaseq'
+        elif instrument_name.startswith('M'):
+            instrument = 'miseq'
         else:
             raise ValueError('Instruemnt %s does not match known types: D, N, A' % instrument_name)
         return instrument
