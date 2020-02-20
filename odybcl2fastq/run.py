@@ -314,7 +314,7 @@ def copy_source_to_output(src_root, dest_root, sample_sheet, instrument):
     dest_root += '/'
     run_params_file = 'RunParameters.xml'
     if not os.path.exists(src_root + run_params_file):
-        util.copy(src + 'runParameters.xml', src + run_params_file)
+        util.copy(src_root + 'runParameters.xml', src_root + run_params_file)
     # get filename part of sample_sheet
     sample_sheet = sample_sheet.replace(src_root, '')
     files_to_copy = {
