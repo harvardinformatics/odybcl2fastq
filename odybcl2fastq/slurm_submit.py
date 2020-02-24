@@ -28,6 +28,7 @@ with open(job_props['input'][0] + 'test', 'w') as fh:
                 -B /n/boslfs02/LABS/informatics/sequencing/published:/final \
                 -B /n/boslfs02/LABS/informatics/sequencing/analysis:/output \
                 -B /n/boslfs02/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
+                -B /n/boslfs02/LABS/informatics/snakemake:/snakemake \
                 /n/boslfs02/LABS/informatics/singularity_images/ody.sif ' + l
             fh.write(l)
 shutil.copyfile((job_props['input'][0] + 'test'), jobscript)
