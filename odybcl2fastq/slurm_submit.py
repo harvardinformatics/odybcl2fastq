@@ -23,7 +23,7 @@ job_props = read_job_properties(jobscript)
 with open(job_props['input'][0] + 'test', 'w') as fh:
     with open(jobscript) as r:
         for l in r:
-            if 'cd /app' in l or 'python3' in l:
+            if 'cd /snakemake/ody' in l or 'python3' in l:
                 l = 'singularity exec -B /n/boslfs02/LABS/informatics/sequencing/source:/source \
                 -B /n/boslfs02/LABS/informatics/sequencing/published:/final \
                 -B /n/boslfs02/LABS/informatics/sequencing/analysis:/output \
