@@ -27,7 +27,7 @@ data = pd.read_csv(sample_sheet_path, skiprows=idx+1)
 
 samples = list(data['Sample_ID'])
 projects = list(data['Sample_Project'])
-STATUS_DIR = 'status'
+STATUS_DIR = 'status_test' if ody_config.TEST else 'status'
 
 # set up bauer db for step updates
 bauer = BauerDB(sample_sheet_path)
@@ -60,9 +60,12 @@ rule insert_run_into_bauer_db:
     output:
         expand("{source}{{run}}/{status}/analysis_id", source=ody_config.SOURCE_DIR, status=STATUS_DIR)
     run:
-        bauer = BauerDB(input.sample_sheet[0])
-        bauer.insert_run()
-        analysis_id = bauer.send_data('requests', {"run": wildcards.run, "status":"processing", "step":"demultiplex"})
+        if ody_config.TEST:
+            analysis_id = 'test'
+        else:
+            bauer = BauerDB(input.sample_sheet[0])
+            bauer.insert_run()
+            analysis_id = bauer.send_data('requests', {"run": wildcards.run, "status":"processing", "step":"demultiplex"})
         analysis_file_path = '%s%s/%s/analysis_id' % (ody_config.SOURCE_DIR, wildcards.run, STATUS_DIR)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
@@ -85,11 +88,11 @@ rule demultiplex_10x_cmd:
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/fastq\n"
+        cmd+="mkdir -p {ody_config.SOURCE_CLUSTER_PATH}/{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq $dual_index --run={ody_config.SOURCE_CLUSTER_PATH}{wildcards.run} --samplesheet={ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/SampleSheet.csv --output-dir={ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
-        cmd+="cp -p */*.mri.tgz {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="cp -p */*.mri.tgz {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -120,19 +123,19 @@ rule count_10x_cmd:
         expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR)
     shell:
         """
-        fastq_path="{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
-        transcriptome="--transcriptome={config[ref]}"
+        fastq_path="{ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
+        transcriptome="--transcriptome={ody_config.REF_DIR}"
         if [ ! -z "{config[atac]}" ]; then
-            transcriptome="--reference={config[ref]}"
+            transcriptome="--reference={ody_config.REF_DIR}"
         fi
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/count/{wildcards.sample}\n"
+        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/count/{wildcards.sample}\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="/usr/bin/time -v cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
-        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs {config[output_slurm]}{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -163,13 +166,14 @@ rule update_lims_db:
     output:
         touch(expand("{source}{{run}}/{status}/update_lims_db.processed", source=ody_config.SOURCE_DIR, status=STATUS_DIR))
     run:
-        setup_run_logger(wildcards.run, False)
-        sample_sheet = SampleSheet(input.sample_sheet[0])
-        instrument = sample_sheet.get_instrument()
-        run_folder = ody_config.SOURCE_DIR + wildcards.run
-        update_lims_db(run_folder, sample_sheet.sections, instrument)
-        # also update step to fastqc
-        update_analysis({'step': 'quality', 'status': 'processing'})
+        if not ody_config.TEST:
+            setup_run_logger(wildcards.run, False)
+            sample_sheet = SampleSheet(input.sample_sheet[0])
+            instrument = sample_sheet.get_instrument()
+            run_folder = ody_config.SOURCE_DIR + wildcards.run
+            update_lims_db(run_folder, sample_sheet.sections, instrument)
+            # also update step to fastqc
+            update_analysis({'step': 'quality', 'status': 'processing'})
 
 rule fastqc_cmd:
     """
@@ -183,9 +187,9 @@ rule fastqc_cmd:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
-        cmd+="mkdir -p {config[output_slurm]}{wildcards.run}/QC\n"
-        cmd+="cd {config[output_slurm]}{wildcards.run}/fastq/\n"
-        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o {config[output_slurm]}{wildcards.run}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
+        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/QC\n"
+        cmd+="cd {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/fastq/\n"
+        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
         echo "$cmd" >> {output}
         chmod 775 {output}
         """
@@ -221,12 +225,12 @@ rule cp_source_to_output:
         run_info=expand("{output}{{run}}/RunInfo.xml", output=ody_config.OUTPUT_DIR)
     shell:
         """
-        cp {config[source]}{wildcards.run}/{params.sample_sheet} {output.sample_sheet}
-        cp {config[source]}{wildcards.run}/{params.run_info} {output.run_info}
-        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {config[source]}{wildcards.run}/{params.interop}/ {config[output]}{wildcards.run}/InterOp/
+        cp {ody_config.SOURCE_DIR}{wildcards.run}/{params.sample_sheet} {output.sample_sheet}
+        cp {ody_config.SOURCE_DIR}{wildcards.run}/{params.run_info} {output.run_info}
+        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {ody_config.SOURCE_DIR}{wildcards.run}/{params.interop}/ {ody_config.OUTPUT_DIR}{wildcards.run}/InterOp/
         # copy these if they exist
-        cp {config[source]}{wildcards.run}/{params.nextseq_run_params} {config[output]}{wildcards.run}/{params.nextseq_run_params} 2>/dev/null || :
-        cp {config[source]}{wildcards.run}/{params.hiseq_run_params} {config[output]}{wildcards.run}/{params.hiseq_run_params} 2>/dev/null || :
+        cp {ody_config.SOURCE_DIR}{wildcards.run}/{params.nextseq_run_params} {ody_config.OUTPUT_DIR}{wildcards.run}/{params.nextseq_run_params} 2>/dev/null || :
+        cp {ody_config.SOURCE_DIR}{wildcards.run}/{params.hiseq_run_params} {ody_config.OUTPUT_DIR}{wildcards.run}/{params.hiseq_run_params} 2>/dev/null || :
 
         """
 
@@ -240,7 +244,7 @@ rule checksum:
         checksum=expand("{output}{{run}}/md5sum.txt", output=ody_config.OUTPUT_DIR),
     shell:
         """
-        files=$(find {config[output]}{wildcards.run}/ -name *.fastq.gz -print0 | xargs -0)
+        files=$(find {ody_config.OUTPUT_DIR}{wildcards.run}/ -name *.fastq.gz -print0 | xargs -0)
         md5sum $files > {output.checksum}
         """
 
@@ -260,7 +264,7 @@ rule fastq_email:
         touch(expand("{source}{{run}}/{status}/fastq_email.processed", source=ody_config.SOURCE_DIR, status=STATUS_DIR))
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
-        shell("cp -r {config[output]}{wildcards.run} {ody_config.PUBLISHED_DIR}")
+        shell("cp -r {ody_config.OUTPUT_DIR}{wildcards.run} {ody_config.PUBLISHED_DIR}")
         subject = 'Demultiplex Summary for: %s (count pending)' % config['run']
         send_success_email(subject)
 
@@ -297,7 +301,7 @@ rule publish:
         touch(expand("{source}{{run}}/{status}/ody.complete", source=ody_config.SOURCE_DIR, status=STATUS_DIR))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {config[output]}{wildcards.run}/ {ody_config.PUBLISHED_DIR}{wildcards.run}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{wildcards.run}/ {ody_config.PUBLISHED_DIR}{wildcards.run}/")
         subject = 'Demultiplex Summary for: %s' % config['run']
         send_success_email(subject)
 
@@ -346,8 +350,9 @@ def send_success_email(subject):
     sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')
 
 def update_analysis(data):
-    analysis_file_path = '%s%s/%s/analysis_id' % (ody_config.SOURCE_DIR, config['run'], STATUS_DIR)
-    if os.path.isfile(analysis_file_path):
-        with open(analysis_file_path, 'r') as ln:
-            analysis_id = ln.readline().strip()
-        bauer.update_data('requests', analysis_id, data)
+    if not ody_config.TEST:
+        analysis_file_path = '%s%s/%s/analysis_id' % (ody_config.SOURCE_DIR, config['run'], STATUS_DIR)
+        if os.path.isfile(analysis_file_path):
+            with open(analysis_file_path, 'r') as ln:
+                analysis_id = ln.readline().strip()
+            bauer.update_data('requests', analysis_id, data)
