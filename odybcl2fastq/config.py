@@ -2,6 +2,8 @@ from odybcl2fastq import util
 import os
 
 CONFIG_FILE = os.environ.get('ODY_CONFIG_FILE', os.path.join('config.json'))
+DEFAULT_INFORMATICS_ROOT = '/n/boslfs02/LABS/informatics'
+DEFAULT_SEQ_ROOT = '%s/sequencing' % DEFAULT_INFORMATICS_ROOT
 
 
 class Config(object):
@@ -9,10 +11,10 @@ class Config(object):
     def __init__(self):
         self.data = util.load_json(CONFIG_FILE)
         # add full paths for source, output and final for reusable scripts
-        self.data['SOURCE_CLUSTER_PATH'] = '%s/' % os.environ.get('ODY_SOURCE')
-        self.data['OUTPUT_CLUSTER_PATH'] = '%s/analysis/' % os.environ.get('ODY_SEQ_ROOT')
-        self.data['PUBLISHED_CLUSTER_PATH'] = '%s/published/' % os.environ.get('ODY_SEQ_ROOT')
-        self.data['REF_PATH'] = '%s/' % os.environ.get('ODY_REF')
+        self.data['SOURCE_CLUSTER_PATH'] = self.check_path('%s/' % os.environ.get('ODY_SOURCE', '%s/source' % DEFAULT_SEQ_ROOT).strip('/'))
+        self.data['OUTPUT_CLUSTER_PATH'] = self.check_path('%s/analysis/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).strip('/'))
+        self.data['PUBLISHED_CLUSTER_PATH'] = self.check_path('%s/published/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).strip('/'))
+        self.data['REF_PATH'] = self.check_path('%s/' % os.environ.get('ODY_REF', '%s/refs/10x/2019.05.19/cellranger' % DEFAULT_INFORMATICS_ROOT).strip('/'))
         self.data['TEST'] = os.environ.get('ODY_TEST', 'FALSE') == 'TRUE'
 
     def __getattr__(self, attr):
@@ -29,3 +31,9 @@ class Config(object):
 
     def __contains__(self, key):
         return key in self.data
+
+    def check_path(self, path):
+        if os.path.exists(path):
+            return path
+        else:
+            raise Exception('path does not exist: %s' % path)
