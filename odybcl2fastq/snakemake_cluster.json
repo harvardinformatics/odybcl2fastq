@@ -5,10 +5,10 @@
         "mem": 0,
         "partition": "bos-info_priority",
         "job-name": "{rule}.{wildcards.run}",
-        "output": "{ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/log/{rule}-%j.out",
-        "error": "{ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/log/{rule}-%j.err",
+        "output": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/log/{rule}-%j.out",
+        "error": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/log/{rule}-%j.err",
         "exclusive": "",
-        "chdir": "/tmp"
+        "chdir": "/tmp/"
     },
     "demultiplex_10x": {
         "time": "4-20:00:00"
@@ -20,8 +20,8 @@
         "time": "4-18:00:00",
         "nice": "",
         "job-name": "{rule}.{wildcards.run}_{wildcards.sample}",
-        "output": "{ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/log/{rule}.{wildcards.sample}-%j.out",
-        "error": "{ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/log/{rule}.{wildcards.sample}-%j.err"
+        "output": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.out",
+        "error": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/log/{rule}.{wildcards.sample}-%j.err"
     }
 }
 

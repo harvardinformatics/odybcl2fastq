@@ -9,9 +9,10 @@ class Config(object):
     def __init__(self):
         self.data = util.load_json(CONFIG_FILE)
         # add full paths for source, output and final for reusable scripts
-        self.data['SOURCE_CLUSTER_PATH'] = os.environ.get('ODY_SOURCE', self.data['SOURCE_DIR'])
-        self.data['OUTPUT_CLUSTER_PATH'] = '%s/analysis' % os.environ.get('ODY_SEQ_ROOT', self.data['OUTPUT_DIR'])
-        self.data['PUBLISHED_CLUSTER_PATH'] = '%s/published' % os.environ.get('ODY_SEQ_ROOT', self.data['PUBLISHED_DIR'])
+        self.data['SOURCE_CLUSTER_PATH'] = '%s/' % os.environ.get('ODY_SOURCE')
+        self.data['OUTPUT_CLUSTER_PATH'] = '%s/analysis/' % os.environ.get('ODY_SEQ_ROOT')
+        self.data['PUBLISHED_CLUSTER_PATH'] = '%s/published/' % os.environ.get('ODY_SEQ_ROOT')
+        self.data['REF_PATH'] = '%s/' % os.environ.get('ODY_REF')
         self.data['TEST'] = os.environ.get('ODY_TEST', 'FALSE') == 'TRUE'
 
     def __getattr__(self, attr):

@@ -88,11 +88,11 @@ rule demultiplex_10x_cmd:
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p {ody_config.SOURCE_CLUSTER_PATH}/{wildcards.run}/fastq\n"
+        cmd+="mkdir -p {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq $dual_index --run={ody_config.SOURCE_CLUSTER_PATH}{wildcards.run} --samplesheet={ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/SampleSheet.csv --output-dir={ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
-        cmd+="cp -p */*.mri.tgz {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="cp -p */*.mri.tgz {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -123,19 +123,19 @@ rule count_10x_cmd:
         expand("{output}{{run}}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR)
     shell:
         """
-        fastq_path="{ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
-        transcriptome="--transcriptome={ody_config.REF_DIR}"
+        fastq_path="{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/fastq/{wildcards.project}/{wildcards.sample}"
+        transcriptome="--transcriptome={ody_config.REF_PATH}{config[ref]}"
         if [ ! -z "{config[atac]}" ]; then
-            transcriptome="--reference={ody_config.REF_DIR}"
+            transcriptome="--reference={ody_config.REF_PATH}{config[ref]}"
         fi
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/count/{wildcards.sample}\n"
+        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/count/{wildcards.sample}\n"
         cmd+="mkdir -p /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="/usr/bin/time -v cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
-        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -187,9 +187,9 @@ rule fastqc_cmd:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
-        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/QC\n"
-        cmd+="cd {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/fastq/\n"
-        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o {ody_config.OUTPUT_CLUSTER_PATH}/{wildcards.run}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
+        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/QC\n"
+        cmd+="cd {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/fastq/\n"
+        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
         echo "$cmd" >> {output}
         chmod 775 {output}
         """
@@ -281,7 +281,7 @@ def publish_input(wildcards):
         'run_info': "%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run)
     }
     # if reference is provided then run count
-    if ody_config.REF_DIR:
+    if config['ref']:
         # copy fastq to final and send an email that count is pending
         input['email'] = "%s%s/%s/fastq_email.processed" % (ody_config.SOURCE_DIR, wildcards.run, STATUS_DIR)
         for i, sample in enumerate(samples):
@@ -324,8 +324,8 @@ def get_summary_data(cmd, run, ss_file):
         'cellranger 3.1.0',
         'fastqc 0.11.8'
     ]
-    if ody_config.REF_DIR:
-        assumptions.append('reference genome %s, see annotation under versions below' % os.path.basename(ody_config.REF_DIR))
+    if config['ref']:
+        assumptions.append('reference genome %s, see annotation under versions below' % os.path.basename(config['ref']))
         assumptions.append('samples are full cell, not nuclei')
         versions.append('annotation gtf: %s' % config['gtf'])
     summary_data = {
