@@ -22,7 +22,7 @@ jobscript = sys.argv[1]
 job_props = read_job_properties(jobscript)
 
 # uncomment out to write jobscript to script folder
-# shutil.copyfile(jobscript, (job_props['input'][0] + '_jobscript'))
+#shutil.copyfile(jobscript, (job_props['input'][0] + '_jobscript'))
 
 # the input file is a bash script to submit to slurm, read cmd in
 with open(job_props['input'][0], 'r') as fh:
