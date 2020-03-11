@@ -28,7 +28,7 @@ from odybcl2fastq.parsers.samplesheet import SampleSheet
 from snakemake import snakemake
 from odybcl2fastq.status_db import StatusDB
 
-LOG_HTML = config.FINAL_DIR + 'odybcl2fastq_log.html'
+LOG_HTML = config.PUBLISHED_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE = 'status/ody.processed'
 COMPLETE_FILE = 'status/ody.complete'
 SKIP_FILE = 'odybcl2fastq.skip'
@@ -400,7 +400,7 @@ def main():
         setup_main_logger()
         logger.info("Starting ody10x processing")
         logger.info("Running with ")
-        for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR', 'MOUNT_DIR', 'LOG_DIR', 'CONTROL_DIR']:
+        for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'PUBLISHED_DIR', 'LOG_DIR', 'CONTROL_DIR']:
             logger.info("\t%s\t%s" % (k, config[k]))
         proc_num = PROC_NUM
         pool = Pool(proc_num)
