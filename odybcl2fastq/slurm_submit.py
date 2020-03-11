@@ -20,20 +20,9 @@ from snakemake.utils import read_job_properties
 
 jobscript = sys.argv[1]
 job_props = read_job_properties(jobscript)
-with open(job_props['input'][0] + 'test', 'w') as fh:
-    with open(jobscript) as r:
-        for l in r:
-            if 'cd /snakemake/ody' in l or 'python3' in l:
-                l = 'singularity exec -B /n/boslfs02/LABS/informatics/sequencing/source:/source \
-                -B /n/boslfs02/LABS/informatics/sequencing/published:/final \
-                -B /n/boslfs02/LABS/informatics/sequencing/analysis:/output \
-                -B /n/boslfs02/LABS/informatics/refs/10x/2019.05.19/cellranger:/ref \
-                -B /n/boslfs02/LABS/informatics/snakemake:/snakemake \
-                /n/boslfs02/LABS/informatics/singularity_images/ody.sif ' + l
-            fh.write(l)
-shutil.copyfile((job_props['input'][0] + 'test'), jobscript)
-# comment out the removal of the script to see the contents
-os.remove((job_props['input'][0] + 'test'))
+
+# uncomment out to write jobscript to script folder
+#shutil.copyfile(jobscript, (job_props['input'][0] + '_jobscript'))
 
 # the input file is a bash script to submit to slurm, read cmd in
 with open(job_props['input'][0], 'r') as fh:
@@ -58,5 +47,4 @@ with open(job_props['input'][0], 'w') as fh:
 
 cli_opt_str = ' '.join(cli_opts)
 
-#os.system("hex exec sbatch {cli_opts} {script}".format(cli_opts=cli_opt_str, script=jobscript))
 os.system("sbatch {cli_opts} {script}".format(cli_opts=cli_opt_str, script=jobscript))

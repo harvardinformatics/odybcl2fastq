@@ -24,12 +24,12 @@ conda install -y -c bioconda mysqlclient fastqc
 conda install -y -c bioconda -c conda-forge snakemake
 
 %files
-/n/boslfs/LABS/informatics/repos/odybcl2fastq_10x/odybcl2fastq /app
+. /app
 
 %environment
 export TZ=$TZ
 export PYTHONPATH=/app
-export ODYBCL2FASTQ_CONFIG_FILE=/app/odybcl2fastq/config.json
+export ODY_CONFIG_FILE=/app/odybcl2fastq/config.json
 %runscript
 python /app/odybcl2fastq/process_snakemake_runs.py
 

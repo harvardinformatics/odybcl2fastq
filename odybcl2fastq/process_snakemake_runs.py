@@ -146,22 +146,22 @@ def get_reference(run_dir, run_type, sample_sheet):
     ref_file = ''
     gtf = ''
     if ref == 'hg19' or ref == 'human_hg19': # human
-        ref_file = '%srefdata-cellranger-hg19-3.0.0' % config.ody['ref_dir']
+        ref_file = 'refdata-cellranger-hg19-3.0.0'
     elif ref == 'GRCh' or ref == 'human_GRC38': # human
         if run_type == '10x single cell atac':
-            ref_file = '%satac-seq/refdata-cellranger-atac-GRCh38-1.0.1' % config.ody['ref_dir']
+            ref_file = 'atac-seq/refdata-cellranger-atac-GRCh38-1.0.1'
         else:
-            ref_file = '%srefdata-cellranger-GRCh38-3.0.0' % config.ody['ref_dir']
+            ref_file = 'refdata-cellranger-GRCh38-3.0.0'
     elif 'Zebrafish' in ref or ref =='Zebrafish_GRCz11':
         if run_type == '10x single cell atac':
-            ref_file = '%satac-seq/refdata-cellranger-atac-zebrafish/Danio_rerio.GRCz11' % config.ody['ref_dir']
+            ref_file = 'atac-seq/refdata-cellranger-atac-zebrafish/Danio_rerio.GRCz11'
         else:
-            ref_file = '%szebrafish_ensembl/Danio_rerio.GRCz11' % (config.ody['ref_dir'])
+            ref_file = 'zebrafish_ensembl/Danio_rerio.GRCz11'
     elif 'mouse' in ref or ref == 'mouse_mm10':
         if run_type == '10x single cell atac':
-            ref_file = '%satac-seq/refdata-cellranger-atac-mm10-1.0.1' % (config.ody['ref_dir'])
+            ref_file = 'atac-seq/refdata-cellranger-atac-mm10-1.0.1'
         else:
-            ref_file = '%srefdata-cellranger-mm10-3.0.0' % (config.ody['ref_dir'])
+            ref_file = 'refdata-cellranger-mm10-3.0.0'
     elif ref not in ['', 'None', 'Other']: # this will cause count to error and then we can add a genome
         # email admins to notify we need a reference genome
         message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
@@ -169,7 +169,7 @@ def get_reference(run_dir, run_type, sample_sheet):
         sent = buildmessage(message, subject, {}, config.EMAIL['from_email'], config.EMAIL['admin_email'])
     if ref_file:
         # get gtf file
-        with open(ref_file + '/reference.json', 'r') as f:
+        with open(('%s/%s' % (config.ref_dir, ref_file)) + '/reference.json', 'r') as f:
             data = json.load(f)
             if 'input_gtf_files' in data:
                 gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
