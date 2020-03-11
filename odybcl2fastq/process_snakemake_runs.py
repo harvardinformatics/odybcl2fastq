@@ -225,6 +225,7 @@ def get_ody_snakemake_opts(run_dir, run_type):
         '--printshellcmds': None,
         '--reason': None,
         '-s': '/app/odybcl2fastq/Snakefile',
+        '--jobscript': '/app/odybcl2fastq/jobscript.sh',
         #'-d': '/app/odybcl2fastq',
         '-d': '/snakemake/ody',
         #'--configfile': '/app/odybcl2fastq/snakemake_config.json',
