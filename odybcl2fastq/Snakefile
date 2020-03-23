@@ -70,7 +70,7 @@ rule insert_run_into_bauer_db:
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
         # for a new analysis remove the script dir to ensure a total restart
-        shell("rm {output}{run}/script/*", output={ody_config.OUTPUT_DIR}, run=config['run'])
+        shell("rm -f {output}{run}/script/*", output={ody_config.OUTPUT_DIR}, run=config['run'])
 
 rule demultiplex_10x_cmd:
     """

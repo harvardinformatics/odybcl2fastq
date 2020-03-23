@@ -169,7 +169,7 @@ def get_reference(run_dir, run_type, sample_sheet):
         sent = buildmessage(message, subject, {}, config.EMAIL['from_email'], config.EMAIL['admin_email'])
     if ref_file:
         # get gtf file
-        with open(('%s/%s' % (config.ref_dir, ref_file)) + '/reference.json', 'r') as f:
+        with open(('%s/%s/reference.json' % (config.REF_PATH, ref_file)), 'r') as f:
             data = json.load(f)
             if 'input_gtf_files' in data:
                 gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
