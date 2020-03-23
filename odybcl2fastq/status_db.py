@@ -72,7 +72,7 @@ class StatusDB(object):
         now = time.time()
         name = self.minilims_get_new_name(analysis_table, 'ILL')
         data = {
-            'Data_Directory': config.MOUNT_DIR + run,
+            'Data_Directory': config.PUBLISHED_CLUSTER_PATH + run,
             'Date_Created': now,
             'Date_Modified': now,
             'Illumina_BclConversion_Analysis': name,
