@@ -98,7 +98,7 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
     elif 'BCL_USE_BASES_MASK' in args and args.BCL_USE_BASES_MASK:
         mask = args.BCL_USE_BASES_MASK
         mask_lists, mask_samples = lists_from_mask(mask, data_by_sample)
-    elif instrument == 'hiseq':
+    elif instrument in ['hiseq', 'novaseq']:
         # get mask per sample
         lane_masks=OrderedDict()
         for sample, row in data_by_sample.items():
@@ -118,7 +118,7 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
                 mask_lists[mask][lane] = mask
         for mask, lane_masks in mask_lists.items():
             mask_lists[mask] = [lane + ':' + mask for lane, mask in lane_masks.items()]
-    else: # nextseq
+    else: # nextseq miseq
         for sample, row in data_by_sample.items():
             mask = make_mask(universal_mask, sample, row)
             if mask not in mask_lists:
