@@ -27,7 +27,7 @@ def get_summary(output_dir, instrument, sample_sheet_dir, run_folder):
     # parse stats for both hiseq and nextseq
     lanes = get_stats(data)
     lane_sum = []
-    if instrument == 'nextseq':
+    if instrument in ['nextseq', 'miseq']:
         # no real lanes in nextseq, aggregate the stats
         lane_sum = get_lane_sum(lanes)
         lanes = aggregate_nextseq_lanes(lanes)

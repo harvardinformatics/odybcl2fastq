@@ -110,10 +110,19 @@ class SampleSheet(object):
         return defaults_by_section
 
     def get_instrument(self):
-        if 'Lane' in next(iter(self.sections['Data'].values())):
+        run = os.path.basename(os.path.dirname(self.path))
+        instrument_name = run.split('_')[1]
+        instrument = ''
+        if instrument_name.startswith('D'):
             instrument = 'hiseq'
-        else:
+        elif instrument_name.startswith('N'):
             instrument = 'nextseq'
+        elif instrument_name.startswith('A'):
+            instrument = 'novaseq'
+        elif instrument_name.startswith('M'):
+            instrument = 'miseq'
+        else:
+            raise ValueError('Instrument %s does not match known types: D, N, A, M' % instrument_name)
         return instrument
 
     def validate(self):
@@ -146,20 +155,21 @@ class SampleSheet(object):
         for sam, line in self.sections['Data'].items():
             cols_to_validate = ['Sample_ID', 'Sample_Name', 'Sample_Project']
             for col in cols_to_validate:
-                # remove any whitespace
-                if util.contains_whitespace(line[col]):
-                    corrected = True
-                    tmp = line[col]
-                    line[col] = line[col].replace(' ', '_')
-                    logging.info('Sample_Sheet corrected, whitespace removed: %s to %s' % (tmp, line[col]))
-                # remove any non alphanumeric chars
-                if not util.alphanumeric(line[col]):
-                    corrected = True
-                    tmp = line[col]
-                    line[col] = re.sub(r'[^\w-]', '', line[col])
-                    if not line[col]:
-                        raise Exception('For sample_sheet, %s: %s was all non alphanumeric' % (col, line[col]))
-                    logging.info('Sample_Sheet corrected, non alphanumeric removed: %s to %s' % (tmp, line[col]))
+                if col in line:
+                    # remove any whitespace
+                    if util.contains_whitespace(line[col]):
+                        corrected = True
+                        tmp = line[col]
+                        line[col] = line[col].replace(' ', '_')
+                        logging.info('Sample_Sheet corrected, whitespace removed: %s to %s' % (tmp, line[col]))
+                    # remove any non alphanumeric chars
+                    if not util.alphanumeric(line[col]):
+                        corrected = True
+                        tmp = line[col]
+                        line[col] = re.sub(r'[^\w-]', '', line[col])
+                        if not line[col]:
+                            raise Exception('For sample_sheet, %s: %s was all non alphanumeric' % (col, line[col]))
+                        logging.info('Sample_Sheet corrected, non alphanumeric removed: %s to %s' % (tmp, line[col]))
             # if sample project is used, each sample id must belong to only one
             if line['Sample_Project']:
                 if not line['Sample_ID'] in proj_by_sample:
