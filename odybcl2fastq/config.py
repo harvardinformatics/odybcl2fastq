@@ -12,8 +12,8 @@ class Config(object):
         self.data = util.load_json(CONFIG_FILE)
         # add full paths for source, output and final for reusable scripts
         self.data['SOURCE_CLUSTER_PATH'] = self.check_dir('%s/' % os.environ.get('ODY_SOURCE', '%s/source' % DEFAULT_SEQ_ROOT).rstrip('/'))
-        self.data['OUTPUT_CLUSTER_PATH'] = self.check_dir('%s/analysis/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'))
-        self.data['PUBLISHED_CLUSTER_PATH'] = self.check_dir('%s/published/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'))
+        self.data['OUTPUT_CLUSTER_PATH'] = self.check_dir('%s/analysis/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'), check_is_writable=True)
+        self.data['PUBLISHED_CLUSTER_PATH'] = self.check_dir('%s/published/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'), check_is_writable=True)
         self.data['REF_PATH'] = self.check_dir('%s/' % os.environ.get('ODY_REF', '%s/refs/10x/2019.05.19/cellranger' % DEFAULT_INFORMATICS_ROOT).rstrip('/'))
         self.data['TEST'] = os.environ.get('ODY_TEST', 'FALSE') == 'TRUE'
 
@@ -32,8 +32,11 @@ class Config(object):
     def __contains__(self, key):
         return key in self.data
 
-    def check_dir(self, path):
+    def check_dir(self, path, check_is_writable=False):
         if os.path.isdir(path):
-            return path
+            if check_is_writable and not os.access(path, os.W_OK):
+                raise Exception('path is not writable: %s' % path)
+            else:
+                return path
         else:
             raise Exception('path does not exist: %s' % path)
