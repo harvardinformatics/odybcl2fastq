@@ -13,6 +13,9 @@
     "demultiplex_10x": {
         "time": "4-20:00:00"
     },
+    "demultiplex": {
+        "time": "4-20:00:00"
+    },
     "fastqc": {
         "time": "4-12:00:00"
     },

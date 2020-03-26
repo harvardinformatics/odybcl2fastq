@@ -116,6 +116,14 @@ def find_runs(filter):
             runs.append(dir)
     return runs
 
+def check_sample_sheet(sample_sheet, run):
+    # if sample sheet is not already there then copy the one from run_folder named
+    # for flowcell
+    if not os.path.exists(sample_sheet):
+        flowcell = run.split('_')[-1][1:]
+        path = config.SAMPLE_SHEET_DIR + flowcell + '.csv'
+        if os.path.exists(path):
+            util.copy(path, sample_sheet)
 
 def get_sample_sheet_path(run_dir):
     # set default
@@ -193,6 +201,8 @@ def setup_run_logger(run):
 
 def get_ody_snakemake_opts(run_dir, run_type):
     run = os.path.basename(os.path.normpath(run_dir))
+    # copy samplesheet from samplesheet folder if necessary
+    check_sample_sheet(sample_sheet_path, run)
     ss_path = get_sample_sheet_path(run_dir)
     sample_sheet = SampleSheet(ss_path)
     sample_sheet.validate()

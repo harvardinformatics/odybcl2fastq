@@ -52,7 +52,7 @@ def make_mask(universal_mask, sample_key, sample_dict):
         if 'read2' in sample_mask:
             sample_mask['read2'] = update_mask_index(sample_dict['index'],
                     sample_mask['read2'], sample_key)
-    if 'index2' in sample_dict and sample_dict['index2']: # dual indexed
+    if 'index2' in sample_dict and sample_dict['index2'] and 'read3' in sample_mask: # dual indexed
         sample_mask['read3'] = update_mask_index(sample_dict['index2'],
                 sample_mask['read3'], sample_key)
     elif 'read3' in sample_mask and 'i' in sample_mask['read3']:
@@ -74,7 +74,7 @@ def lists_from_mask(mask, data_by_sample):
         mask_samples[mask].append(row)
     return mask_lists, mask_samples
 
-def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
+def extract_basemasks(data_by_sample, runinfo, instrument, run_type):
     """
     creates a list of lists that contain masks
     that are compatible being run together in one demultiplexing
@@ -93,10 +93,6 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
         for read in universal_mask:
             mask.append('y*')
         mask = ','.join(mask)
-        mask_lists, mask_samples = lists_from_mask(mask, data_by_sample)
-    # base mask passed in will be used instead of deriving from the sample sheet
-    elif 'BCL_USE_BASES_MASK' in args and args.BCL_USE_BASES_MASK:
-        mask = args.BCL_USE_BASES_MASK
         mask_lists, mask_samples = lists_from_mask(mask, data_by_sample)
     elif instrument in ['hiseq', 'novaseq']:
         # get mask per sample
