@@ -13,6 +13,7 @@ def fastqc_runner(output_dir,numthreads = 1,batch = False):
     badfiles = []
     out = []
     # get fastq files except undetermined
+    # (used when batch == False; only for logging purposes when non-batch == True)
     sample_proj_path = '%s/*/*.fastq.gz' % output_dir
     file_path = '%s/*.fastq.gz' % output_dir
     file_lst = glob(sample_proj_path)
@@ -27,7 +28,7 @@ def fastqc_runner(output_dir,numthreads = 1,batch = False):
     if not os.path.exists(qc_dir):
         call('mkdir %s' % (qc_dir) ,shell=True)
     if batch == True:
-        fastqc_cmd = 'fastqc -o %s --threads %s -b %s' % (qc_dir,numthreads,files)
+        fastqc_cmd = "find %s -name '*.fastq.gz' ! -name 'Undetermined*.fastq.gz' -exec fastqc -o %s --threads %s {} +" % (output_dir, qc_dir, numthreads)
         fastqc_run = Popen(fastqc_cmd,shell=True,stderr=PIPE,stdout=PIPE)
         fastqc_out,fastqc_err=fastqc_run.communicate()
 
