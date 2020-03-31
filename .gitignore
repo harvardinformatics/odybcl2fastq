@@ -6,3 +6,4 @@ dist/*
 *.egg-info
 odybcl2fastq_log.html
 .vscode*
+*.rpm
