@@ -8,7 +8,7 @@ Created on  2020-03-26
 @license: GPL v2.0
 '''
 
-configfile: "/app/odybcl2fastq/snakemake_non_10x_config.json"
+configfile: "/app/odybcl2fastq/non_10x_snakemake_config.json"
 localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_cmd, fastqc_cmd, insert_run_into_bauer_db
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.parsers.makebasemask import extract_basemasks

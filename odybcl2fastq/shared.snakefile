@@ -4,6 +4,7 @@ snakemake shared rules
 Created on  2020-04-01
 
 @author: Meghan Correa <mportermahoney@g.harvard.edu>
+@author: Nathan Weeks <nweeks@fas.harvard.edu>
 @copyright: 2020 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
