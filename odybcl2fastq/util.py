@@ -54,7 +54,6 @@ def load_json(path):
         obj = json.load(data)
     return obj
 
-
 def touch(run_dir, file):
     # touch a processed file in the run_dir
     path = run_dir + file
