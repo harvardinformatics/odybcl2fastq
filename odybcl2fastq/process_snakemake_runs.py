@@ -37,7 +37,6 @@ SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = '%s/ody.incomplete_notified' % STATUS_DIR
 DAYS_TO_SEARCH = 3
 INCOMPLETE_AFTER_DAYS = 4
-SAMPLE_SHEET_NAME_DEFAULT = "SampleSheet.csv"
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Aug 10 2019', '%b %d %Y')
@@ -125,7 +124,6 @@ def get_sample_sheet_path(run_dir):
     sample_sheet_path = run_dir + 'SampleSheet.csv'
     # see if a txt file indicates a specific, existing sample sheet
     sample_sheet_txt = glob.glob(run_dir + 'SampleSheet*txt')
-    print(sample_sheet_txt)
     # if there are more than one then just use default
     if len(sample_sheet_txt) == 1:
         sample_sheet_path_tmp = sample_sheet_txt[0].replace('.txt', '.csv')
@@ -134,7 +132,7 @@ def get_sample_sheet_path(run_dir):
             sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
 
-def get_suffix(sample_sheet_path):
+def get_custom_suffix(sample_sheet_path):
     suffix = ''
     if 'SampleSheet_' in sample_sheet_path:
         suffix = os.path.basename(sample_sheet_path).replace('SampleSheet_', '').replace('.csv', '')
@@ -185,25 +183,19 @@ def get_reference(run_dir, run_type, sample_sheet):
                 gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
     return (ref_file, gtf)
 
-def get_names_with_suffix(run, suffix, mask_suffix):
-    sample_sheet_name = SAMPLE_SHEET_NAME_DEFAULT
-    output_run = run # default output_dir
-    run_suffix = ''
+def get_run_suffix(custom_suffix, mask_suffix):
+    suffix = ''
     if mask_suffix:
-        run_suffix += '_%s' % mask_suffix
-        output_run += '_%s' % mask_suffix
-        sample_sheet_name = "SampleSheet_%s.csv" % mask_suffix
-    elif suffix:
-        run_suffix += '_%s' % suffix
-        output_run += '_%s' % suffix
-        sample_sheet_name = "SampleSheet_%s.csv" % suffix
-    return run_suffix, output_run, sample_sheet_name
+        suffix += '_%s' % mask_suffix
+    elif custom_suffix:
+        suffix += '_%s' % custom_suffix
+    return suffix
 
 def get_output_log(run):
     logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
     return os.path.join(logdir, run + '.log')
 
-def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, output_run, sample_sheet_name, run_suffix):
+def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix):
     atac = ''
     if 'atac' in run_type:
         atac = '-atac'
@@ -211,18 +203,18 @@ def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, output_run, s
     gtf = ''
     if not 'nuclei' in run_type and not run_type == '10x single cell vdj':
         ref_file, gtf = get_reference(run_dir, run_type, sample_sheet)
-    return {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac, 'output_run': output_run, 'sample_sheet_name': sample_sheet_name, 'run_suffix': run_suffix}
+    return {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac, 'suffix': suffix}
 
-def get_ody_snakemake_opts(run_dir, ss_path, run_type, output_run, sample_sheet_name, mask_suffix, run_suffix):
+def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
     run = os.path.basename(os.path.normpath(run_dir))
     sample_sheet = SampleSheet(ss_path)
     sample_sheet.validate()
     if run_type in TYPES_10X:
         # TODO: allow suffix for 10x
-        snakemake_config = get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, output_run, sample_sheet_name, run_suffix)
+        snakemake_config = get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix)
         snakefile = '10x.snakefile'
     else:
-        snakemake_config = {'run': run, 'output_run': output_run, 'sample_sheet_name': sample_sheet_name, 'mask_suffix': mask_suffix}
+        snakemake_config = {'run': run, 'suffix': suffix, 'mask_suffix': mask_suffix}
         snakefile = 'non_10x.snakefile'
 
     opts = {
@@ -344,13 +336,14 @@ def process_runs(pool):
             ss_path = get_sample_sheet_path(run_dir)
             custom_suffix = get_custom_suffix(ss_path)
             suffix = get_run_suffix(custom_suffix, mask_suffix)
-            opts = get_ody_snakemake_opts(run_dir, ss_path, run_type, output_run, sample_sheet_name, mask_suffix, run_suffix)
+            opts = get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix)
             logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
-            run_log = get_output_log(output_run)
+            output_dir = "%s%s" % (run, suffix)
+            run_log = get_output_log(output_dir)
             cmd = 'snakemake ' + ' '.join(opts)
             msg = "Running cmd: %s\n" % cmd
             logger.info(msg)
-            runlogger = initLogger('run_logger', output_run)
+            runlogger = initLogger('run_logger', output_dir)
             runlogger.info(msg)
             # create status dir if it doesn't exist
             status_path = '%s%s' % (run_dir, STATUS_DIR)
@@ -373,7 +366,7 @@ def process_runs(pool):
                 else:
                     failed_runs.append(run)
                     status = 'failure'
-                    failure_email(output_run, run_log, cmd, ret_code, lines)
+                    failure_email(output_dir, run_log, cmd, ret_code, lines)
                     logging.info('Run failed: %s with code %s\n %s\n %s' % (run, str(ret_code), cmd, lines))
                 del results[run]
                 del queued_runs[run]

@@ -101,19 +101,19 @@ rule demultiplex_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("{source}{run}/{status}/analysis_id", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir),
-        run_dir=expand("{source}{run}/SampleSheet.csv", source=ody_config.SOURCE_DIR, run=config['run'])
+        expand("{source}{{run}}/{status}/analysis_id", source=ody_config.SOURCE_DIR, status=status_dir),
+        run_dir=expand("{source}{{run}}/SampleSheet.csv", source=ody_config.SOURCE_DIR)
     params:
         bcl_params=get_bcl_params
     output:
-        expand("{output}{{output_run}}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR)
+        expand("{output}{{run}}{{suffix}}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR)
     shell:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.output_run}/fastq\n"
-        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {ody_config.SOURCE_CLUSTER_PATH}{config[run]}/{sample_sheet_name} --runfolder-dir {ody_config.SOURCE_CLUSTER_PATH}{config[run]} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.output_run}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
+        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq\n"
+        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/{sample_sheet_name} --runfolder-dir {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -125,7 +125,7 @@ rule demultiplex:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("{output}{output_run}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, output_run=output_run)
+        expand("{output}{{run}}{suffix}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
     output:
         touch(expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir))
     run:
@@ -138,11 +138,11 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
-        'checksum': "%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, output_run),
+        'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
         'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
         'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
-        'sample_sheet': "%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, output_run),
-        'run_info': "%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run)
+        'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
+        'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix'])
     }
     input['demux'] = '%s%s/%s/demultiplex.processed' % (ody_config.SOURCE_DIR, wildcards.run, status_dir)
     return input
@@ -158,26 +158,27 @@ rule publish:
         touch(expand("{source}{{run}}/{status}/ody.complete", source=ody_config.SOURCE_DIR, status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{output_run}/ {ody_config.PUBLISHED_DIR}{output_run}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{wildcards.run}{config['suffix']/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config['suffix']/")
         send_success_email()
 
 onsuccess:
     update_analysis({'status': 'complete'})
 
 onerror:
-    message = 'run %s failed\n see logs here: %s%s.log\n' % (output_run, ody_config.LOG_DIR, output_run)
-    subject = 'Run Failed: %s' % output_run
+    message = 'run %s%s failed\n see logs here: %s%s.log\n' % (output_run, ody_config.LOG_DIR, config['run'], config['suffix'])
+    subject = 'Run Failed: %s%s' % (config['run'], config['suffix'])
     sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
     update_analysis({'status': 'failed'})
 
 def send_success_email():
-    message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (output_run, ody_config.LOG_DIR, output_run)
-    cmd_file = '%s%s/script/demultiplex.sh' % (ody_config.OUTPUT_DIR, output_run)
+    output_dir = '%s%s' % (config['run'], config['suffix'])
+    message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (output_dir, ody_config.LOG_DIR, output_dir)
+    cmd_file = '%s%s/script/demultiplex.sh' % (ody_config.OUTPUT_DIR, output_dir)
     cmd = util.get_file_contents(cmd_file)
     ss_file = '%s%s/SampleSheet.csv' % (ody_config.SOURCE_CLUSTER_PATH, config['run'])
-    fastq_dir = '%s%s/fastq' % (ody_config.OUTPUT_CLUSTER_PATH, output_run)
-    summary_data = parse_stats.get_summary(fastq_dir, instrument, ss_file, output_run)
+    fastq_dir = '%s%s/fastq' % (ody_config.OUTPUT_CLUSTER_PATH, output_dir)
+    summary_data = parse_stats.get_summary(fastq_dir, instrument, ss_file, output_dir)
     summary_data['cmd'] = cmd
     summary_data['version'] = 'bcl2fastq2 v2.2'
-    subject = 'Demultiplex Summary for ' + output_run
+    subject = 'Demultiplex Summary for ' + output_dir
     sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], 'summary.html')
