@@ -115,7 +115,7 @@ def extract_basemasks(data_by_sample, runinfo, instrument, run_type, log = True)
             mask_lists[mask] = [lane + ':' + mask for lane, mask in lane_masks.items()]
     else: # nextseq miseq
         for sample, row in data_by_sample.items():
-            mask = make_mask(universal_mask, sample, row)
+            mask = make_mask(universal_mask, sample, row, log)
             if mask not in mask_lists:
                 mask_lists[mask] = [mask]
             if mask not in mask_samples:

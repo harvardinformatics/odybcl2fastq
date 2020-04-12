@@ -343,7 +343,7 @@ def process_runs(pool):
             cmd = 'snakemake ' + ' '.join(opts)
             msg = "Running cmd: %s\n" % cmd
             logger.info(msg)
-            runlogger = initLogger('run_logger', output_dir)
+            runlogger = initLogger('run_logger', output_dir + '.log')
             runlogger.info(msg)
             # create status dir if it doesn't exist
             status_path = '%s%s' % (run_dir, STATUS_DIR)

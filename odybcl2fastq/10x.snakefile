@@ -11,11 +11,7 @@ Created on  2020-04-02
 
 include: "shared.snakefile"
 localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, insert_run_into_bauer_db
-from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
-from odybcl2fastq import config as ody_config
-import odybcl2fastq.util as util
 import pandas as pd
-import os
 
 # parse sample sheet for sample names
 with open(sample_sheet_path, 'r') as ln:
@@ -82,7 +78,7 @@ rule count_10x_cmd:
         expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir),
         expand("{source}{{run}}/{status}/fastq_email.processed", source=ody_config.SOURCE_DIR, status=status_dir)
     output:
-        expand("{output}{{run}}{suffix}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+        expand("{output}{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR)
     shell:
         """
         fastq_path="{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq/{wildcards.project}/{wildcards.sample}"
@@ -135,7 +131,7 @@ rule fastq_email:
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
         shell("cp -r {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]} {ody_config.PUBLISHED_DIR}")
-        subject = 'Demultiplex Summary for: %s%s (count pending)' % ({wildcards.run}, {config['suffix']})
+        subject = 'Demultiplex Summary for: %s%s (count pending)' % (wildcards.run, config['suffix'])
         send_success_email(subject)
 
 def publish_input(wildcards):

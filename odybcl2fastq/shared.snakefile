@@ -14,7 +14,6 @@ from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq import config as ody_config
 from odybcl2fastq.bauer_db import BauerDB
 import odybcl2fastq.util as util
-import pandas as pd
 import os
 
 # allow an empty suffix
@@ -24,7 +23,12 @@ wildcard_constraints:
 # set the output_run and status_dir which may include a suffix or a mask_suffix
 status_dir_root = 'status_test' if ody_config.TEST else 'status'
 status_dir = status_dir_root # default status_dir
-sample_sheet_path = "%s%s/SampleSheet%s.csv" % (ody_config.SOURCE_DIR, config['run'], config['suffix'])
+if 'mask_suffix' in config and config['mask_suffix']:
+    sample_sheet_path = "%s%s/SampleSheet.csv" % (ody_config.SOURCE_DIR, config['run'])
+    # for a mask suffix we need a subdir for status for each mask
+    status_dir += '/%s' % config['mask_suffix']
+else:
+    sample_sheet_path = "%s%s/SampleSheet%s.csv" % (ody_config.SOURCE_DIR, config['run'], config['suffix'])
 
 # set up bauer db for step updates
 bauer = BauerDB(sample_sheet_path)
@@ -47,7 +51,7 @@ rule insert_run_into_bauer_db:
     insert the run into the bauer_db
     """
     input:
-        sample_sheet=expand("{source}{{run}}/SampleSheet{suffix}.csv", source=ody_config.SOURCE_DIR, suffix=config['suffix'])
+        sample_sheet=expand("{source}{run}/SampleSheet{suffix}.csv", source=ody_config.SOURCE_DIR, run=config['run'], suffix=config['suffix'])
     output:
         expand("{source}{{run}}/{status}/analysis_id", source=ody_config.SOURCE_DIR, status=status_dir)
     run:
@@ -57,13 +61,13 @@ rule insert_run_into_bauer_db:
             bauer = BauerDB(input.sample_sheet[0])
             bauer.insert_run()
             # TODO: consider the implications of storing output_run in the db
-            run_dir = '%s%s' % (config['run'], config['suffix'])
+            run_dir = '%s%s' % (wildcards.run, config['suffix'])
             analysis_id = bauer.send_data('requests', {"run": run_dir, "status":"processing", "step":"demultiplex"})
         analysis_file_path = '%s%s/%s/analysis_id' % (ody_config.SOURCE_DIR, wildcards.run, status_dir)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
         # for a new analysis remove the script dir to ensure a total restart
-        shell("rm -f {ody_config.OUPUT_DIR}{wildcards.run}{config[suffix]}/script/*")
+        shell("rm -f {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]}/script/*")
 
 rule update_lims_db:
     """
@@ -135,7 +139,7 @@ rule cp_source_to_output:
         """
         cp {ody_config.SOURCE_DIR}{config[run]}/{params.sample_sheet} {output.sample_sheet}
         cp {ody_config.SOURCE_DIR}{config[run]}/{params.run_info} {output.run_info}
-        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {ody_config.SOURCE_DIR}{config[run]}/{params.interop}/ {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/InterOp/
+        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {ody_config.SOURCE_DIR}{wildcards.run}/{params.interop}/ {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/InterOp/
         # copy these if they exist
         cp {ody_config.SOURCE_DIR}{config[run]}/{params.nextseq_run_params} {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/{params.nextseq_run_params} 2>/dev/null || :
         cp {ody_config.SOURCE_DIR}{config[run]}/{params.hiseq_run_params} {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/{params.hiseq_run_params} 2>/dev/null || :

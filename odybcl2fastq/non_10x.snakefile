@@ -8,16 +8,12 @@ Created on  2020-03-26
 @license: GPL v2.0
 '''
 
+include: "shared.snakefile"
+
 localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_cmd, fastqc_cmd, insert_run_into_bauer_db
-from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.parsers import parse_stats
-from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
-from odybcl2fastq import config as ody_config
-import odybcl2fastq.util as util
-import os
 
-include: "shared.snakefile"
 
 MASK_SHORT_ADAPTER_READS = 22
 
@@ -37,8 +33,6 @@ if jobs_tot > 1:
     sample_sheet_path = sample_sheet.write_new_sample_sheet(mask_samples[mask], config['mask_suffix'])
     sample_sheet = SampleSheet(sample_sheet_path)
     run_type = sample_sheet.get_run_type()
-    # for a mask suffix we need a subdir for status for each mask
-    status_dir += '/%s' % config['mask_suffix']
 else:
     mask = next(iter(mask_lists))
 mask_opt_list = mask_lists[mask]
@@ -102,7 +96,7 @@ rule demultiplex_cmd:
     """
     input:
         expand("{source}{{run}}/{status}/analysis_id", source=ody_config.SOURCE_DIR, status=status_dir),
-        run_dir=expand("{source}{{run}}/SampleSheet.csv", source=ody_config.SOURCE_DIR)
+        run_dir=expand("{source}{run}/SampleSheet{{suffix}}.csv", source=ody_config.SOURCE_DIR, run=config['run'])
     params:
         bcl_params=get_bcl_params
     output:
@@ -113,7 +107,7 @@ rule demultiplex_cmd:
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq\n"
-        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/{sample_sheet_name} --runfolder-dir {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
+        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/SampleSheet{wildcards.suffix}.csv --runfolder-dir {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -138,13 +132,13 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
+        'demux': '%s%s/%s/demultiplex.processed' % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
         'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
         'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
         'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
         'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
         'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix'])
     }
-    input['demux'] = '%s%s/%s/demultiplex.processed' % (ody_config.SOURCE_DIR, wildcards.run, status_dir)
     return input
 
 
@@ -158,15 +152,16 @@ rule publish:
         touch(expand("{source}{{run}}/{status}/ody.complete", source=ody_config.SOURCE_DIR, status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{wildcards.run}{config['suffix']/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config['suffix']/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config[suffix]}/")
         send_success_email()
 
 onsuccess:
     update_analysis({'status': 'complete'})
 
 onerror:
-    message = 'run %s%s failed\n see logs here: %s%s.log\n' % (output_run, ody_config.LOG_DIR, config['run'], config['suffix'])
-    subject = 'Run Failed: %s%s' % (config['run'], config['suffix'])
+    output_dir = '%s%s' % (config['run'], config['suffix'])
+    message = 'run %s failed\n see logs here: %s%s.log\n' % (output_dir, ody_config.LOG_DIR, output_dir)
+    subject = 'Run Failed: %s' % (output_dir)
     sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
     update_analysis({'status': 'failed'})
 
