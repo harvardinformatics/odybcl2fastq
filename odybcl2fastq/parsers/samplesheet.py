@@ -201,24 +201,25 @@ class SampleSheet(object):
     def write_new_sample_sheet(self, new_samples, output_suffix):
         new_sample_sheet = os.path.dirname(self.path) + '/' + self.SAMPLE_SHEET_FILE
         new_sample_sheet = new_sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
-        input = open(self.path, 'r')
-        output = open(new_sample_sheet, 'w')
-        for line in input:
-            if not line.startswith('[Data]'):
-                output.write(line)
-            else:
-                output.write(line)
-                break
-        # write new samples to sheet
-        new_lines = []
-        for i, row in enumerate(new_samples):
-            # print data headers
-            if i == 0:
-                new_lines.append(','.join(row.keys()) + "\r\n")
-            new_lines.append(','.join(row.values()) + "\r\n")
-        output.writelines(new_lines)
-        output.close()
-        input.close()
+        if not os.path.exists(new_sample_sheet):
+            input = open(self.path, 'r')
+            output = open(new_sample_sheet, 'w')
+            for line in input:
+                if not line.startswith('[Data]'):
+                    output.write(line)
+                else:
+                    output.write(line)
+                    break
+            # write new samples to sheet
+            new_lines = []
+            for i, row in enumerate(new_samples):
+                # print data headers
+                if i == 0:
+                    new_lines.append(','.join(row.keys()) + "\r\n")
+                new_lines.append(','.join(row.values()) + "\r\n")
+            output.writelines(new_lines)
+            output.close()
+            input.close()
         return new_sample_sheet
 
     def get_output_dir(self):

@@ -31,7 +31,8 @@ from odybcl2fastq.status_db import StatusDB
 
 STATUS_DIR = 'status_test' if config.TEST else 'status'
 LOG_HTML = config.PUBLISHED_DIR + 'odybcl2fastq_log.html'
-PROCESSED_FILE = '%s/ody.processed' % STATUS_DIR
+PROCESSED_FILE_NAME = 'ody.processed'
+PROCESSED_FILE = '%s/%s' % (STATUS_DIR, PROCESSED_FILE_NAME)
 COMPLETE_FILE = '%s/ody.complete' % STATUS_DIR
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = '%s/ody.incomplete_notified' % STATUS_DIR
@@ -132,6 +133,18 @@ def get_sample_sheet_path(run_dir):
             sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
 
+def check_complete(run_dir):
+    status_dir = '%s%s' % (run_dir, STATUS_DIR)
+    if not os.path.exists('%s/%s' % (status_dir, COMPLETE_FILE)):
+        sub_dirs = next(os.walk('.'))[1]
+        complete = True
+        for sub_dir in sub_dirs:
+
+            if not path.exists('%s/%s' % (sub_dir, COMPLETE_FILE)):
+                complete = False
+        if complete:
+            util.touch(status_dir, COMPLETE_FILE)
+
 def get_custom_suffix(sample_sheet_path):
     suffix = ''
     if 'SampleSheet_' in sample_sheet_path:
@@ -210,7 +223,6 @@ def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
     sample_sheet = SampleSheet(ss_path)
     sample_sheet.validate()
     if run_type in TYPES_10X:
-        # TODO: allow suffix for 10x
         snakemake_config = get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix)
         snakefile = '10x.snakefile'
     else:
@@ -278,36 +290,44 @@ def get_runs():
     run_dirs = []
     for run_dir in run_dirs_tmp:
         run_info = {}
-        #try:
-        ss_path = get_sample_sheet_path(run_dir)
-        run = os.path.basename(os.path.normpath(run_dir))
-        # copy samplesheet from samplesheet folder if necessary
-        check_sample_sheet(ss_path, run)
-        sample_sheet = SampleSheet(ss_path)
-        instrument = sample_sheet.get_instrument()
-        sam_types = sample_sheet.get_sample_types()
-        run_info_file = run_dir + '/RunInfo.xml'
-        # create a list of runs with their type
-        for t, v in sam_types.items():
-            mask_suffix = ''
-            if v not in TYPES_10X: #non 10x
-                # get some information about the run
-                # consider if multiple indexing strategies are needed
-                # meaning it will be run more than once
-                mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], run_info_file, instrument, v, False)
-                jobs_tot = len(mask_lists)
-                if jobs_tot > 1:
-                    for mask, mask_list in mask_lists.items():
-                        mask_suffix = mask.replace(',', '_')
-                        # TODO: check complete here
-                        run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix})
+        try:
+            # get the custom suffix so we only look at the sample sheet that is
+            # flagged if one exists
+            ss_path = get_sample_sheet_path(run_dir)
+            custom_suffix = get_custom_suffix(ss_path)
+            ss_path = get_sample_sheet_path('%s%s' % (run_dir, custom_suffix))
+            run = os.path.basename(os.path.normpath(run_dir))
+            # copy samplesheet from samplesheet folder if necessary
+            check_sample_sheet(ss_path, run)
+            sample_sheet = SampleSheet(ss_path)
+            instrument = sample_sheet.get_instrument()
+            sam_types = sample_sheet.get_sample_types()
+            run_info_file = run_dir + '/RunInfo.xml'
+            # create a list of runs with their type
+            for t, v in sam_types.items():
+                mask_suffix = ''
+                if v not in TYPES_10X: #non 10x
+                    # get some information about the run
+                    # consider if multiple indexing strategies are needed
+                    # meaning it will be run more than once
+                    mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], run_info_file, instrument, v, False)
+                    jobs_tot = len(mask_lists)
+                    if jobs_tot > 1:
+                        for mask, mask_list in mask_lists.items():
+                            mask_suffix = mask.replace(',', '_')
+                            mask_status_path = '%s%s/%s/' % (run_dir, STATUS_DIR, mask_suffix)
+                            # only start the run if the processed file for that mask
+                            # is not present, this will enable restart of one mask
+                            if not os.path.isfile(mask_status_path + PROCESSED_FILE_NAME):
+                                run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
+                                util.touch(mask_status_path, PROCESSED_FILE_NAME)
+                    else:
+                        run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
                 else:
-                    run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix})
-            else:
-                run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix})
-            break
-        #except:
-        #    pass
+                    run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
+                break
+        except:
+            pass
     return run_dirs
 
 def process_runs(pool):
@@ -332,18 +352,17 @@ def process_runs(pool):
             run_type = run_info['type']
             run_dir = run_info['run']
             mask_suffix = run_info['mask_suffix']
-            run = os.path.basename(os.path.normpath(run_dir))
+            custom_suffix = run_info['custom_suffix']
+            run = '%s%s%s' % (os.path.basename(os.path.normpath(run_dir)), ('_' if mask_suffix else ''), mask_suffix)
             ss_path = get_sample_sheet_path(run_dir)
-            custom_suffix = get_custom_suffix(ss_path)
             suffix = get_run_suffix(custom_suffix, mask_suffix)
             opts = get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix)
             logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
-            output_dir = "%s%s" % (run, suffix)
-            run_log = get_output_log(output_dir)
+            run_log = get_output_log(run)
             cmd = 'snakemake ' + ' '.join(opts)
             msg = "Running cmd: %s\n" % cmd
             logger.info(msg)
-            runlogger = initLogger('run_logger', output_dir + '.log')
+            runlogger = initLogger('run_logger', run + '.log')
             runlogger.info(msg)
             # create status dir if it doesn't exist
             status_path = '%s%s' % (run_dir, STATUS_DIR)
@@ -363,10 +382,11 @@ def process_runs(pool):
                 if ret_code == 0:
                     success_runs.append(run)
                     status = 'success'
+                    check_complete(run_dir)
                 else:
                     failed_runs.append(run)
                     status = 'failure'
-                    failure_email(output_dir, run_log, cmd, ret_code, lines)
+                    failure_email(run, run_log, cmd, ret_code, lines)
                     logging.info('Run failed: %s with code %s\n %s\n %s' % (run, str(ret_code), cmd, lines))
                 del results[run]
                 del queued_runs[run]
@@ -387,6 +407,7 @@ def process_runs(pool):
         "Completed %s runs: %s success %s and %s failures %s\n\n\n" %
         ((len(success_runs) + len(failed_runs)), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs))
     )
+
 def main():
     try:
         logger.info("Starting ody10x processing")

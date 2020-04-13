@@ -13,7 +13,9 @@ from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq import config as ody_config
 from odybcl2fastq.bauer_db import BauerDB
+from odybcl2fastq.status_db import StatusDB
 import odybcl2fastq.util as util
+import logging
 import os
 
 # allow an empty suffix
@@ -61,8 +63,7 @@ rule insert_run_into_bauer_db:
             bauer = BauerDB(input.sample_sheet[0])
             bauer.insert_run()
             # TODO: consider the implications of storing output_run in the db
-            run_dir = '%s%s' % (wildcards.run, config['suffix'])
-            analysis_id = bauer.send_data('requests', {"run": run_dir, "status":"processing", "step":"demultiplex"})
+            analysis_id = bauer.send_data('requests', {"run": config['run'], "status":"processing", "step":"demultiplex"})
         analysis_file_path = '%s%s/%s/analysis_id' % (ody_config.SOURCE_DIR, wildcards.run, status_dir)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
@@ -139,10 +140,10 @@ rule cp_source_to_output:
         """
         cp {ody_config.SOURCE_DIR}{config[run]}/{params.sample_sheet} {output.sample_sheet}
         cp {ody_config.SOURCE_DIR}{config[run]}/{params.run_info} {output.run_info}
-        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {ody_config.SOURCE_DIR}{wildcards.run}/{params.interop}/ {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/InterOp/
+        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {ody_config.SOURCE_DIR}{config[run]}/{params.interop}/ {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/InterOp/
         # copy these if they exist
-        cp {ody_config.SOURCE_DIR}{config[run]}/{params.nextseq_run_params} {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/{params.nextseq_run_params} 2>/dev/null || :
-        cp {ody_config.SOURCE_DIR}{config[run]}/{params.hiseq_run_params} {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/{params.hiseq_run_params} 2>/dev/null || :
+        cp {ody_config.SOURCE_DIR}{config[run]}/{params.nextseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.nextseq_run_params} 2>/dev/null || :
+        cp {ody_config.SOURCE_DIR}{config[run]}/{params.hiseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.hiseq_run_params} 2>/dev/null || :
 
         """
 

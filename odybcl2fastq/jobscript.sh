@@ -27,6 +27,5 @@ fi
 singularity exec -B $ODY_SOURCE:/source \
                 -B $published:/published \
                 -B $analysis:/output \
-                -B /n/home_rc/mportermahoney/repos/odybcl2fastq_10x_dev/odybcl2fastq:/app \
                 -B $ODY_SNAKEMAKE_WORKDIR:/snakemake \
                 $ODY_SING_IMG bash -c '{exec_job}'
