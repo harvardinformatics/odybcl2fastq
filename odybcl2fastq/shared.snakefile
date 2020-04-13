@@ -92,7 +92,7 @@ rule fastqc_cmd:
     build a bash file with the fastqc cmd
     """
     input:
-        ancient(expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        ancient(expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir))
     output:
         expand("{output}{{run}}{{suffix}}/script/fastqc.sh", output=ody_config.OUTPUT_DIR)
     shell:
@@ -125,7 +125,7 @@ rule cp_source_to_output:
     copy a few files from source to output dir
     """
     input:
-        expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir)
+        expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir)
     params:
         sample_sheet="SampleSheet%s.csv" % config['suffix'],
         run_info="RunInfo.xml",
@@ -151,7 +151,7 @@ rule checksum:
     calculate checksum for all the fastq files
     """
     input:
-        expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir)
+        expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir)
     output:
         checksum=expand("{output}{{run}}{{suffix}}/md5sum.txt", output=ody_config.OUTPUT_DIR),
     shell:

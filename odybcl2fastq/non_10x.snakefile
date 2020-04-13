@@ -95,19 +95,19 @@ rule demultiplex_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("{source}{{run}}/{status}/analysis_id", source=ody_config.SOURCE_DIR, status=status_dir),
-        run_dir=expand("{source}{run}/SampleSheet{{suffix}}.csv", source=ody_config.SOURCE_DIR, run=config['run'])
+        expand("{source}{run}/{status}/analysis_id", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir),
+        run_dir=expand("{source}{run}/SampleSheet{suffix}.csv", source=ody_config.SOURCE_DIR, run=config['run'], suffix=config['suffix'])
     params:
         bcl_params=get_bcl_params
     output:
-        expand("{output}{{run}}{{suffix}}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR)
+        expand("{output}{run}{suffix}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, run=config['run'], suffix=config['suffix'])
     shell:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq\n"
-        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run}/SampleSheet{wildcards.suffix}.csv --runfolder-dir {ody_config.SOURCE_CLUSTER_PATH}{wildcards.run} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
+        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/fastq\n"
+        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {ody_config.SOURCE_CLUSTER_PATH}{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir {ody_config.SOURCE_CLUSTER_PATH}{config[run]} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -119,9 +119,9 @@ rule demultiplex:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("{output}{{run}}{suffix}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+        expand("{output}{run}{suffix}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, run=config['run'], suffix=config['suffix'])
     output:
-        touch(expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir))
     run:
         update_analysis({'step': 'demultiplex', 'status': 'processing'})
         shell("{input}")
@@ -132,12 +132,12 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
-        'demux': '%s%s/%s/demultiplex.processed' % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
-        'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
-        'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
-        'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
-        'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
-        'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix'])
+        'demux': '%s%s/%s/demultiplex.processed' % (ody_config.SOURCE_DIR, config['run'], status_dir),
+        'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
+        'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, config['run'], status_dir),
+        'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, config['run'], status_dir),
+        'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
+        'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, config['run'], config['suffix'])
     }
     return input
 
@@ -152,7 +152,7 @@ rule publish:
         touch(expand("{source}{{run}}/{status}/ody.complete", source=ody_config.SOURCE_DIR, status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config[suffix]}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{config[run]}{config[suffix]}/")
         send_success_email()
 
 onsuccess:

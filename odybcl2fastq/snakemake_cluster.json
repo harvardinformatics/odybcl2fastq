@@ -4,9 +4,9 @@
         "nodes": 1,
         "mem": 0,
         "partition": "bos-info_priority",
-        "job-name": "{rule}.{wildcards.run}{config[suffix]}",
-        "output": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{config[suffix]}/log/{rule}-%j.out",
-        "error": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{config[suffix]}/log/{rule}-%j.err",
+        "job-name": "{rule}.{config[run]}{config[suffix]}",
+        "output": "{ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/log/{rule}-%j.out",
+        "error": "{ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/log/{rule}-%j.err",
         "exclusive": "",
         "chdir": "/tmp/"
     },
