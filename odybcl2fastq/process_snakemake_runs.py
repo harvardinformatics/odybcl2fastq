@@ -33,7 +33,8 @@ STATUS_DIR = 'status_test' if config.TEST else 'status'
 LOG_HTML = config.PUBLISHED_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE_NAME = 'ody.processed'
 PROCESSED_FILE = '%s/%s' % (STATUS_DIR, PROCESSED_FILE_NAME)
-COMPLETE_FILE = '%s/ody.complete' % STATUS_DIR
+COMPLETE_FILE_NAME = 'ody.complete'
+COMPLETE_FILE = '%s/%s' % (STATUS_DIR, COMPLETE_FILE_NAME)
 SKIP_FILE = 'odybcl2fastq.skip'
 INCOMPLETE_NOTIFIED_FILE = '%s/ody.incomplete_notified' % STATUS_DIR
 DAYS_TO_SEARCH = 3
@@ -134,16 +135,14 @@ def get_sample_sheet_path(run_dir):
     return sample_sheet_path
 
 def check_complete(run_dir):
-    status_dir = '%s%s' % (run_dir, STATUS_DIR)
-    if not os.path.exists('%s/%s' % (status_dir, COMPLETE_FILE)):
-        sub_dirs = next(os.walk('.'))[1]
+    if not os.path.exists('%s%s' % (run_dir, COMPLETE_FILE)):
+        sub_dirs = next(os.walk('%s%s' % (run_dir, STATUS_DIR)))[1]
         complete = True
         for sub_dir in sub_dirs:
-
-            if not path.exists('%s/%s' % (sub_dir, COMPLETE_FILE)):
+            if not os.path.exists('%s%s/%s/%s' % (run_dir, STATUS_DIR, sub_dir, COMPLETE_FILE_NAME)):
                 complete = False
         if complete:
-            util.touch(status_dir, COMPLETE_FILE)
+            util.touch(run_dir, COMPLETE_FILE)
 
 def get_custom_suffix(sample_sheet_path):
     suffix = ''
