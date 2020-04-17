@@ -14,7 +14,7 @@ class SampleSheet(object):
         self.samples = self.get_samples()
 
     def get_samples(self):
-        data = pd.DataFrame(self.sections['Data'].values())
+        data = pd.DataFrame(list(self.sections['Data'].values()))
         return data
 
     def sheet_parse(self, samplesheet=None):
