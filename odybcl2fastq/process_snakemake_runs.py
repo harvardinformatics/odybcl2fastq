@@ -15,6 +15,7 @@ import os, glob, time, sys
 import logging
 import subprocess
 import json
+import traceback
 from time import sleep
 from datetime import datetime
 from multiprocessing import Pool
@@ -326,7 +327,7 @@ def get_runs():
                     run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
                 break
         except:
-            pass
+            traceback.print_exc()
     return run_dirs
 
 def process_runs(pool):
