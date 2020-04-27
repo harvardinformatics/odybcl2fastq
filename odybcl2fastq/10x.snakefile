@@ -11,15 +11,10 @@ Created on  2020-04-02
 
 include: "shared.snakefile"
 localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, insert_run_into_bauer_db
-import pandas as pd
 
-# parse sample sheet for sample names
-with open(sample_sheet_path, 'r') as ln:
-    idx = next(i for i, j in enumerate(ln) if j.startswith('[Data]'))
-data = pd.read_csv(sample_sheet_path, skiprows=idx+1)
-
-samples = list(data['Sample_ID'])
-projects = list(data['Sample_Project'])
+sample_sheet = SampleSheet(sample_sheet_path)
+samples = sample_sheet.get_samples()
+projects = sample_sheet.get_projects()
 
 rule all:
     """

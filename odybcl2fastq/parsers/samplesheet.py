@@ -1,7 +1,6 @@
 from collections import OrderedDict
 import logging
 import odybcl2fastq.util as util
-import pandas as pd
 import re, os
 
 class SampleSheet(object):
@@ -11,11 +10,6 @@ class SampleSheet(object):
         self.path = path
         self.lanes = []
         self.sections = self.sheet_parse(path)
-        self.samples = self.get_samples()
-
-    def get_samples(self):
-        data = pd.DataFrame(list(self.sections['Data'].values()))
-        return data
 
     def sheet_parse(self, samplesheet=None):
         defaults_by_section = {
@@ -266,6 +260,20 @@ class SampleSheet(object):
             if row['Description']:
                 subs.add(row['Description'])
         return list(subs)
+
+    def get_projects(self):
+        projects = []
+        for key, row in self.sections['Data'].items():
+            if row['Sample_Project']:
+                projects.append(row['Sample_Project'])
+        return projects
+
+    def get_samples(self):
+        samples = []
+        for key, row in self.sections['Data'].items():
+            if row['Sample_ID']:
+                samples.append(row['Sample_ID'])
+        return samples
 
     def has_poly_A_index(self):
         for k, row in self.sections['Data'].items():

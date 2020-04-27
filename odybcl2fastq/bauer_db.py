@@ -8,7 +8,7 @@ from odybcl2fastq.parsers.samplesheet import SampleSheet
 
 class BauerDB(object):
     def __init__(self, sample_sheet_path):
-        self.api = config.BAUER_DB['api']
+        self.api = config.BAUER_API
         # use the seq app api for entering seq data
         self.root_api = self.api + 'api/'
         self.seq_api = self.root_api + 'sequencing/'
@@ -74,7 +74,7 @@ class BauerDB(object):
         return True
 
     def get_token(self):
-        return config.BAUER_DB['password']
+        return config.BAUER_TOKEN
 
     def pk_exists(self, pk, endpoint):
         get_url = 'sequencing/%s/%s' % (endpoint, pk)
