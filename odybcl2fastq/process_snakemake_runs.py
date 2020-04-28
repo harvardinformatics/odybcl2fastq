@@ -23,7 +23,6 @@ from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq import config, initLogger, setupMainLogger
 from odybcl2fastq import constants as const
 import odybcl2fastq.util as util
-from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
