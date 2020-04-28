@@ -10,13 +10,13 @@ import logging
 
 MIN_UNDETER_CNT = 1000000
 
-def get_summary(output_dir, instrument, sample_sheet_dir, run_folder):
+def get_summary(output_dir, instrument, sample_sheet_dir, run):
     """
     parse summary from Stats.json
     """
     # set locale so numeric formating works
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-    stats_url = config.FASTQ_URL + run_folder + '/Reports/html'
+    stats_url = config.FASTQ_URL + run + '/Reports/html'
     stats_path = output_dir + '/Stats/Stats.json'
     if not os.path.exists(stats_path):
         raise UserException('Stats path does not exist: %s' % stats_path)
@@ -32,26 +32,36 @@ def get_summary(output_dir, instrument, sample_sheet_dir, run_folder):
         lane_sum = get_lane_sum(lanes)
         lanes = aggregate_nextseq_lanes(lanes)
         undetermined = format_undetermined_nextseq(data['UnknownBarcodes'])
-    elif instrument == 'hiseq':
+    else: # hiseq and novaseq
         undetermined = format_undetermined(data['UnknownBarcodes'])
-    else:
-        raise Exception('instrument unknonw: ' + instrument)
     # format lane summary tables
-    lanes = format_lane_table(lanes)
+    lanes, lane_headers = format_lane_table(lanes)
     summary_data = {
+            'run': run,
             'lane_sum': lane_sum,
             'lanes': lanes,
+            'lane_headers': lane_headers,
             'instrument': instrument,
             'stats_file': stats_url,
             'sample_sheet': get_sample_sheet(sample_sheet_dir),
             'fastq_url': config.FASTQ_URL,
-            'fastq_dir': config.PUBLISHED_CLUSTER_PATH,
+            'fastq_dir': output_dir,
             'undetermined': undetermined,
             'undetermined_file': 'Undetermined_SO',
             'sample_sheet_file': sample_sheet_dir
     }
     logging.info("summary_data for email: %s\n" % json.dumps(summary_data))
     return summary_data
+
+def get_sample_sheet(sample_sheet_dir):
+    data = ''
+    # putting sample sheet in the email is a convenience so don't fail if path
+    # for sample sheet is wrong
+    if os.path.exists(sample_sheet_dir):
+        with open(sample_sheet_dir, 'r') as ss:
+            for line in ss:
+                data += line + '<br>'
+    return data
 
 def get_stats(data):
     stats = OrderedDict()
@@ -127,7 +137,8 @@ def format_lane_table(lanes):
             q30 = numpy.sum(sam_info['yieldq30']) / numpy.sum(sam_info['yield']) * 100
             row['% >= Q30'] = locale.format('%.2f', q30, True)
             lanes[lane_num]['samples'][sam_name] = row
-    return lanes
+            headers = list(row.keys())
+    return lanes, headers
 
 def aggregate_nextseq_lanes(lanes):
     lanes_new = {}

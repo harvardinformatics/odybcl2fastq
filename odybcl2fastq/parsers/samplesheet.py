@@ -1,7 +1,6 @@
 from collections import OrderedDict
 import logging
 import odybcl2fastq.util as util
-import pandas as pd
 import re, os
 
 class SampleSheet(object):
@@ -11,11 +10,6 @@ class SampleSheet(object):
         self.path = path
         self.lanes = []
         self.sections = self.sheet_parse(path)
-        self.samples = self.get_samples()
-
-    def get_samples(self):
-        data = pd.DataFrame(self.sections['Data'].values())
-        return data
 
     def sheet_parse(self, samplesheet=None):
         defaults_by_section = {
@@ -201,24 +195,25 @@ class SampleSheet(object):
     def write_new_sample_sheet(self, new_samples, output_suffix):
         new_sample_sheet = os.path.dirname(self.path) + '/' + self.SAMPLE_SHEET_FILE
         new_sample_sheet = new_sample_sheet.replace('.csv', ('_' + output_suffix + '.csv'))
-        input = open(self.path, 'r')
-        output = open(new_sample_sheet, 'w')
-        for line in input:
-            if not line.startswith('[Data]'):
-                output.write(line)
-            else:
-                output.write(line)
-                break
-        # write new samples to sheet
-        new_lines = []
-        for i, row in enumerate(new_samples):
-            # print data headers
-            if i == 0:
-                new_lines.append(','.join(row.keys()) + "\r\n")
-            new_lines.append(','.join(row.values()) + "\r\n")
-        output.writelines(new_lines)
-        output.close()
-        input.close()
+        if not os.path.exists(new_sample_sheet):
+            input = open(self.path, 'r')
+            output = open(new_sample_sheet, 'w')
+            for line in input:
+                if not line.startswith('[Data]'):
+                    output.write(line)
+                else:
+                    output.write(line)
+                    break
+            # write new samples to sheet
+            new_lines = []
+            for i, row in enumerate(new_samples):
+                # print data headers
+                if i == 0:
+                    new_lines.append(','.join(row.keys()) + "\r\n")
+                new_lines.append(','.join(row.values()) + "\r\n")
+            output.writelines(new_lines)
+            output.close()
+            input.close()
         return new_sample_sheet
 
     def get_output_dir(self):
@@ -265,6 +260,20 @@ class SampleSheet(object):
             if row['Description']:
                 subs.add(row['Description'])
         return list(subs)
+
+    def get_projects(self):
+        projects = []
+        for key, row in self.sections['Data'].items():
+            if row['Sample_Project']:
+                projects.append(row['Sample_Project'])
+        return projects
+
+    def get_samples(self):
+        samples = []
+        for key, row in self.sections['Data'].items():
+            if row['Sample_ID']:
+                samples.append(row['Sample_ID'])
+        return samples
 
     def has_poly_A_index(self):
         for k, row in self.sections['Data'].items():

@@ -3,53 +3,54 @@
 # -*- coding: utf-8 -*-
 
 '''
-look for newly completed illumina 10x runs and process them
+look for newly completed illumina runs and process them
 
-Created on  2019-03-25
+Created on  2020-04-02
 
 @author: Meghan Correa <mportermahoney@g.harvard.edu>
-@copyright: 2019 The Presidents and Fellows of Harvard College. All rights reserved.
+@copyright: 2020 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
 import os, glob, time, sys
 import logging
 import subprocess
 import json
+import traceback
 from time import sleep
 from datetime import datetime
 from multiprocessing import Pool
 from subprocess import Popen, PIPE, STDOUT
-from odybcl2fastq import config
+from odybcl2fastq import config, initLogger, setupMainLogger
 from odybcl2fastq import constants as const
 import odybcl2fastq.util as util
 from odybcl2fastq import run as ody_run
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers.samplesheet import SampleSheet
+from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from snakemake import snakemake
 from odybcl2fastq.status_db import StatusDB
 
+STATUS_DIR = 'status_test' if config.TEST else 'status'
 LOG_HTML = config.PUBLISHED_DIR + 'odybcl2fastq_log.html'
-PROCESSED_FILE = 'status/ody.processed'
-COMPLETE_FILE = 'status/ody.complete'
+PROCESSED_FILE_NAME = 'ody.processed'
+PROCESSED_FILE = '%s/%s' % (STATUS_DIR, PROCESSED_FILE_NAME)
+COMPLETE_FILE_NAME = 'ody.complete'
+COMPLETE_FILE = '%s/%s' % (STATUS_DIR, COMPLETE_FILE_NAME)
 SKIP_FILE = 'odybcl2fastq.skip'
-INCOMPLETE_NOTIFIED_FILE = 'status/ody.incomplete_notified'
+INCOMPLETE_NOTIFIED_FILE = '%s/ody.incomplete_notified' % STATUS_DIR
 DAYS_TO_SEARCH = 3
 INCOMPLETE_AFTER_DAYS = 4
 # a hardcoded date not to search before
 # this will be helpful in transitioning from seqprep to odybcl2fastq
 SEARCH_AFTER_DATE = datetime.strptime('Aug 10 2019', '%b %d %Y')
 REQUIRED_FILES = ['InterOp/QMetricsOut.bin', 'InterOp/TileMetricsOut.bin', 'RunInfo.xml', 'RTAComplete.txt']
+TYPES_10X = ['10x single cell', '10x single cell rna', '10x single nuclei rna', '10x single cell vdj', '10x single cell atac']
 PROC_NUM = int(os.getenv('ODYBCL2FASTQ_PROC_NUM', 7))
-
 FREQUENCY = 60
 
-logger = logging.getLogger('odybcl2fastq10x')
+logger = setupMainLogger()
 
-def get_logger():
-    return logger
-
-def failure_email(run, cmd, ret_code, std_out, std_err = ''):
-    log = get_output_log(run)
+def failure_email(run, log, cmd, ret_code, std_out, std_err = ''):
     subject = "Run Failed: %s" % run
     message = (
         "%s\ncmd: %s\nreturn code: %i\nstandard out: %s\nstandard"
@@ -57,12 +58,10 @@ def failure_email(run, cmd, ret_code, std_out, std_err = ''):
     )
     send_email(message, subject)
 
-
 def send_email(message, subject, to = 'to_email_error'):
     fromaddr = config.EMAIL['from_email']
     toemaillist = config.EMAIL[to]
     buildmessage(message, subject, None, fromaddr, toemaillist)
-
 
 def need_to_process(dir):
     now = datetime.now()
@@ -85,7 +84,6 @@ def need_to_process(dir):
             return False
     return True
 
-
 def run_is_incomplete(dir):
     now = datetime.now()
     m_time = datetime.fromtimestamp(os.stat(dir).st_mtime)
@@ -106,7 +104,6 @@ def run_is_incomplete(dir):
         return False
     return True
 
-
 def find_runs(filter):
     # get all subdirectories
     dirs = sorted(glob.glob(config.SOURCE_DIR + '*/'))
@@ -116,6 +113,14 @@ def find_runs(filter):
             runs.append(dir)
     return runs
 
+def check_sample_sheet(sample_sheet, run):
+    # if sample sheet is not already there then copy the one from run_folder named
+    # for flowcell
+    if not os.path.exists(sample_sheet):
+        flowcell = run.split('_')[-1][1:]
+        path = config.SAMPLE_SHEET_DIR + flowcell + '.csv'
+        if os.path.exists(path):
+            util.copy(path, sample_sheet)
 
 def get_sample_sheet_path(run_dir):
     # set default
@@ -129,6 +134,22 @@ def get_sample_sheet_path(run_dir):
         if os.path.exists(sample_sheet_path_tmp):
             sample_sheet_path = sample_sheet_path_tmp
     return sample_sheet_path
+
+def check_complete(run_dir):
+    if not os.path.exists('%s%s' % (run_dir, COMPLETE_FILE)):
+        sub_dirs = next(os.walk('%s%s' % (run_dir, STATUS_DIR)))[1]
+        complete = True
+        for sub_dir in sub_dirs:
+            if not os.path.exists('%s%s/%s/%s' % (run_dir, STATUS_DIR, sub_dir, COMPLETE_FILE_NAME)):
+                complete = False
+        if complete:
+            util.touch(run_dir, COMPLETE_FILE)
+
+def get_custom_suffix(sample_sheet_path):
+    suffix = ''
+    if 'SampleSheet_' in sample_sheet_path:
+        suffix = os.path.basename(sample_sheet_path).replace('SampleSheet_', '').replace('.csv', '')
+    return suffix
 
 def get_reference(run_dir, run_type, sample_sheet):
     run = os.path.basename(os.path.normpath(run_dir))
@@ -175,65 +196,53 @@ def get_reference(run_dir, run_type, sample_sheet):
                 gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
     return (ref_file, gtf)
 
+def get_run_suffix(custom_suffix, mask_suffix):
+    suffix = ''
+    if mask_suffix:
+        suffix += '_%s' % mask_suffix
+    elif custom_suffix:
+        suffix += '_%s' % custom_suffix
+    return suffix
+
 def get_output_log(run):
     logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
     return os.path.join(logdir, run + '.log')
 
-def setup_run_logger(run):
-    # take level from env or INFO
-    runlogger = logging.getLogger('run_logger')
-    level = logging.getLevelName(os.environ.get('ODYBCL2FASTQ_RUN_LOG_LEVEL', 'INFO'))
-    runlogger.setLevel(level)
-    handler = logging.FileHandler(get_output_log(run))
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-    handler.setLevel(level)
-    handler.setFormatter(formatter)
-    runlogger.addHandler(handler)
-    return runlogger
-
-def get_ody_snakemake_opts(run_dir, run_type):
-    run = os.path.basename(os.path.normpath(run_dir))
-    ss_path = get_sample_sheet_path(run_dir)
-    sample_sheet = SampleSheet(ss_path)
-    sample_sheet.validate()
-    df = sample_sheet.get_samples()
-    samples = df['Sample_ID']
-    projects = df['Sample_Project']
-    output_dir = sample_sheet.get_output_dir()
-    if output_dir:
-        analysis =  output_dir
-    else:
-        analysis = run
+def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix):
     atac = ''
     if 'atac' in run_type:
         atac = '-atac'
-
     ref_file = ''
     gtf = ''
     if not 'nuclei' in run_type and not run_type == '10x single cell vdj':
         ref_file, gtf = get_reference(run_dir, run_type, sample_sheet)
-    sm_config = {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac}
+    return {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac, 'suffix': suffix}
+
+def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
+    run = os.path.basename(os.path.normpath(run_dir))
+    sample_sheet = SampleSheet(ss_path)
+    sample_sheet.validate()
+    if run_type in TYPES_10X:
+        snakemake_config = get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix)
+        snakefile = '10x.snakefile'
+    else:
+        snakemake_config = {'run': run, 'suffix': suffix, 'mask_suffix': mask_suffix}
+        snakefile = 'non_10x.snakefile'
 
     opts = {
         '--cores': 99,
         '--local-cores': 4,
         '--max-jobs-per-second': 2,
-        '--config': ' '.join(['%s=%s' % (k, v) for k, v in sm_config.items()]),
+        '--config': ' '.join(['%s=%s' % (k, v) for k, v in snakemake_config.items()]),
         '--cluster-config': '/app/odybcl2fastq/snakemake_cluster.json',
         '--cluster': "'python /app/odybcl2fastq/slurm_submit.py'",
         '--cluster-status': "'python /app/odybcl2fastq/cluster_status.py'",
         '--printshellcmds': None,
         '--reason': None,
-        '-s': '/app/odybcl2fastq/Snakefile',
+        '-s': '/app/odybcl2fastq/%s' % snakefile,
         '--jobscript': '/app/odybcl2fastq/jobscript.sh',
-        #'-d': '/app/odybcl2fastq',
         '-d': '/snakemake/ody',
-        #'--configfile': '/app/odybcl2fastq/snakemake_config.json',
-        #'--cleanup-shadow': None,
-        #'unlock': None,
-        #'--dryrun': None,
-        '--latency-wait': 120,
-        #'--touch': None,
+        '--latency-wait': 120
     }
     return [k + ((' %s' % v) if v else '') for k, v in opts.items()]
 
@@ -276,46 +285,49 @@ def tail(f, n):
     std_out, std_err = proc.communicate()
     return std_out.splitlines(True)
 
-
-def copy_log():
-    # last line is the tail command
-    try:
-        logfile = logger.handlers[0].baseFilename
-        lines = tail(logfile, 80000)
-        # show max of 100 lines
-        end = len(lines)
-        max = 100
-        if end > max:
-            end = end - max
-            lines = lines[-1:end:-1]
-        else:
-            lines = lines[::-1]
-        with open(LOG_HTML, 'w') as f:
-            f.write('<pre>')
-            f.writelines(lines)
-            f.write('</pre>')
-    except Exception as e:
-        logger.error('Error creating HTML log file: %s' % str(e))
-
 def get_runs():
     run_dirs_tmp = find_runs(need_to_process)
     run_dirs = []
-    types = ['10x single cell', '10x single cell rna', '10x single nuclei rna', '10x single cell vdj', '10x single cell atac']
-    for run in run_dirs_tmp:
+    for run_dir in run_dirs_tmp:
         run_info = {}
         try:
-            ss_path = get_sample_sheet_path(run)
+            # get the custom suffix so we only look at the sample sheet that is
+            # flagged if one exists
+            ss_path = get_sample_sheet_path(run_dir)
+            custom_suffix = get_custom_suffix(ss_path)
+            ss_path = get_sample_sheet_path('%s%s' % (run_dir, custom_suffix))
+            run = os.path.basename(os.path.normpath(run_dir))
+            # copy samplesheet from samplesheet folder if necessary
+            check_sample_sheet(ss_path, run)
             sample_sheet = SampleSheet(ss_path)
+            instrument = sample_sheet.get_instrument()
             sam_types = sample_sheet.get_sample_types()
-            poly_A = sample_sheet.has_poly_A_index()
-            if poly_A:
-                continue
+            run_info_file = run_dir + '/RunInfo.xml'
+            # create a list of runs with their type
             for t, v in sam_types.items():
-                if v in types:
-                    run_dirs.append({'run':run, 'type':v})
-                    break
+                mask_suffix = ''
+                if v not in TYPES_10X: #non 10x
+                    # get some information about the run
+                    # consider if multiple indexing strategies are needed
+                    # meaning it will be run more than once
+                    mask_lists, mask_samples = extract_basemasks(sample_sheet.sections['Data'], run_info_file, instrument, v, False)
+                    jobs_tot = len(mask_lists)
+                    if jobs_tot > 1:
+                        for mask, mask_list in mask_lists.items():
+                            mask_suffix = mask.replace(',', '_')
+                            mask_status_path = '%s%s/%s/' % (run_dir, STATUS_DIR, mask_suffix)
+                            # only start the run if the processed file for that mask
+                            # is not present, this will enable restart of one mask
+                            if not os.path.isfile(mask_status_path + PROCESSED_FILE_NAME):
+                                run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
+                                util.touch(mask_status_path, PROCESSED_FILE_NAME)
+                    else:
+                        run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
+                else:
+                    run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
+                break
         except:
-            pass
+            traceback.print_exc()
     return run_dirs
 
 def process_runs(pool):
@@ -339,15 +351,26 @@ def process_runs(pool):
             run_info = run_dirs.pop()
             run_type = run_info['type']
             run_dir = run_info['run']
-            run = os.path.basename(os.path.normpath(run_dir))
-            opts = get_ody_snakemake_opts(run_dir, run_type)
+            mask_suffix = run_info['mask_suffix']
+            custom_suffix = run_info['custom_suffix']
+            run = '%s%s%s' % (os.path.basename(os.path.normpath(run_dir)), ('_' if mask_suffix else ''), mask_suffix)
+            ss_path = get_sample_sheet_path(run_dir)
+            suffix = get_run_suffix(custom_suffix, mask_suffix)
+            opts = get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix)
             logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
             run_log = get_output_log(run)
             cmd = 'snakemake ' + ' '.join(opts)
             msg = "Running cmd: %s\n" % cmd
             logger.info(msg)
-            runlogger = setup_run_logger(run)
+            runlogger = initLogger('run_logger', run + '.log')
             runlogger.info(msg)
+            # create status dir if it doesn't exist
+            status_path = '%s%s' % (run_dir, STATUS_DIR)
+            if not os.path.exists(status_path):
+                os.mkdir(status_path)
+            # touch processed file so errors in snakemake don't cause the run to
+            # continually be queued
+            util.touch(run_dir, PROCESSED_FILE)
             results[run] = pool.apply_async(run_snakemake, (cmd, run_log,))
             queued_runs[run] = 1
         for run in list(results.keys()):
@@ -359,10 +382,11 @@ def process_runs(pool):
                 if ret_code == 0:
                     success_runs.append(run)
                     status = 'success'
+                    check_complete(run_dir)
                 else:
                     failed_runs.append(run)
                     status = 'failure'
-                    failure_email(run, cmd, ret_code, lines)
+                    failure_email(run, run_log, cmd, ret_code, lines)
                     logging.info('Run failed: %s with code %s\n %s\n %s' % (run, str(ret_code), cmd, lines))
                 del results[run]
                 del queued_runs[run]
@@ -381,23 +405,11 @@ def process_runs(pool):
                 json.dumps(run_dirs)))
     logger.info(
         "Completed %s runs: %s success %s and %s failures %s\n\n\n" %
-        (len(results), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs))
+        ((len(success_runs) + len(failed_runs)), len(success_runs), json.dumps(success_runs), len(failed_runs), json.dumps(failed_runs))
     )
-def setup_main_logger():
-    LOGLEVELSTR = os.environ.get('ODYBCL2FASTQ_LOG_LEVEL', 'INFO')
-    logger  = logging.getLogger('odybcl2fastq10x')
-    logfilename = os.environ.get('ODYBCL2FASTQ_LOG_FILE', 'odybcl2fastq10x.log')
-    if not logfilename.startswith('/'):
-        logfilename = os.path.join(config.LOG_DIR, logfilename)
-    handler = logging.FileHandler(logfilename)
-    handler.setLevel(logging.getLevelName(LOGLEVELSTR))
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
 def main():
     try:
-        setup_main_logger()
         logger.info("Starting ody10x processing")
         logger.info("Running with ")
         for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'PUBLISHED_DIR', 'LOG_DIR', 'CONTROL_DIR']:

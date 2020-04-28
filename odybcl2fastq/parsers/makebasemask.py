@@ -37,7 +37,7 @@ def update_mask_index(index, mask, sample):
         raise UserException('# of runinfo reads inconsistent with sample sheet Recipe setting for %s' % sample)
     return mask
 
-def make_mask(universal_mask, sample_key, sample_dict):
+def make_mask(universal_mask, sample_key, sample_dict, log):
     # sample mask is based on universal mask from run info
     sample_mask = copy(universal_mask)
     # limit indexes to length in recipe
@@ -52,17 +52,15 @@ def make_mask(universal_mask, sample_key, sample_dict):
         if 'read2' in sample_mask:
             sample_mask['read2'] = update_mask_index(sample_dict['index'],
                     sample_mask['read2'], sample_key)
-    if 'index2' in sample_dict and sample_dict['index2']: # dual indexed
+    if 'index2' in sample_dict and sample_dict['index2'] and 'read3' in sample_mask: # dual indexed
         sample_mask['read3'] = update_mask_index(sample_dict['index2'],
                 sample_mask['read3'], sample_key)
     elif 'read3' in sample_mask and 'i' in sample_mask['read3']:
         # if the universal mask had a indexed read3 but this sample doesn't, add nutral
         cnt = int(sample_mask['read3'][1:])
         sample_mask['read3'] = NUTRAL_BASE * cnt
-    logger.info('sample %s mask is: %s' % (sample_key, sample_mask))
-    if sample_mask != universal_mask:
-        #TODO: consider removing this, too noisy
-        logger.warning('sample mask for %s differs from the universal mask %s vs %s' % (sample_key, json.dumps(sample_mask), json.dumps(universal_mask)))
+    if log:
+        logger.info('sample %s mask is: %s' % (sample_key, sample_mask))
     return ','.join(sample_mask.values())
 
 def lists_from_mask(mask, data_by_sample):
@@ -74,7 +72,7 @@ def lists_from_mask(mask, data_by_sample):
         mask_samples[mask].append(row)
     return mask_lists, mask_samples
 
-def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
+def extract_basemasks(data_by_sample, runinfo, instrument, run_type, log = True):
     """
     creates a list of lists that contain masks
     that are compatible being run together in one demultiplexing
@@ -94,15 +92,11 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
             mask.append('y*')
         mask = ','.join(mask)
         mask_lists, mask_samples = lists_from_mask(mask, data_by_sample)
-    # base mask passed in will be used instead of deriving from the sample sheet
-    elif 'BCL_USE_BASES_MASK' in args and args.BCL_USE_BASES_MASK:
-        mask = args.BCL_USE_BASES_MASK
-        mask_lists, mask_samples = lists_from_mask(mask, data_by_sample)
     elif instrument in ['hiseq', 'novaseq']:
         # get mask per sample
         lane_masks=OrderedDict()
         for sample, row in data_by_sample.items():
-            mask = make_mask(universal_mask, sample, row)
+            mask = make_mask(universal_mask, sample, row, log)
             lane = row['Lane']
             if lane not in lane_masks:
                 lane_masks[lane] = set()
@@ -110,7 +104,8 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
             if mask not in mask_samples:
                 mask_samples[mask] = []
             mask_samples[mask].append(row)
-            logger.info('adding mask %s for lane %s' % (mask, lane))
+            if log:
+                logger.info('adding mask %s for lane %s' % (mask, lane))
         for lane, masks in lane_masks.items():
             for mask in list(masks):
                 if mask not in mask_lists:
@@ -120,12 +115,13 @@ def extract_basemasks(data_by_sample, runinfo, instrument, args, run_type):
             mask_lists[mask] = [lane + ':' + mask for lane, mask in lane_masks.items()]
     else: # nextseq miseq
         for sample, row in data_by_sample.items():
-            mask = make_mask(universal_mask, sample, row)
+            mask = make_mask(universal_mask, sample, row, log)
             if mask not in mask_lists:
                 mask_lists[mask] = [mask]
             if mask not in mask_samples:
                 mask_samples[mask] = []
             mask_samples[mask].append(row)
-    logger.info('instrument is %s' % instrument)
-    logger.info('masks: %s' % json.dumps(mask_lists))
+    if log:
+        logger.info('instrument is %s' % instrument)
+        logger.info('masks: %s' % json.dumps(mask_lists))
     return mask_lists, mask_samples

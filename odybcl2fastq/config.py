@@ -16,6 +16,14 @@ class Config(object):
         self.data['PUBLISHED_CLUSTER_PATH'] = self.check_dir('%s/published/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'), check_is_writable=True)
         self.data['REF_PATH'] = self.check_dir('%s/' % os.environ.get('ODY_REF', '%s/refs/10x/2019.05.19/cellranger' % DEFAULT_INFORMATICS_ROOT).rstrip('/'))
         self.data['TEST'] = os.environ.get('ODY_TEST', 'FALSE') == 'TRUE'
+        # default to empty for db connection variables for now since they are
+        # not used in when TEST is true
+        self.data['STATUS_DB_HOST'] = os.environ.get('ODY_STATUS_DB_HOST', '')
+        self.data['STATUS_DB_NAME'] = os.environ.get('ODY_STATUS_DB_NAME', '')
+        self.data['STATUS_DB_USER'] = os.environ.get('ODY_STATUS_DB_USER', '')
+        self.data['STATUS_DB_PASSWORD'] = os.environ.get('ODY_STATUS_DB_PASSWORD', '')
+        self.data['BAUER_API'] = os.environ.get('ODY_BAUER_API', '')
+        self.data['BAUER_TOKEN'] = os.environ.get('ODY_BAUER_TOKEN', '')
 
     def __getattr__(self, attr):
         if attr in self.data:
