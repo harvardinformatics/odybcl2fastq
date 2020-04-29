@@ -203,7 +203,7 @@ def get_run_suffix(custom_suffix, mask_suffix):
     return suffix
 
 def get_output_log(run):
-    logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', config.LOG_DIR)
+    logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', '/log/')
     return os.path.join(logdir, run + '.log')
 
 def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix):
@@ -410,8 +410,6 @@ def main():
     try:
         logger.info("Starting ody10x processing")
         logger.info("Running with ")
-        for k in ['LOG_DIR']:
-            logger.info("\t%s\t%s" % (k, config[k]))
         proc_num = PROC_NUM
         pool = Pool(proc_num)
         # run continuously

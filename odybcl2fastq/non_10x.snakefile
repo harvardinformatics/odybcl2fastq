@@ -160,14 +160,14 @@ onsuccess:
 
 onerror:
     output_dir = '%s%s' % (config['run'], config['suffix'])
-    message = 'run %s failed\n see logs here: %s%s.log\n' % (output_dir, ody_config.LOG_DIR, output_dir)
+    message = 'run %s failed\n see logs here: /log/%s.log\n' % (output_dir, output_dir)
     subject = 'Run Failed: %s' % (output_dir)
     sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
     update_analysis({'status': 'failed'})
 
 def send_success_email():
     output_dir = '%s%s' % (config['run'], config['suffix'])
-    message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (output_dir, ody_config.LOG_DIR, output_dir)
+    message = 'run %s completed successfully\n see logs here: /log/%s.log\n' % (output_dir, output_dir)
     cmd_file = '/analysis/%s/script/demultiplex.sh' % (output_dir)
     cmd = util.get_file_contents(cmd_file)
     ss_file = '/source%s/SampleSheet.csv' % (config['run'])

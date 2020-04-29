@@ -1,8 +1,6 @@
 {
     "FASTQ_URL": "",
     "MOUNT_DIR": "",
-    "LOG_DIR": "",
-    "CENTRIFUGE_DIR": "",
     "CENTRIFUGE_INDEX": "/centrifuge/nt",
     "CENTRIFUGE_PROC": "8",
     "CENTRIFUGE_MM": "",
