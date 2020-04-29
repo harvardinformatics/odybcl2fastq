@@ -100,7 +100,7 @@ rule demultiplex_cmd:
     params:
         bcl_params=get_bcl_params
     output:
-        expand("{output}{run}{suffix}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, run=config['run'], suffix=config['suffix'])
+        expand("/analysis/{run}{suffix}/script/demultiplex.sh", run=config['run'], suffix=config['suffix'])
     shell:
         """
         cmd="#!/bin/bash\n"
@@ -119,7 +119,7 @@ rule demultiplex:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("{output}{run}{suffix}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, run=config['run'], suffix=config['suffix'])
+        expand("/analysis/{run}{suffix}/script/demultiplex.sh", run=config['run'], suffix=config['suffix'])
     output:
         touch(expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
     run:
@@ -133,11 +133,11 @@ def publish_input(wildcards):
     """
     input = {
         'demux': '/source/%s/%s/demultiplex.processed' % (config['run'], status_dir),
-        'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
+        'checksum': "/analysis/%s%s/md5sum.txt" % (config['run'], config['suffix']),
         'fastqc': "/source/%s/%s/fastqc.processed" % (config['run'], status_dir),
         'lims': "/source/%s/%s/update_lims_db.processed" % (config['run'], status_dir),
-        'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
-        'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, config['run'], config['suffix'])
+        'sample_sheet': "/analysis/%s%s/SampleSheet.csv" % (config['run'], config['suffix']),
+        'run_info': "/analysis/%s%s/RunInfo.xml" % (config['run'], config['suffix'])
     }
     return input
 
@@ -152,7 +152,7 @@ rule publish:
         touch(expand("/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{config[run]}{config[suffix]}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r /analysis/{config[run]}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{config[run]}{config[suffix]}/")
         send_success_email()
 
 onsuccess:
@@ -168,7 +168,7 @@ onerror:
 def send_success_email():
     output_dir = '%s%s' % (config['run'], config['suffix'])
     message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (output_dir, ody_config.LOG_DIR, output_dir)
-    cmd_file = '%s%s/script/demultiplex.sh' % (ody_config.OUTPUT_DIR, output_dir)
+    cmd_file = '/analysis/%s/script/demultiplex.sh' % (output_dir)
     cmd = util.get_file_contents(cmd_file)
     ss_file = '/source%s/SampleSheet.csv' % (config['run'])
     fastq_dir = '%s%s/fastq' % (ody_config.OUTPUT_CLUSTER_PATH, output_dir)

@@ -31,7 +31,7 @@ rule demultiplex_10x_cmd:
         expand("/source/{{run}}/{status}/analysis_id", status=status_dir),
         sample_sheet=expand("/source/{{run}}/SampleSheet{{suffix}}.csv")
     output:
-        expand("{output}{{run}}{{suffix}}/script/demultiplex_10x.sh", output=ody_config.OUTPUT_DIR)
+        expand("/analysis/{{run}}{{suffix}}/script/demultiplex_10x.sh")
     shell:
         """
         dual_index="--ignore-dual-index"
@@ -58,7 +58,7 @@ rule demultiplex_10x:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("{output}{{run}}{suffix}/script/demultiplex_10x.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+        expand("/analysis/{{run}}{suffix}/script/demultiplex_10x.sh", suffix=config['suffix'])
     output:
         touch(expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir))
     run:
@@ -73,7 +73,7 @@ rule count_10x_cmd:
         expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
         expand("/source/{{run}}/{status}/fastq_email.processed", status=status_dir)
     output:
-        expand("{output}{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR)
+        expand("/analysis/{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh")
     shell:
         """
         fastq_path="{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq/{wildcards.project}/{wildcards.sample}"
@@ -101,7 +101,7 @@ rule count_10x:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        script=expand("{output}{{run}}{suffix}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+        script=expand("/analysis/{{run}}{suffix}/script/{{project}}.{{sample}}_count.sh", suffix=config['suffix'])
     output:
         touch(expand("/source/{{run}}/{status}/{{project}}.{{sample}}_count.processed", status=status_dir))
     shell:
@@ -115,17 +115,17 @@ rule fastq_email:
     running count
     """
     input:
-        checksum=expand("{output}{{run}}{suffix}/md5sum.txt", output=ody_config.OUTPUT_DIR, suffix=config['suffix']),
+        checksum=expand("/analysis/{{run}}{suffix}/md5sum.txt", suffix=config['suffix']),
         fastqc=expand("/source/{{run}}/{status}/fastqc.processed", status=status_dir),
         lims=expand("/source/{{run}}/{status}/update_lims_db.processed", status=status_dir),
         demultiplex=expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
-        sample_sheet=expand("{output}{{run}}{suffix}/SampleSheet.csv", output=ody_config.OUTPUT_DIR, suffix=config['suffix']),
-        run_info=expand("{output}{{run}}{suffix}/RunInfo.xml", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+        sample_sheet=expand("/analysis/{{run}}{suffix}/SampleSheet.csv", suffix=config['suffix']),
+        run_info=expand("/analysis/{{run}}{suffix}/RunInfo.xml", suffix=config['suffix'])
     output:
         touch(expand("/source/{{run}}/{status}/fastq_email.processed", status=status_dir))
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
-        shell("cp -r {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]} {ody_config.PUBLISHED_DIR}")
+        shell("cp -r /analysis/{wildcards.run}{config[suffix]} {ody_config.PUBLISHED_DIR}")
         subject = 'Demultiplex Summary for: %s%s (count pending)' % (wildcards.run, config['suffix'])
         send_success_email(subject)
 
@@ -135,11 +135,11 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
-        'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
+        'checksum': "/analysis/%s%s/md5sum.txt" % (wildcards.run, config['suffix']),
         'fastqc': "/source/%s/%s/fastqc.processed" % (wildcards.run, status_dir),
         'lims': "/source/%s/%s/update_lims_db.processed" % (wildcards.run, status_dir),
-        'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
-        'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix'])
+        'sample_sheet': "/analysis/%s%s/SampleSheet.csv" % (wildcards.run, config['suffix']),
+        'run_info': "/analysis/%s%s/RunInfo.xml" % (wildcards.run, config['suffix'])
     }
     # if reference is provided then run count
     if config['ref']:
@@ -162,7 +162,7 @@ rule publish:
         touch(expand("/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config[suffix]}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r /analysis/{wildcards.run}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config[suffix]}/")
         subject = 'Demultiplex Summary for: %s%s' % (wildcards.run, config['suffix'])
         send_success_email(subject)
 
@@ -206,7 +206,7 @@ def get_summary_data(cmd, run, ss_file):
 def send_success_email(subject):
     run_dir = '%s%s' % (config['run'], config['suffix'])
     message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (run_dir, ody_config.LOG_DIR, run_dir)
-    cmd_file = '%s%s/script/demultiplex_10x.sh' % (ody_config.OUTPUT_DIR, run_dir)
+    cmd_file = '/analysis/%s/script/demultiplex_10x.sh' % (run_dir)
     cmd = util.get_file_contents(cmd_file)
     summary_data = get_summary_data(cmd, run_dir, sample_sheet_path)
     sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], '10x_summary.html')

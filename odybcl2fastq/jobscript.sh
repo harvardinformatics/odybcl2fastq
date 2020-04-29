@@ -19,6 +19,6 @@ done
 
 singularity exec -B $ODY_SOURCE:/source \
                 -B $published:/published \
-                -B $analysis:/output \
+                -B $analysis:/analysis \
                 -B $ODY_SNAKEMAKE_WORKDIR:/snakemake \
                 "${SINGULARITY_CONTAINER}" bash -c '{exec_job}'

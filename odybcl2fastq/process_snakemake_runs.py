@@ -411,7 +411,7 @@ def main():
     try:
         logger.info("Starting ody10x processing")
         logger.info("Running with ")
-        for k in ['OUTPUT_DIR', 'PUBLISHED_DIR', 'LOG_DIR', 'CONTROL_DIR']:
+        for k in ['PUBLISHED_DIR', 'LOG_DIR', 'CONTROL_DIR']:
             logger.info("\t%s\t%s" % (k, config[k]))
         proc_num = PROC_NUM
         pool = Pool(proc_num)

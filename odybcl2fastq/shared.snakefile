@@ -43,9 +43,9 @@ onstart:
     shell("mkdir -p /source/{run}/{status}", run=config['run'], status=status_dir)
     shell("touch /source/{run}/{status_root}/ody.processed", run=config['run'], status_root=status_dir_root)
     shell("touch /source/{run}/{status}/ody.processed", run=config['run'], status=status_dir)
-    shell("mkdir -p {output}{run}{suffix}", output={ody_config.OUTPUT_DIR}, run=config['run'], suffix=config['suffix'])
-    shell("mkdir -p {output}{run}{suffix}/log", output={ody_config.OUTPUT_DIR}, run=config['run'], suffix=config['suffix'])
-    shell("mkdir -p {output}{run}{suffix}/script", output={ody_config.OUTPUT_DIR}, run=config['run'], suffix=config['suffix'])
+    shell("mkdir -p /analysis/{run}{suffix}", run=config['run'], suffix=config['suffix'])
+    shell("mkdir -p /analysis/{run}{suffix}/log", run=config['run'], suffix=config['suffix'])
+    shell("mkdir -p /analysis/{run}{suffix}/script", run=config['run'], suffix=config['suffix'])
     update_analysis({'status': 'processing'})
 
 rule insert_run_into_bauer_db:
@@ -68,7 +68,7 @@ rule insert_run_into_bauer_db:
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
         # for a new analysis remove the script dir to ensure a total restart
-        shell("rm -f {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]}/script/*")
+        shell("rm -f /analysis/{wildcards.run}{config[suffix]}/script/*")
 
 rule update_lims_db:
     """
@@ -95,7 +95,7 @@ rule fastqc_cmd:
     input:
         ancient(expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
     output:
-        expand("{output}{{run}}{{suffix}}/script/fastqc.sh", output=ody_config.OUTPUT_DIR)
+        expand("/analysis/{{run}}{{suffix}}/script/fastqc.sh")
     shell:
         """
         cmd="#!/bin/bash\n"
@@ -113,7 +113,7 @@ rule fastqc:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("{output}{{run}}{suffix}/script/fastqc.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+        expand("/analysis/{{run}}{suffix}/script/fastqc.sh", suffix=config['suffix'])
     output:
         touch(expand("/source/{{run}}/{status}/fastqc.processed", status=status_dir))
     shell:
@@ -134,16 +134,16 @@ rule cp_source_to_output:
         nextseq_run_params="RunParameters.xml",
         hiseq_run_params="runParameters.xml"
     output:
-        sample_sheet=expand("{output}{{run}}{{suffix}}/SampleSheet.csv", output=ody_config.OUTPUT_DIR),
-        run_info=expand("{output}{{run}}{{suffix}}/RunInfo.xml", output=ody_config.OUTPUT_DIR)
+        sample_sheet=expand("/analysis/{{run}}{{suffix}}/SampleSheet.csv"),
+        run_info=expand("/analysis/{{run}}{{suffix}}/RunInfo.xml")
     shell:
         """
         cp /source/{config[run]}/{params.sample_sheet} {output.sample_sheet}
         cp /source/{config[run]}/{params.run_info} {output.run_info}
-        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /source/{config[run]}/{params.interop}/ {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/InterOp/
+        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /source/{config[run]}/{params.interop}/ /analysis/{config[run]}{config[suffix]}/InterOp/
         # copy these if they exist
-        cp /source/{config[run]}/{params.nextseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.nextseq_run_params} 2>/dev/null || :
-        cp /source/{config[run]}/{params.hiseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.hiseq_run_params} 2>/dev/null || :
+        cp /source/{config[run]}/{params.nextseq_run_params} /analysis/{config[run]}{config[suffix]}/{params.nextseq_run_params} 2>/dev/null || :
+        cp /source/{config[run]}/{params.hiseq_run_params} /analysis/{config[run]}{config[suffix]}/{params.hiseq_run_params} 2>/dev/null || :
 
         """
 
@@ -154,10 +154,10 @@ rule checksum:
     input:
         expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
     output:
-        checksum=expand("{output}{{run}}{{suffix}}/md5sum.txt", output=ody_config.OUTPUT_DIR),
+        checksum=expand("/analysis/{{run}}{{suffix}}/md5sum.txt"),
     shell:
         """
-        files=$(find {ody_config.OUTPUT_DIR}{wildcards.run}{wildcards.suffix}/ -name *.fastq.gz -print0 | xargs -0)
+        files=$(find /analysis/{wildcards.run}{wildcards.suffix}/ -name *.fastq.gz -print0 | xargs -0)
         md5sum $files > {output.checksum}
         """
 
