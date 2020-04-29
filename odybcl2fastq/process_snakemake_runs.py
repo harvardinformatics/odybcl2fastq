@@ -105,7 +105,7 @@ def run_is_incomplete(dir):
 
 def find_runs(filter):
     # get all subdirectories
-    dirs = sorted(glob.glob(config.SOURCE_DIR + '*/'))
+    dirs = sorted(glob.glob('/source/*/'))
     runs = []
     for dir in dirs:
         if filter(dir):
@@ -411,7 +411,7 @@ def main():
     try:
         logger.info("Starting ody10x processing")
         logger.info("Running with ")
-        for k in ['SOURCE_DIR', 'OUTPUT_DIR', 'PUBLISHED_DIR', 'LOG_DIR', 'CONTROL_DIR']:
+        for k in ['OUTPUT_DIR', 'PUBLISHED_DIR', 'LOG_DIR', 'CONTROL_DIR']:
             logger.info("\t%s\t%s" % (k, config[k]))
         proc_num = PROC_NUM
         pool = Pool(proc_num)

@@ -20,7 +20,7 @@ MASK_SHORT_ADAPTER_READS = 22
 # get some information about the run
 sample_sheet = SampleSheet(sample_sheet_path)
 instrument = sample_sheet.get_instrument()
-run_info = ody_config.SOURCE_DIR + config['run'] + '/RunInfo.xml'
+run_info = '/source/' + config['run'] + '/RunInfo.xml'
 run_type = sample_sheet.get_run_type()
 
 # get basemasks for entire run and then use the one for the indexing strategy
@@ -44,7 +44,7 @@ rule all:
     final output of workflow
     """
     input:
-        expand("{source}{run}/{status}/ody.complete", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir)
+        expand("/source/{run}/{status}/ody.complete", run=config['run'], status=status_dir)
 
 def get_params_from_sample_sheet(sample_sheet):
     # users can add params to the end of the HEADER section of the sample sheet
@@ -95,8 +95,8 @@ rule demultiplex_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("{source}{run}/{status}/analysis_id", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir),
-        run_dir=expand("{source}{run}/SampleSheet{suffix}.csv", source=ody_config.SOURCE_DIR, run=config['run'], suffix=config['suffix'])
+        expand("/source/{run}/{status}/analysis_id", run=config['run'], status=status_dir),
+        run_dir=expand("/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
     params:
         bcl_params=get_bcl_params
     output:
@@ -121,7 +121,7 @@ rule demultiplex:
     input:
         expand("{output}{run}{suffix}/script/demultiplex.sh", output=ody_config.OUTPUT_DIR, run=config['run'], suffix=config['suffix'])
     output:
-        touch(expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir))
+        touch(expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
     run:
         update_analysis({'step': 'demultiplex', 'status': 'processing'})
         shell("{input}")
@@ -132,10 +132,10 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
-        'demux': '%s%s/%s/demultiplex.processed' % (ody_config.SOURCE_DIR, config['run'], status_dir),
+        'demux': '/source/%s/%s/demultiplex.processed' % (config['run'], status_dir),
         'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
-        'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, config['run'], status_dir),
-        'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, config['run'], status_dir),
+        'fastqc': "/source/%s/%s/fastqc.processed" % (config['run'], status_dir),
+        'lims': "/source/%s/%s/update_lims_db.processed" % (config['run'], status_dir),
         'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
         'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, config['run'], config['suffix'])
     }
@@ -149,7 +149,7 @@ rule publish:
     input:
         unpack(publish_input)
     output:
-        touch(expand("{source}{{run}}/{status}/ody.complete", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
         shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{config[run]}{config[suffix]}/")

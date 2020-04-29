@@ -26,11 +26,11 @@ wildcard_constraints:
 status_dir_root = 'status_test' if ody_config.TEST else 'status'
 status_dir = status_dir_root # default status_dir
 if 'mask_suffix' in config and config['mask_suffix']:
-    sample_sheet_path = "%s%s/SampleSheet.csv" % (ody_config.SOURCE_DIR, config['run'])
+    sample_sheet_path = "/source/%s/SampleSheet.csv" % (config['run'])
     # for a mask suffix we need a subdir for status for each mask
     status_dir += '/%s' % config['mask_suffix']
 else:
-    sample_sheet_path = "%s%s/SampleSheet%s.csv" % (ody_config.SOURCE_DIR, config['run'], config['suffix'])
+    sample_sheet_path = "/source/%s/SampleSheet%s.csv" % (config['run'], config['suffix'])
 
 # set up bauer db for step updates
 bauer = BauerDB(sample_sheet_path)
@@ -40,9 +40,9 @@ onstart:
     touch processed file to prevent reprocessing
     prepare log, script and status dirs
     """
-    shell("mkdir -p {source}{run}/{status}", source={ody_config.SOURCE_DIR}, run=config['run'], status=status_dir)
-    shell("touch {source}{run}/{status_root}/ody.processed", source=ody_config.SOURCE_DIR, run=config['run'], status_root=status_dir_root)
-    shell("touch {source}{run}/{status}/ody.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir)
+    shell("mkdir -p /source/{run}/{status}", run=config['run'], status=status_dir)
+    shell("touch /source/{run}/{status_root}/ody.processed", run=config['run'], status_root=status_dir_root)
+    shell("touch /source/{run}/{status}/ody.processed", run=config['run'], status=status_dir)
     shell("mkdir -p {output}{run}{suffix}", output={ody_config.OUTPUT_DIR}, run=config['run'], suffix=config['suffix'])
     shell("mkdir -p {output}{run}{suffix}/log", output={ody_config.OUTPUT_DIR}, run=config['run'], suffix=config['suffix'])
     shell("mkdir -p {output}{run}{suffix}/script", output={ody_config.OUTPUT_DIR}, run=config['run'], suffix=config['suffix'])
@@ -53,9 +53,9 @@ rule insert_run_into_bauer_db:
     insert the run into the bauer_db
     """
     input:
-        sample_sheet=expand("{source}{run}/SampleSheet{suffix}.csv", source=ody_config.SOURCE_DIR, run=config['run'], suffix=config['suffix'])
+        sample_sheet=expand("/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
     output:
-        expand("{source}{{run}}/{status}/analysis_id", source=ody_config.SOURCE_DIR, status=status_dir)
+        expand("/source/{{run}}/{status}/analysis_id", status=status_dir)
     run:
         if ody_config.TEST:
             analysis_id = 'test'
@@ -64,7 +64,7 @@ rule insert_run_into_bauer_db:
             bauer.insert_run()
             # TODO: consider the implications of storing output_run in the db
             analysis_id = bauer.send_data('requests', {"run": config['run'], "status":"processing", "step":"demultiplex"})
-        analysis_file_path = '%s%s/%s/analysis_id' % (ody_config.SOURCE_DIR, wildcards.run, status_dir)
+        analysis_file_path = '/source/%s/%s/analysis_id' % (wildcards.run, status_dir)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
         # for a new analysis remove the script dir to ensure a total restart
@@ -75,15 +75,15 @@ rule update_lims_db:
     connect the submission with the run in lims
     """
     input:
-        expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir),
-        sample_sheet=expand("{source}{{run}}/SampleSheet{suffix}.csv", source=ody_config.SOURCE_DIR, suffix=config['suffix'])
+        expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
+        sample_sheet=expand("/source/{{run}}/SampleSheet{suffix}.csv", suffix=config['suffix'])
     output:
-        touch(expand("{source}{{run}}/{status}/update_lims_db.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/update_lims_db.processed", status=status_dir))
     run:
         if not ody_config.TEST:
             sample_sheet = SampleSheet(input.sample_sheet[0])
             instrument = sample_sheet.get_instrument()
-            run_folder = ody_config.SOURCE_DIR + wildcards.run
+            run_folder = '/source/' + wildcards.run
             update_lims_db(run_folder, sample_sheet.sections, instrument)
             # also update step to fastqc
             update_analysis({'step': 'quality', 'status': 'processing'})
@@ -93,7 +93,7 @@ rule fastqc_cmd:
     build a bash file with the fastqc cmd
     """
     input:
-        ancient(expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir))
+        ancient(expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
     output:
         expand("{output}{{run}}{{suffix}}/script/fastqc.sh", output=ody_config.OUTPUT_DIR)
     shell:
@@ -115,7 +115,7 @@ rule fastqc:
     input:
         expand("{output}{{run}}{suffix}/script/fastqc.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
     output:
-        touch(expand("{source}{{run}}/{status}/fastqc.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/fastqc.processed", status=status_dir))
     shell:
         """
         {input}
@@ -126,7 +126,7 @@ rule cp_source_to_output:
     copy a few files from source to output dir
     """
     input:
-        expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir)
+        expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
     params:
         sample_sheet="SampleSheet%s.csv" % config['suffix'],
         run_info="RunInfo.xml",
@@ -138,12 +138,12 @@ rule cp_source_to_output:
         run_info=expand("{output}{{run}}{{suffix}}/RunInfo.xml", output=ody_config.OUTPUT_DIR)
     shell:
         """
-        cp {ody_config.SOURCE_DIR}{config[run]}/{params.sample_sheet} {output.sample_sheet}
-        cp {ody_config.SOURCE_DIR}{config[run]}/{params.run_info} {output.run_info}
-        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw {ody_config.SOURCE_DIR}{config[run]}/{params.interop}/ {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/InterOp/
+        cp /source/{config[run]}/{params.sample_sheet} {output.sample_sheet}
+        cp /source/{config[run]}/{params.run_info} {output.run_info}
+        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /source/{config[run]}/{params.interop}/ {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/InterOp/
         # copy these if they exist
-        cp {ody_config.SOURCE_DIR}{config[run]}/{params.nextseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.nextseq_run_params} 2>/dev/null || :
-        cp {ody_config.SOURCE_DIR}{config[run]}/{params.hiseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.hiseq_run_params} 2>/dev/null || :
+        cp /source/{config[run]}/{params.nextseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.nextseq_run_params} 2>/dev/null || :
+        cp /source/{config[run]}/{params.hiseq_run_params} {ody_config.OUTPUT_DIR}{config[run]}{config[suffix]}/{params.hiseq_run_params} 2>/dev/null || :
 
         """
 
@@ -152,7 +152,7 @@ rule checksum:
     calculate checksum for all the fastq files
     """
     input:
-        expand("{source}{run}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir)
+        expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
     output:
         checksum=expand("{output}{{run}}{{suffix}}/md5sum.txt", output=ody_config.OUTPUT_DIR),
     shell:
@@ -163,7 +163,7 @@ rule checksum:
 
 def update_analysis(data):
     if not ody_config.TEST:
-        analysis_file_path = '%s%s/%s/analysis_id' % (ody_config.SOURCE_DIR, config['run'], status_dir)
+        analysis_file_path = '/source/%s/%s/analysis_id' % (config['run'], status_dir)
         if os.path.isfile(analysis_file_path):
             with open(analysis_file_path, 'r') as ln:
                 analysis_id = ln.readline().strip()

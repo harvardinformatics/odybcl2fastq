@@ -21,15 +21,15 @@ rule all:
     final output of workflow
     """
     input:
-        expand("{source}{run}/{status}/ody.complete", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir)
+        expand("/source/{run}/{status}/ody.complete", run=config['run'], status=status_dir)
 
 rule demultiplex_10x_cmd:
     """
     build a bash file with the demux cmd
     """
     input:
-        expand("{source}{{run}}/{status}/analysis_id", source=ody_config.SOURCE_DIR, status=status_dir),
-        sample_sheet=expand("{source}{{run}}/SampleSheet{{suffix}}.csv", source=ody_config.SOURCE_DIR)
+        expand("/source/{{run}}/{status}/analysis_id", status=status_dir),
+        sample_sheet=expand("/source/{{run}}/SampleSheet{{suffix}}.csv")
     output:
         expand("{output}{{run}}{{suffix}}/script/demultiplex_10x.sh", output=ody_config.OUTPUT_DIR)
     shell:
@@ -60,7 +60,7 @@ rule demultiplex_10x:
     input:
         expand("{output}{{run}}{suffix}/script/demultiplex_10x.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
     output:
-        touch(expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir))
     run:
         update_analysis({'step': 'demultiplex', 'status': 'processing'})
         shell("{input}")
@@ -70,8 +70,8 @@ rule count_10x_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir),
-        expand("{source}{{run}}/{status}/fastq_email.processed", source=ody_config.SOURCE_DIR, status=status_dir)
+        expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
+        expand("/source/{{run}}/{status}/fastq_email.processed", status=status_dir)
     output:
         expand("{output}{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR)
     shell:
@@ -103,7 +103,7 @@ rule count_10x:
     input:
         script=expand("{output}{{run}}{suffix}/script/{{project}}.{{sample}}_count.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
     output:
-        touch(expand("{source}{{run}}/{status}/{{project}}.{{sample}}_count.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/{{project}}.{{sample}}_count.processed", status=status_dir))
     shell:
         """
         {input}
@@ -116,13 +116,13 @@ rule fastq_email:
     """
     input:
         checksum=expand("{output}{{run}}{suffix}/md5sum.txt", output=ody_config.OUTPUT_DIR, suffix=config['suffix']),
-        fastqc=expand("{source}{{run}}/{status}/fastqc.processed", source=ody_config.SOURCE_DIR, status=status_dir),
-        lims=expand("{source}{{run}}/{status}/update_lims_db.processed", source=ody_config.SOURCE_DIR, status=status_dir),
-        demultiplex=expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir),
+        fastqc=expand("/source/{{run}}/{status}/fastqc.processed", status=status_dir),
+        lims=expand("/source/{{run}}/{status}/update_lims_db.processed", status=status_dir),
+        demultiplex=expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
         sample_sheet=expand("{output}{{run}}{suffix}/SampleSheet.csv", output=ody_config.OUTPUT_DIR, suffix=config['suffix']),
         run_info=expand("{output}{{run}}{suffix}/RunInfo.xml", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
     output:
-        touch(expand("{source}{{run}}/{status}/fastq_email.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/fastq_email.processed", status=status_dir))
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
         shell("cp -r {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]} {ody_config.PUBLISHED_DIR}")
@@ -136,19 +136,19 @@ def publish_input(wildcards):
     """
     input = {
         'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
-        'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
-        'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
+        'fastqc': "/source/%s/%s/fastqc.processed" % (wildcards.run, status_dir),
+        'lims': "/source/%s/%s/update_lims_db.processed" % (wildcards.run, status_dir),
         'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
         'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix'])
     }
     # if reference is provided then run count
     if config['ref']:
         # copy fastq to final and send an email that count is pending
-        input['email'] = "%s%s/%s/fastq_email.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir)
+        input['email'] = "/source/%s/%s/fastq_email.processed" % (wildcards.run, status_dir)
         for i, sample in enumerate(samples):
             project = projects[i]
             key = 'count_%s.%s' % (project, sample)
-            input[key] = "%s%s/%s/%s.%s_count.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir, project, sample)
+            input[key] = "/source/%s/%s/%s.%s_count.processed" % (wildcards.run, status_dir, project, sample)
     return input
 
 
@@ -159,7 +159,7 @@ rule publish:
     input:
         unpack(publish_input)
     output:
-        touch(expand("{source}{{run}}/{status}/ody.complete", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
         shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r {ody_config.OUTPUT_DIR}{wildcards.run}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config[suffix]}/")
