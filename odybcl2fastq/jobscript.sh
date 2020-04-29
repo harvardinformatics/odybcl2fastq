@@ -17,15 +17,8 @@ do
     fi
 done
 
-# check if singularity img exist
-if ! [ -f $ODY_SING_IMG ]; then
-    echo "file does not exist: $ODY_SING_IMG"
-    exit 1
-    break
-fi
-
 singularity exec -B $ODY_SOURCE:/source \
                 -B $published:/published \
                 -B $analysis:/output \
                 -B $ODY_SNAKEMAKE_WORKDIR:/snakemake \
-                $ODY_SING_IMG bash -c '{exec_job}'
+                "${SINGULARITY_CONTAINER}" bash -c '{exec_job}'
