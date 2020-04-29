@@ -30,7 +30,6 @@ from snakemake import snakemake
 from odybcl2fastq.status_db import StatusDB
 
 STATUS_DIR = 'status_test' if config.TEST else 'status'
-LOG_HTML = config.PUBLISHED_DIR + 'odybcl2fastq_log.html'
 PROCESSED_FILE_NAME = 'ody.processed'
 PROCESSED_FILE = '%s/%s' % (STATUS_DIR, PROCESSED_FILE_NAME)
 COMPLETE_FILE_NAME = 'ody.complete'
