@@ -152,7 +152,7 @@ rule publish:
         touch(expand("/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r /analysis/{config[run]}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{config[run]}{config[suffix]}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r /analysis/{config[run]}{config[suffix]}/ /published/{config[run]}{config[suffix]}/")
         send_success_email()
 
 onsuccess:

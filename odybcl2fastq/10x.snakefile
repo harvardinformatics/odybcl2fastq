@@ -125,7 +125,7 @@ rule fastq_email:
         touch(expand("/source/{{run}}/{status}/fastq_email.processed", status=status_dir))
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
-        shell("cp -r /analysis/{wildcards.run}{config[suffix]} {ody_config.PUBLISHED_DIR}")
+        shell("cp -r /analysis/{wildcards.run}{config[suffix]} /published/")
         subject = 'Demultiplex Summary for: %s%s (count pending)' % (wildcards.run, config['suffix'])
         send_success_email(subject)
 
@@ -162,7 +162,7 @@ rule publish:
         touch(expand("/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r /analysis/{wildcards.run}{config[suffix]}/ {ody_config.PUBLISHED_DIR}{wildcards.run}{config[suffix]}/")
+        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r /analysis/{wildcards.run}{config[suffix]}/ /published/{wildcards.run}{config[suffix]}/")
         subject = 'Demultiplex Summary for: %s%s' % (wildcards.run, config['suffix'])
         send_success_email(subject)
 
