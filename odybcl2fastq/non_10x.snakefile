@@ -107,7 +107,7 @@ rule demultiplex_cmd:
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/fastq\n"
-        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {ody_config.SOURCE_CLUSTER_PATH}{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir {ody_config.SOURCE_CLUSTER_PATH}{config[run]} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
+        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet /source{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir /source{config[run]} --output-dir {ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -170,7 +170,7 @@ def send_success_email():
     message = 'run %s completed successfully\n see logs here: %s%s.log\n' % (output_dir, ody_config.LOG_DIR, output_dir)
     cmd_file = '%s%s/script/demultiplex.sh' % (ody_config.OUTPUT_DIR, output_dir)
     cmd = util.get_file_contents(cmd_file)
-    ss_file = '%s%s/SampleSheet.csv' % (ody_config.SOURCE_CLUSTER_PATH, config['run'])
+    ss_file = '/source%s/SampleSheet.csv' % (config['run'])
     fastq_dir = '%s%s/fastq' % (ody_config.OUTPUT_CLUSTER_PATH, output_dir)
     summary_data = parse_stats.get_summary(fastq_dir, instrument, ss_file, output_dir)
     summary_data['cmd'] = cmd
