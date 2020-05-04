@@ -10,6 +10,7 @@ class Config(object):
 
     def __init__(self):
         self.data = util.load_json(CONFIG_FILE)
+        self.data['FASTQ_URL'] = os.environ.get('ODY_FASTQ_URL', 'https://software.rc.fas.harvard.edu/ngsdata/')
         # add full paths for source, output and final for reusable scripts
         self.check_dir('/source')
         self.data['OUTPUT_CLUSTER_PATH'] = self.check_dir('%s/analysis/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'), check_is_writable=True)
