@@ -116,7 +116,7 @@ def check_sample_sheet(sample_sheet, run):
     # for flowcell
     if not os.path.exists(sample_sheet):
         flowcell = run.split('_')[-1][1:]
-        path = config.SAMPLE_SHEET_DIR + flowcell + '.csv'
+        path = '/source/sample_sheet/' + flowcell + '.csv'
         if os.path.exists(path):
             util.copy(path, sample_sheet)
 
