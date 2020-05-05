@@ -1,7 +1,5 @@
-from odybcl2fastq import util
 import os
 
-CONFIG_FILE = os.environ.get('ODY_CONFIG_FILE', os.path.join('config.json'))
 DEFAULT_INFORMATICS_ROOT = '/n/boslfs02/LABS/informatics'
 DEFAULT_SEQ_ROOT = '%s/sequencing' % DEFAULT_INFORMATICS_ROOT
 
@@ -9,7 +7,11 @@ DEFAULT_SEQ_ROOT = '%s/sequencing' % DEFAULT_INFORMATICS_ROOT
 class Config(object):
 
     def __init__(self):
-        self.data = util.load_json(CONFIG_FILE)
+        self.data = {}
+        self.data['EMAIL_ADMIN'] = os.environ['ODY_EMAIL_ADMIN']
+        self.data['EMAIL_FROM'] = os.environ['ODY_EMAIL_FROM']
+        self.data['EMAIL_SMTP'] = os.environ['ODY_EMAIL_SMTP']
+        self.data['EMAIL_TO'] = os.environ['ODY_EMAIL_TO']
         self.data['FASTQ_URL'] = os.environ.get('ODY_FASTQ_URL', 'https://software.rc.fas.harvard.edu/ngsdata/')
         # add full paths for source, output and final for reusable scripts
         self.check_dir('/source')

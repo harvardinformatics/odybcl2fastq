@@ -33,7 +33,7 @@ def composeMessage(message, subject, summary_data, fromaddr, toemaillist, templa
 
 def buildmessage(message, subject, summary_data, fromaddr, toemaillist, template='summary.html', ccemaillist=[], bccemaillist=[], server=None):
     if not server:
-        server = config.EMAIL['smtp']
+        server = config.EMAIL_SMTP
     msg = composeMessage(message, subject, summary_data, fromaddr, toemaillist, template, ccemaillist=[], bccemaillist=[])
     emails = toemaillist + ccemaillist + bccemaillist
     smtp = smtplib.SMTP(server)

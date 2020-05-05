@@ -162,7 +162,7 @@ onerror:
     output_dir = '%s%s' % (config['run'], config['suffix'])
     message = 'run %s failed\n see logs here: /log/%s.log\n' % (output_dir, output_dir)
     subject = 'Run Failed: %s' % (output_dir)
-    sent = buildmessage(message, subject, {}, ody_config.EMAIL['from_email'], ody_config.EMAIL['admin_email'])
+    sent = buildmessage(message, subject, {}, ody_config.EMAIL_FROM, ody_config.EMAIL_ADMIN)
     update_analysis({'status': 'failed'})
 
 def send_success_email():
@@ -176,4 +176,4 @@ def send_success_email():
     summary_data['cmd'] = cmd
     summary_data['version'] = 'bcl2fastq2 v2.2'
     subject = 'Demultiplex Summary for ' + output_dir
-    sent = buildmessage(message, subject, summary_data, ody_config.EMAIL['from_email'], ody_config.EMAIL['to_email'], 'summary.html')
+    sent = buildmessage(message, subject, summary_data, ody_config.EMAIL_FROM, ody_config.EMAIL_TO, 'summary.html')

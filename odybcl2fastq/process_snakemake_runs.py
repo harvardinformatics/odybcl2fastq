@@ -57,8 +57,8 @@ def failure_email(run, log, cmd, ret_code, std_out, std_err = ''):
     send_email(message, subject)
 
 def send_email(message, subject, to = 'to_email_error'):
-    fromaddr = config.EMAIL['from_email']
-    toemaillist = config.EMAIL[to]
+    fromaddr = config.EMAIL_FROM
+    toemaillist = config.EMAIL_TO
     buildmessage(message, subject, None, fromaddr, toemaillist)
 
 def need_to_process(dir):
@@ -185,7 +185,7 @@ def get_reference(run_dir, run_type, sample_sheet):
         # email admins to notify we need a reference genome
         message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
         subject = 'Run needs reference genome: %s' % run
-        sent = buildmessage(message, subject, {}, config.EMAIL['from_email'], config.EMAIL['admin_email'])
+        sent = buildmessage(message, subject, {}, config.EMAIL_FROM, config.EMAIL_ADMIN)
     if ref_file:
         # get gtf file
         with open(('%s/%s/reference.json' % (config.REF_PATH, ref_file)), 'r') as f:
