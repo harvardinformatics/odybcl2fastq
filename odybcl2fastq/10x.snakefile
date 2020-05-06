@@ -77,9 +77,9 @@ rule count_10x_cmd:
     shell:
         """
         fastq_path="{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq/{wildcards.project}/{wildcards.sample}"
-        transcriptome="--transcriptome={ody_config.REF_PATH}{config[ref]}"
+        transcriptome="--transcriptome=/ref/{config[ref]}"
         if [ ! -z "{config[atac]}" ]; then
-            transcriptome="--reference={ody_config.REF_PATH}{config[ref]}"
+            transcriptome="--reference=/ref/{config[ref]}"
         fi
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
