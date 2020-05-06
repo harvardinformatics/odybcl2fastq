@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 # -*- coding: utf-8 -*-
 
@@ -6,9 +6,10 @@
 Manage storage capacity by deleting old runs
 
 Created on  2018-03-09
+Updated on  2020-05-06
 
 @author: Meghan Correa <mportermahoney@g.harvard.edu>
-@copyright: 2018 The Presidents and Fellows of Harvard College. All rights reserved.
+@copyright: 2020 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
 import sys, os
@@ -21,19 +22,18 @@ from odybcl2fastq import config, initLogger
 
 
 # Setup logging, to a file if set, otherwise, stderr
-logger = initLogger('storage_mgmt')
+logger = initLogger('storage_mgmt', 'storage_mgmt')
 
 
 # Set named storage paths
 # If config file is identified, use those values
 STORAGEPATHS = {
-    'SOURCE_DIR' : '/n/boslfs/INSTRUMENTS/illumina/',
-    'OUTPUT_DIR' : '/n/boslfs/ANALYSIS/',
-    'FINAL_DIR'  : '/n/ngsdata/',
+    'SOURCE_DIR' : '/source',
+    'OUTPUT_DIR' : '/output',
+    'PUBLISHED_DIR'  : '/published',
 }
-for k, v in STORAGEPATHS.iteritems():
-    if k in config:
-        STORAGEPATHS[k] = config[k]
+for k, v in STORAGEPATHS.items():
+    STORAGEPATHS[k] = config[k]
 
 
 def init_args():
@@ -54,8 +54,8 @@ def init_args():
         'seq_storage':
             {
                 'required'  : True,
-                'choices'  : ['SOURCE_DIR', 'OUTPUT_DIR', 'FINAL_DIR'],
-                'help'      : 'Either the SOURCE_DIR ({SOURCE_DIR}), the OUTPUT_DIR ({OUTPUT_DIR}), or the FINAL_DIR ({FINAL_DIR})'.format(**STORAGEPATHS),
+                'choices'  : ['SOURCE_DIR', 'OUTPUT_DIR', 'PUBLISHED_DIR'],
+                'help'      : 'Either the SOURCE_DIR ({SOURCE_DIR}), the OUTPUT_DIR ({OUTPUT_DIR}), or the PUBLISHED_DIR ({PUBLISHED_DIR})'.format(**STORAGEPATHS),
                 'type'      : str,
             },
         'expired_after':
@@ -112,6 +112,7 @@ def get_runs(seq_storage):
 def find_expired_runs(runs, oldest_str):
     to_delete = []
     for run in runs:
+        run = run.decode('utf-8')
         run_parts = os.path.basename(run).split('_')
         run_date = run_parts[0]
         if len(run_parts) < 4 or len(run_date) != 6:
