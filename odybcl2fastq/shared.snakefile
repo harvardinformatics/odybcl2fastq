@@ -100,9 +100,9 @@ rule fastqc_cmd:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
-        cmd+="mkdir -p {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/QC\n"
-        cmd+="cd {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/fastq/\n"
-        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
+        cmd+="mkdir -p /analysis/{wildcards.run}{wildcards.suffix}/QC\n"
+        cmd+="cd /analysis/{wildcards.run}{wildcards.suffix}/fastq/\n"
+        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o /analysis/{wildcards.run}{wildcards.suffix}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
         echo "$cmd" >> {output}
         chmod 775 {output}
         """

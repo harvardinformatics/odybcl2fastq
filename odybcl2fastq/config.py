@@ -1,9 +1,5 @@
 import os
 
-DEFAULT_INFORMATICS_ROOT = '/n/boslfs02/LABS/informatics'
-DEFAULT_SEQ_ROOT = '%s/sequencing' % DEFAULT_INFORMATICS_ROOT
-
-
 class Config(object):
 
     def __init__(self):
@@ -15,8 +11,8 @@ class Config(object):
         self.data['FASTQ_URL'] = os.environ.get('ODY_FASTQ_URL', 'https://software.rc.fas.harvard.edu/ngsdata/')
         # add full paths for source, output and final for reusable scripts
         self.check_dir('/source')
-        self.data['OUTPUT_CLUSTER_PATH'] = self.check_dir('%s/analysis/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'), check_is_writable=True)
-        self.data['PUBLISHED_CLUSTER_PATH'] = self.check_dir('%s/published/' % os.environ.get('ODY_SEQ_ROOT', DEFAULT_SEQ_ROOT).rstrip('/'), check_is_writable=True)
+        self.check_dir('/analysis', check_is_writable=True)
+        self.check_dir('/published', check_is_writable=True)
         self.check_dir('/ref')
         self.data['TEST'] = os.environ.get('ODY_TEST', 'FALSE') == 'TRUE'
         # default to empty for db connection variables for now since they are

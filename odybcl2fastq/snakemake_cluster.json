@@ -5,8 +5,8 @@
         "mem": 0,
         "partition": "bos-info_priority",
         "job-name": "{rule}.{config[run]}{config[suffix]}",
-        "output": "{ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/log/{rule}-%j.out",
-        "error": "{ody_config.OUTPUT_CLUSTER_PATH}{config[run]}{config[suffix]}/log/{rule}-%j.err",
+        "output": "/analysis/{config[run]}{config[suffix]}/log/{rule}-%j.out",
+        "error": "/analysis/{config[run]}{config[suffix]}/log/{rule}-%j.err",
         "exclusive": "",
         "chdir": "/tmp/"
     },
@@ -23,8 +23,8 @@
         "time": "4-18:00:00",
         "nice": "",
         "job-name": "{rule}.{wildcards.run}{config[suffix]}_{wildcards.sample}",
-        "output": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{config[suffix]}/log/{rule}.{wildcards.sample}-%j.out",
-        "error": "{ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{config[suffix]}/log/{rule}.{wildcards.sample}-%j.err"
+        "output": "/analysis/{wildcards.run}{config[suffix]}/log/{rule}.{wildcards.sample}-%j.out",
+        "error": "/analysis/{wildcards.run}{config[suffix]}/log/{rule}.{wildcards.sample}-%j.err"
     }
 }
 
