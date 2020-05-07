@@ -9,7 +9,7 @@ class Config(object):
         self.data['EMAIL_SMTP'] = os.environ['ODY_EMAIL_SMTP']
         self.data['EMAIL_TO'] = os.environ['ODY_EMAIL_TO']
         self.data['FASTQ_URL'] = os.environ.get('ODY_FASTQ_URL', 'https://software.rc.fas.harvard.edu/ngsdata/')
-        # add full paths for source, output and final for reusable scripts
+        # pre-flight checks to ensure existence and accessibility of required directories
         self.check_dir('/source')
         self.check_dir('/analysis', check_is_writable=True)
         self.check_dir('/published', check_is_writable=True)
@@ -41,6 +41,8 @@ class Config(object):
 
     def check_dir(self, path, check_is_writable=False):
         if os.path.isdir(path):
+            if not os.access(path, os.R_OK | os.X_OK):
+                raise Exception('path is not readable: %s' % path)
             if check_is_writable and not os.access(path, os.W_OK):
                 raise Exception('path is not writable: %s' % path)
             else:
