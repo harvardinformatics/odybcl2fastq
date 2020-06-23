@@ -130,7 +130,7 @@ class SampleSheet(object):
 
     def validate_index2(self):
         corrected = False
-        fixed = self.samples
+        fixed = self.get_samples()
         if 'index2' in fixed.columns:
             if fixed[fixed.index2!=''].empty:
                 # we have a totally empty index2 column so delete
