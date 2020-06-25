@@ -264,6 +264,13 @@ class SampleSheet(object):
                 projects.append(row['Sample_Project'])
         return projects
 
+    def get_samples(self):
+        samples = []
+        for key, row in self.sections['Data'].items():
+            if row['Sample_ID']:
+                samples.append(row['Sample_ID'])
+        return samples
+
     def has_poly_A_index(self):
         for k, row in self.sections['Data'].items():
             if 'AAAA' in row['index']:
