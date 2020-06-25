@@ -130,17 +130,13 @@ class SampleSheet(object):
 
     def validate_index2(self):
         corrected = False
-        fixed = self.samples
-        if 'index2' in fixed.columns:
-            if fixed[fixed.index2!=''].empty:
-                # we have a totally empty index2 column so delete
-                fixed = fixed.drop('index2', axis = 1)
-                if 'I5_index_ID' in fixed.columns:
-                    fixed = fixed.drop('I5_index_ID', axis = 1)
-                corrected = True
-                fixed_rows = fixed.to_dict('records')
-                for i, k in enumerate(self.sections['Data'].keys()):
-                    self.sections['Data'][k] = OrderedDict(fixed_rows[i])
+        if len(self.sections['Data']) == sum(('index2','') in sample.items() for sample in self.sections['Data'].values()):
+            # we have a totally empty index2 column so delete
+            corrected = True
+            for sample in self.sections['Data']:
+                del self.sections['Data'][sample]['index2']
+                if 'I5_index_ID' in self.sections['Data'][sample]:
+                    del self.sections['Data'][sample]['I5_index_ID']
         return corrected
 
     def validate_sample_names(self):
