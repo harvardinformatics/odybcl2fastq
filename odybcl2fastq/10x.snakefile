@@ -10,7 +10,7 @@ Created on  2020-04-02
 '''
 
 include: "shared.snakefile"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, insert_run_into_bauer_db
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, multiqc_cmd, fastq_email, insert_run_into_bauer_db
 
 sample_sheet = SampleSheet(sample_sheet_path)
 samples = sample_sheet.get_samples()
@@ -117,6 +117,7 @@ rule fastq_email:
     input:
         checksum=expand("{output}{{run}}{suffix}/md5sum.txt", output=ody_config.OUTPUT_DIR, suffix=config['suffix']),
         fastqc=expand("{source}{{run}}/{status}/fastqc.processed", source=ody_config.SOURCE_DIR, status=status_dir),
+        multiqc=expand("{source}{{run}}/{status}/multiqc.processed", source=ody_config.SOURCE_DIR, status=status_dir),
         lims=expand("{source}{{run}}/{status}/update_lims_db.processed", source=ody_config.SOURCE_DIR, status=status_dir),
         demultiplex=expand("{source}{{run}}/{status}/demultiplex.processed", source=ody_config.SOURCE_DIR, status=status_dir),
         sample_sheet=expand("{output}{{run}}{suffix}/SampleSheet.csv", output=ody_config.OUTPUT_DIR, suffix=config['suffix']),
@@ -137,6 +138,7 @@ def publish_input(wildcards):
     input = {
         'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
         'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
+        'multiqc': "%s%s/%s/multiqc.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
         'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, wildcards.run, status_dir),
         'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix']),
         'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, wildcards.run, config['suffix'])
@@ -185,6 +187,7 @@ def get_summary_data(cmd, run, ss_file):
     versions = [
         'cellranger 3.1.0',
         'fastqc 0.11.8'
+        'multiqc 1.9'
     ]
     if config['ref']:
         assumptions.append('reference genome %s, see annotation under versions below' % os.path.basename(config['ref']))

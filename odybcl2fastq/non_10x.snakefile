@@ -10,7 +10,7 @@ Created on  2020-03-26
 
 include: "shared.snakefile"
 
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_cmd, fastqc_cmd, insert_run_into_bauer_db
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_cmd, fastqc_cmd, multiqc_cmd, insert_run_into_bauer_db
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.parsers import parse_stats
 
@@ -135,6 +135,7 @@ def publish_input(wildcards):
         'demux': '%s%s/%s/demultiplex.processed' % (ody_config.SOURCE_DIR, config['run'], status_dir),
         'checksum': "%s%s%s/md5sum.txt" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
         'fastqc': "%s%s/%s/fastqc.processed" % (ody_config.SOURCE_DIR, config['run'], status_dir),
+        'multiqc': "%s%s/%s/multiqc.processed" % (ody_config.SOURCE_DIR, config['run'], status_dir),
         'lims': "%s%s/%s/update_lims_db.processed" % (ody_config.SOURCE_DIR, config['run'], status_dir),
         'sample_sheet': "%s%s%s/SampleSheet.csv" % (ody_config.OUTPUT_DIR, config['run'], config['suffix']),
         'run_info': "%s%s%s/RunInfo.xml" % (ody_config.OUTPUT_DIR, config['run'], config['suffix'])
