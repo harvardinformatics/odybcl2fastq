@@ -1,13 +1,14 @@
+import json
 import os
 
 class Config(object):
 
     def __init__(self):
         self.data = {}
-        self.data['EMAIL_ADMIN'] = os.environ['ODY_EMAIL_ADMIN']
+        self.data['EMAIL_ADMIN'] = json.loads(os.environ['ODY_EMAIL_ADMIN'])
         self.data['EMAIL_FROM'] = os.environ['ODY_EMAIL_FROM']
         self.data['EMAIL_SMTP'] = os.environ['ODY_EMAIL_SMTP']
-        self.data['EMAIL_TO'] = os.environ['ODY_EMAIL_TO']
+        self.data['EMAIL_TO'] = json.loads(os.environ['ODY_EMAIL_TO'])
         self.data['FASTQ_URL'] = os.environ.get('ODY_FASTQ_URL', 'https://software.rc.fas.harvard.edu/ngsdata/')
         # pre-flight checks to ensure existence and accessibility of required directories
         self.check_dir('/source')
