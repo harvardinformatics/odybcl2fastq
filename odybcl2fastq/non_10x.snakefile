@@ -10,7 +10,7 @@ Created on  2020-03-26
 
 include: "shared.snakefile"
 
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_cmd, fastqc_cmd, insert_run_into_bauer_db
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_cmd, fastqc_cmd, multiqc_cmd, insert_run_into_bauer_db
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.parsers import parse_stats
 
@@ -135,6 +135,7 @@ def publish_input(wildcards):
         'demux': '/source/%s/%s/demultiplex.processed' % (config['run'], status_dir),
         'checksum': "/analysis/%s%s/md5sum.txt" % (config['run'], config['suffix']),
         'fastqc': "/source/%s/%s/fastqc.processed" % (config['run'], status_dir),
+        'multiqc': "/source/%s/%s/multiqc.processed" % (config['run'], status_dir),
         'lims': "/source/%s/%s/update_lims_db.processed" % (config['run'], status_dir),
         'sample_sheet': "/analysis/%s%s/SampleSheet.csv" % (config['run'], config['suffix']),
         'run_info': "/analysis/%s%s/RunInfo.xml" % (config['run'], config['suffix'])

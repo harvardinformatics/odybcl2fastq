@@ -10,7 +10,7 @@ Created on  2020-04-02
 '''
 
 include: "shared.snakefile"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, fastq_email, insert_run_into_bauer_db
+localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, multiqc_cmd, fastq_email, insert_run_into_bauer_db
 
 sample_sheet = SampleSheet(sample_sheet_path)
 samples = sample_sheet.get_samples()
@@ -114,9 +114,9 @@ rule fastq_email:
     copy fastq files to final and send an email that fastq files are ready, this step is run only for jobs
     running count
     """
-    input:
         checksum=expand("/analysis/{{run}}{suffix}/md5sum.txt", suffix=config['suffix']),
         fastqc=expand("/source/{{run}}/{status}/fastqc.processed", status=status_dir),
+        multiqc=expand("/source/{{run}}/{status}/multiqc.processed", status=status_dir),
         lims=expand("/source/{{run}}/{status}/update_lims_db.processed", status=status_dir),
         demultiplex=expand("/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
         sample_sheet=expand("/analysis/{{run}}{suffix}/SampleSheet.csv", suffix=config['suffix']),
@@ -137,6 +137,7 @@ def publish_input(wildcards):
     input = {
         'checksum': "/analysis/%s%s/md5sum.txt" % (wildcards.run, config['suffix']),
         'fastqc': "/source/%s/%s/fastqc.processed" % (wildcards.run, status_dir),
+        'multiqc': "/source/%s/%s/multiqc.processed" % (wildcards.run, status_dir),
         'lims': "/source/%s/%s/update_lims_db.processed" % (wildcards.run, status_dir),
         'sample_sheet': "/analysis/%s%s/SampleSheet.csv" % (wildcards.run, config['suffix']),
         'run_info': "/analysis/%s%s/RunInfo.xml" % (wildcards.run, config['suffix'])
@@ -185,6 +186,7 @@ def get_summary_data(cmd, run, ss_file):
     versions = [
         'cellranger 3.1.0',
         'fastqc 0.11.8'
+        'multiqc 1.9'
     ]
     if config['ref']:
         assumptions.append('reference genome %s, see annotation under versions below' % os.path.basename(config['ref']))

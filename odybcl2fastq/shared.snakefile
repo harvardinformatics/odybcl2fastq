@@ -121,6 +121,37 @@ rule fastqc:
         {input}
         """
 
+rule multiqc_cmd:
+    """
+    build a bash file with the multiqc cmd
+    """
+    input:
+        ancient(expand("{source}{run}/{status}/fastqc.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir))
+    output:
+        expand("{output}{{run}}{{suffix}}/script/multiqc.sh", output=ody_config.OUTPUT_DIR)
+    shell:
+        """
+        cmd="#!/bin/bash\n"
+        cmd+="cd {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/QC\n"
+        cmd+="/usr/bin/time -v multiqc {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/QC"
+        echo "$cmd" >> {output}
+        chmod 775 {output}
+        """
+
+rule multiqc:
+    """
+    run bash file for multiqc
+    the slurm_submit.py script will add slurm params to the top of this file
+    """
+    input:
+        expand("{output}{{run}}{suffix}/script/multiqc.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+    output:
+        touch(expand("{source}{{run}}/{status}/multiqc.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+    shell:
+        """
+        {input}
+        """
+
 rule cp_source_to_output:
     """
     copy a few files from source to output dir

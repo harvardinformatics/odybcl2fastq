@@ -1,5 +1,3 @@
-#!python
-
 #!/usr/bin/env python3
 '''
 Take from snakemake documentation

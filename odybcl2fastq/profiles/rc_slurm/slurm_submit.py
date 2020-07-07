@@ -1,5 +1,3 @@
-#!python
-
 #!/usr/bin/env python3
 '''
 submit slurn jobs from snakemake, cp slurm cluster config into bash scripts
