@@ -233,13 +233,10 @@ def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
         '--local-cores': 4,
         '--max-jobs-per-second': 2,
         '--config': ' '.join(['%s=%s' % (k, v) for k, v in snakemake_config.items()]),
-        '--cluster-config': '/app/odybcl2fastq/snakemake_cluster.json',
-        '--cluster': "'python /app/odybcl2fastq/slurm_submit.py'",
-        '--cluster-status': "'python /app/odybcl2fastq/cluster_status.py'",
+        '--profile': '/app/odybcl2fastq/profiles/rc_slurm',
         '--printshellcmds': None,
         '--reason': None,
         '-s': '/app/odybcl2fastq/%s' % snakefile,
-        '--jobscript': '/app/odybcl2fastq/jobscript.sh',
         '-d': '/snakemake/ody',
         '--latency-wait': 120
     }

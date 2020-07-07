@@ -1,0 +1,11 @@
+restart-times: 3
+jobscript: 'jobscript.sh'
+cluster: 'slurm_submit.py'
+cluster-status: 'cluster_status.py'
+cluster-config: '/app/odybcl2fastq/profiles/rc_slurm/snakemake_cluster.json'
+max-jobs-per-second: 1
+max-status-checks-per-second: 10
+local-cores: 1
+latency-wait: 60
+
+
