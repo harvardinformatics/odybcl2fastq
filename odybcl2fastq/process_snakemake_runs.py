@@ -74,6 +74,10 @@ def need_to_process(dir):
     # filter out if tagged as processed
     if os.path.isfile(dir + PROCESSED_FILE):
         return False
+    # filter out if tagged as old non 10x processed
+    # TODO: remove this after these old runs are no longer around
+    if os.path.isfile(dir + 'odybcl2fastq.processed'):
+        return False
     # filter out if tagged as skip
     if os.path.isfile(dir + SKIP_FILE):
         return False
