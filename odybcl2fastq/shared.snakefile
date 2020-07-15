@@ -126,9 +126,9 @@ rule multiqc_cmd:
     build a bash file with the multiqc cmd
     """
     input:
-        ancient(expand("{source}{run}/{status}/fastqc.processed", source=ody_config.SOURCE_DIR, run=config['run'], status=status_dir))
+        ancient(expand("/source/{run}/{status}/fastqc.processed", run=config['run'], status=status_dir))
     output:
-        expand("{output}{{run}}{{suffix}}/script/multiqc.sh", output=ody_config.OUTPUT_DIR)
+        expand("/analysis/{{run}}{{suffix}}/script/multiqc.sh", suffix=config['suffix'])
     shell:
         """
         cmd="#!/bin/bash\n"
@@ -144,9 +144,9 @@ rule multiqc:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("{output}{{run}}{suffix}/script/multiqc.sh", output=ody_config.OUTPUT_DIR, suffix=config['suffix'])
+        expand("/analysis/{{run}}{suffix}/script/multiqc.sh", suffix=config['suffix'])
     output:
-        touch(expand("{source}{{run}}/{status}/multiqc.processed", source=ody_config.SOURCE_DIR, status=status_dir))
+        touch(expand("/source/{{run}}/{status}/multiqc.processed", status=status_dir))
     shell:
         """
         {input}
