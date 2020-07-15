@@ -114,6 +114,7 @@ rule fastq_email:
     copy fastq files to final and send an email that fastq files are ready, this step is run only for jobs
     running count
     """
+    input:
         checksum=expand("/analysis/{{run}}{suffix}/md5sum.txt", suffix=config['suffix']),
         fastqc=expand("/source/{{run}}/{status}/fastqc.processed", status=status_dir),
         multiqc=expand("/source/{{run}}/{status}/multiqc.processed", status=status_dir),
