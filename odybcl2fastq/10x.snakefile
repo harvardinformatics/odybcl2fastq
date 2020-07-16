@@ -185,7 +185,7 @@ def get_summary_data(cmd, run, ss_file):
         'ignoring the second index on a dual-indexed flowcell'
     ]
     versions = [
-        'cellranger 3.1.0',
+        'cellranger 4.0.0',
         'fastqc 0.11.8'
         'multiqc 1.9'
     ]

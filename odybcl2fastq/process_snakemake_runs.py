@@ -172,9 +172,9 @@ def get_reference(run_dir, run_type, sample_sheet):
         ref_file = 'refdata-cellranger-hg19-3.0.0'
     elif ref == 'GRCh' or ref == 'human_GRC38': # human
         if run_type == '10x single cell atac':
-            ref_file = 'atac-seq/refdata-cellranger-atac-GRCh38-1.0.1'
+            ref_file = 'atac-seq/refdata-cellranger-atac-GRCh38-1.2.0'
         else:
-            ref_file = 'refdata-cellranger-GRCh38-3.0.0'
+            ref_file = 'refdata-gex-GRCh38-2020-A'
     elif 'Zebrafish' in ref or ref =='Zebrafish_GRCz11':
         if run_type == '10x single cell atac':
             ref_file = 'atac-seq/refdata-cellranger-atac-zebrafish/Danio_rerio.GRCz11'
@@ -182,9 +182,9 @@ def get_reference(run_dir, run_type, sample_sheet):
             ref_file = 'zebrafish_ensembl/Danio_rerio.GRCz11'
     elif 'mouse' in ref or ref == 'mouse_mm10':
         if run_type == '10x single cell atac':
-            ref_file = 'atac-seq/refdata-cellranger-atac-mm10-1.0.1'
+            ref_file = 'atac-seq/refdata-cellranger-atac-mm10-1.2.0'
         else:
-            ref_file = 'refdata-cellranger-mm10-3.0.0'
+            ref_file = 'refdata-gex-mm10-2020-A'
     elif ref not in ['', 'None', 'Other']: # this will cause count to error and then we can add a genome
         # email admins to notify we need a reference genome
         message = "run %s doesn't have a reference genome prepared for: %s\n" % (run, ref)
