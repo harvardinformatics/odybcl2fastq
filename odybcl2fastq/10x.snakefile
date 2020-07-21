@@ -34,17 +34,13 @@ rule demultiplex_10x_cmd:
         expand("/analysis/{{run}}{{suffix}}/script/demultiplex_10x.sh")
     shell:
         """
-        dual_index="--ignore-dual-index"
-        if [ ! -z "{config[atac]}" ]; then
-            dual_index=""
-        fi
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p /analysis/{wildcards.run}{wildcards.suffix}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq $dual_index --run=/source{wildcards.run} --samplesheet=/source{wildcards.run}/SampleSheet{wildcards.suffix}.csv --output-dir=/analysis/{wildcards.run}{wildcards.suffix}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq --run=/source/{wildcards.run} --samplesheet=/source/{wildcards.run}/SampleSheet{wildcards.suffix}.csv --output-dir=/analysis/{wildcards.run}{wildcards.suffix}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
         cmd+="cp -p */*.mri.tgz /analysis/{wildcards.run}{wildcards.suffix}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
@@ -181,8 +177,7 @@ onerror:
 def get_summary_data(cmd, run, ss_file):
     sample_sheet = util.get_file_contents(ss_file)
     assumptions = [
-        'chromium single-cell RNA-seq',
-        'ignoring the second index on a dual-indexed flowcell'
+        'chromium single-cell RNA-seq'
     ]
     versions = [
         'cellranger 4.0.0',
