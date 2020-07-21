@@ -1,39 +1,57 @@
 Bootstrap: docker
-From: harvardinformatics/cellranger
-
-%post
-#
-# Docker container for dev odybcl2fastq
-#
-yum -y update
-yum install -y gcc
-yum install -y sssd
-yum install -y which
-yum install -y epel-release
-yum install -y lua
-yum install -y lua-posix
-yum install -y lua-filesystem
-yum install -y vim
-yum install -y time
-
-TZ=America/New_York
-ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-conda install -y jinja2=2.10.1=py37_0 numpy=1.17.3=py37hd14ec0e_0
-conda install -y -c bioconda mysqlclient fastqc
-conda install -y -c bioconda -c conda-forge snakemake
-conda install -y -c bioconda -c conda-forge multiqc
-
+From: python:3.8.5-slim-buster
+Stage: builder
 
 %files
-. /app
+./requirements.txt /
+
+%post
+    apt update && apt install -y --no-install-recommends \
+      gcc \
+      libmariadb-dev \
+      && rm -rf /var/lib/apt/lists/*
+    pip install --no-cache-dir -r requirements.txt
+
+Bootstrap: docker
+From: python:3.8.5-slim-buster
+
+%files
+    ./bcl2fastq2_0v2.20.0.422-2_amd64.deb /
+    ./odybcl2fastq /app/odybcl2fastq
+
+%files from builder
+    /usr/local/lib/python3.8/site-packages/* /usr/local/lib/python3.8/site-packages/
+    /usr/local/bin/snakemake /usr/local/bin
+    /usr/local/bin/multiqc /usr/local/bin
 
 %environment
-export TZ=$TZ
-export PYTHONPATH=/app
-export ODY_CONFIG_FILE=/app/odybcl2fastq/config.json
+    export PATH=/opt/cellranger:/opt/cellranger-atac:${PATH}
+    export PYTHONPATH=/app
+    export PYTHONNOUSERSITE=1
+    export TZ=America/New_York
+
+%post
+    # Work around this bug affecting java (fastqc dependency):
+    # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=955619
+    mkdir -p /usr/share/man/man1
+    apt update && apt install -y --no-install-recommends \
+      fastqc \
+      libmariadb3 \
+      rsync \
+      sssd \
+      time \
+      && rm -rf /var/lib/apt/lists/*
+    TZ=America/New_York
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    apt install /bcl2fastq2_0v2.20.0.422-2_amd64.deb
+    rm /bcl2fastq2_0v2.20.0.422-2_amd64.deb
+
 %runscript
-python /app/odybcl2fastq/process_snakemake_runs.py
+    python /app/odybcl2fastq/process_snakemake_runs.py
 
 %startscript
-python /app/odybcl2fastq/process_snakemake_runs.py
+    python /app/odybcl2fastq/process_snakemake_runs.py
+
+%test
+    multiqc --version
+    snakemake --version
