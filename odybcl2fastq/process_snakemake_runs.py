@@ -231,6 +231,8 @@ def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
         snakemake_config = {'run': run, 'suffix': suffix, 'mask_suffix': mask_suffix}
         snakefile = 'non_10x.snakefile'
 
+    snakemake_config['analysis_dir'] = config.ANALYSIS_DIR
+
     opts = {
         '--cores': 99,
         '--local-cores': 4,

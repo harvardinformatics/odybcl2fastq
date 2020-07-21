@@ -5,10 +5,10 @@
         "mem": 0,
         "partition": "bos-info_priority",
         "job-name": "{rule}.{config[run]}{config[suffix]}",
-        "output": "/analysis/{config[run]}{config[suffix]}/log/{rule}-%j.out",
-        "error": "/analysis/{config[run]}{config[suffix]}/log/{rule}-%j.err",
+        "output": "log/{rule}-%j.out",
+        "error": "log/{rule}-%j.err",
         "exclusive": "",
-        "chdir": "/tmp/"
+        "chdir": "{config[analysis_dir]}/{config[run]}{config[suffix]}"
     },
     "demultiplex_10x": {
         "time": "4-20:00:00"
@@ -23,8 +23,9 @@
         "time": "4-18:00:00",
         "nice": "",
         "job-name": "{rule}.{wildcards.run}{config[suffix]}_{wildcards.sample}",
-        "output": "/analysis/{wildcards.run}{config[suffix]}/log/{rule}.{wildcards.sample}-%j.out",
-        "error": "/analysis/{wildcards.run}{config[suffix]}/log/{rule}.{wildcards.sample}-%j.err"
+        "output": "log/{rule}.{wildcards.sample}-%j.out",
+        "error": "log/{rule}.{wildcards.sample}-%j.err",
+        "chdir": "{config[analysis_dir]}/{wildcards.run}{config[suffix]}"
     }
 }
 
