@@ -132,8 +132,8 @@ rule multiqc_cmd:
     shell:
         """
         cmd="#!/bin/bash\n"
-        cmd+="cd {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/QC\n"
-        cmd+="/usr/bin/time -v multiqc {ody_config.OUTPUT_CLUSTER_PATH}{wildcards.run}{wildcards.suffix}/QC"
+        cmd+="cd /analysis/{wildcards.run}{wildcards.suffix}/QC\n"
+        cmd+="/usr/bin/time -v multiqc /analysis/{wildcards.run}{wildcards.suffix}/QC"
         echo "$cmd" >> {output}
         chmod 775 {output}
         """
