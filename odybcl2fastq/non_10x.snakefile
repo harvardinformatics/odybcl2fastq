@@ -107,7 +107,7 @@ rule demultiplex_cmd:
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p /analysis/{config[run]}{config[suffix]}/fastq\n"
-        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet /source{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir /source{config[run]} --output-dir /analysis/{config[run]}{config[suffix]}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
+        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet /source/{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir /source/{config[run]} --output-dir /analysis/{config[run]}{config[suffix]}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
