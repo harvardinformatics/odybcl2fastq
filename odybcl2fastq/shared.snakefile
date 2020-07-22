@@ -121,35 +121,18 @@ rule fastqc:
         {input}
         """
 
-rule multiqc_cmd:
+rule multiqc:
     """
-    build a bash file with the multiqc cmd
+    run multiqc
     """
     input:
         ancient(expand("/source/{run}/{status}/fastqc.processed", run=config['run'], status=status_dir))
     output:
-        expand("/analysis/{{run}}{{suffix}}/script/multiqc.sh", suffix=config['suffix'])
-    shell:
-        """
-        cmd="#!/bin/bash\n"
-        cmd+="cd /analysis/{wildcards.run}{wildcards.suffix}/QC\n"
-        cmd+="/usr/bin/time -v multiqc /analysis/{wildcards.run}{wildcards.suffix}/QC"
-        echo "$cmd" >> {output}
-        chmod 775 {output}
-        """
-
-rule multiqc:
-    """
-    run bash file for multiqc
-    the slurm_submit.py script will add slurm params to the top of this file
-    """
-    input:
-        expand("/analysis/{{run}}{suffix}/script/multiqc.sh", suffix=config['suffix'])
-    output:
         touch(expand("/source/{{run}}/{status}/multiqc.processed", status=status_dir))
     shell:
         """
-        {input}
+        cd /analysis/{config[run]}{config[suffix]}/QC
+        /usr/bin/time -v multiqc /analysis/{config[run]}{config[suffix]}/QC
         """
 
 rule cp_source_to_output:
