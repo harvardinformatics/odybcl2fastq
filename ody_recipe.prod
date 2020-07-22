@@ -36,11 +36,15 @@ From: python:3.8.5-slim-buster
     mkdir -p /usr/share/man/man1
     apt update && apt install -y --no-install-recommends \
       fastqc \
+      locales \
       libmariadb3 \
       rsync \
       sssd \
       time \
       && rm -rf /var/lib/apt/lists/*
+    # install en_US.UTF-8 locale for parsers.parse_stats
+    sed -i'' '/en_US.UTF-8/s/^#//' /etc/locale.gen
+    locale-gen
     TZ=America/New_York
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
     apt install /bcl2fastq2_0v2.20.0.422-2_amd64.deb

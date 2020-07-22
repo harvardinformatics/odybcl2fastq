@@ -121,21 +121,21 @@ def get_lane_sum(lanes):
         q30 = numpy.sum(lane_yieldq30) / numpy.sum(lane_yield) * 100
         lane_row = OrderedDict()
         lane_row['lane'] = lane_num
-        lane_row['clusters'] = locale.format('%d', reads, True)
-        lane_row['% Bases >= Q30'] = locale.format('%.2f',  q30, True)
+        lane_row['clusters'] = locale.format_string('%d', reads, True)
+        lane_row['% Bases >= Q30'] = locale.format_string('%.2f',  q30, True)
         lane_sum.append(lane_row)
     return lane_sum
 
 def format_lane_table(lanes):
     for lane_num, lane_info in lanes.items():
-        lanes[lane_num]['clusters'] = locale.format('%d', lane_info['clusters'], True)
+        lanes[lane_num]['clusters'] = locale.format_string('%d', lane_info['clusters'], True)
         for sam_name, sam_info in lane_info['samples'].items():
             row = OrderedDict()
             row['sample'] = sam_info['sample']
             row['index'] = ', '.join(sam_info['index'])
-            row['clusters'] = locale.format('%d', sam_info['reads'], True)
+            row['clusters'] = locale.format_string('%d', sam_info['reads'], True)
             q30 = numpy.sum(sam_info['yieldq30']) / numpy.sum(sam_info['yield']) * 100
-            row['% >= Q30'] = locale.format('%.2f', q30, True)
+            row['% >= Q30'] = locale.format_string('%.2f', q30, True)
             lanes[lane_num]['samples'][sam_name] = row
             headers = list(row.keys())
     return lanes, headers
@@ -178,7 +178,7 @@ def format_undetermined_nextseq(undeter):
     sorted_undeter = OrderedDict(sorted(all.items(), key=lambda kv: kv[1], reverse = True))
     for index, cnt in sorted_undeter.items():
         if cnt > MIN_UNDETER_CNT:
-                top[index] = locale.format('%d', cnt, True)
+                top[index] = locale.format_string('%d', cnt, True)
         else:
             break
     return {1: top}
@@ -190,5 +190,5 @@ def format_undetermined(undeter):
         sorted_undeter = sorted(lane['Barcodes'].items(), key=operator.itemgetter(1), reverse = True)
         for (index, cnt) in sorted_undeter:
             if cnt > MIN_UNDETER_CNT:
-                top[lane['Lane']][index] = locale.format('%d', cnt, True)
+                top[lane['Lane']][index] = locale.format_string('%d', cnt, True)
     return top
