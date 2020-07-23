@@ -1,59 +1,38 @@
 # odybcl2fastq
-A python packages wrapping Illumina's bcl2fastq software to demultiplex HiSeq and NextSeq runs, for use on the Odyssey cluster. The end goal of this package is to automate demultiplexing of sequencing runs, and generate QC metrics and reports for end users that will aid in interpreting the quality of the resulting sequence data.
+A python packages wrapping Illumina's bcl2fastq software to demultiplex HiSeq, MiSeq, NextSeq, and NovaSeq runs, for use on the [FASRC cluster](https://www.rc.fas.harvard.edu/cluster/).
+The end goal of this package is to automate demultiplexing of sequencing runs, and generate QC metrics and reports for end users that will aid in interpreting the quality of the resulting sequence data.
+
 ## Getting Started
 
-Clone this git repository.  Set up an anaconda environment with python 2.7.11. Install the dependencies.
+1. Clone this git repository.
+2. Download [bcl2fastq2 Conversion Software v2.20 Installer (Linux rpm)(https://support.illumina.com/downloads/bcl2fastq-conversion-software-v2-20.html), convert the rpm to .deb using [alien](https://help.ubuntu.com/community/RPM/AlienHowto), and place in the root of the git working tree.
+3. Build the Singularity image:
 
-### Dependencies
+    singularity build ody_YYYYMMDD.sif ody_recipe.prod
 
-* jinja2: conda install jinja2
-* bcl2fastq: this can be obtained from illumina, bcl2fastq2 version 2.2
-* fastqc: fastqc version 0.11.5
+### Configuration
 
-### Config
-
-Set the variables in config.json.  See the example config.json.example, insert
-values for all the variables and then save the file as config.json.
+All configuration is set via environment variables and bind mounts (except for snakemake Slurm profile in odybcl2fastq/profiles/rc_slurm).
 
 
 ## Running Odybcl2fastq
 
-### Single Run
-Use the script odybcl2fastq/run.py
-Required arguments:
-* --runinfoxml: path to the run info file
-* --sample-sheet: path to the sample sheet file
-* --runfolder: path to the run folder
-* --output-dir: path to the output
-
-Optional arguments:
-* --test: prints out the bcl2fastq cmd but does not run it, then exits
-* --no-demultiplex: skips the demultiplexing part of the script
-* --no-post-process: skips updating the lims db and running fastqc
-* --no-file-copy: skips copying from output dir to final dir
-Many bcl2fastq parameters are options for a full list please see parameter defs
-in odybcl2fastq/run.py file
-
-
 ### Multiple Runs
-Use the script odybcl2fastq/process_runs.py
+Use the script odybcl2fastq/process_snakemake_runs.py
 This script will search the configured directory for runs which all the required
-files and will queue off a pool of odybcl2fastq/run.py calls for each run.
-
-Environment variable, 'ODYBCL2FASTQ_PROC_NUM', will determine the number of
-parellel runs to processs.
+files and will execute a snakemake workflow for each run.
 
 
 ## Odybcl2fastq Logging
 
 ### Multiple Runs Logging
-odybcl2fastq/process_runs.py will log all the runs it queues to the
-odybcl2fastq.log.  This log also reports the sucess or failure of those runs.
+odybcl2fastq/process_snakemake_runs.py will log all the runs it queues to the
+/log/odybcl2fastq10x.log.  This log also reports the sucess or failure of those runs.
 
 
 ### Single Run Log
-Each run also gets it's own log file, the location of these is configured in
-config.json.  This log will show the bcl2fastq cmd run as well as any output
+Each run also gets it's own log file in /log/<run>.
+This log will show the bcl2fastq cmd run as well as any output
 from that job and post process jobs.
 
 ## Odybcl2fastq Alerting
@@ -66,17 +45,13 @@ An email is sent if a run fails, or an exception if encountered
 An email is sent for any failure.  A warning is sent if outputdir space is close
 to capacity.
 
-For successfull runs an html summary of results is emailed.
+For successfull runs an html summary of results is emailed to the address.
 
 
 ## Testing
+Set di
 There is a docker container, Dockerfile-test, that can be used to run tests in a CentOS 6 environment
 with bcl2fastq installed (downloaded directly from Illumina).
 
 To run the odybcl2fastq_tests.py, you'll need to map in the test illumina run to tests/test_run and
 set the config file via ODYBCL2FASTQ_CONFIG_FILE to tests/test.config.json.  Also, a log file must be set.
-
-e.g.
-
-    docker build -t odybcl2fastq -f Dockerfile-test .
-    docker run -it -e ODYBCL2FASTQ_CONFIG_FILE=/app/tests/test.config.json -v $HOME/test/odybcl2fastq/test_run:/app/tests/test_run -e ODYBCL2FASTQ_LOG_LEVEL=DEBUG -e ODYBCL2FASTQ_LOG_FILE=/app/logs/odyfile.log odybcl2fastq nosetests -vv tests/odybcl2fastq_tests.py
