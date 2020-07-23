@@ -9,6 +9,16 @@ The end goal of this package is to automate demultiplexing of sequencing runs, a
 3. Build the Singularity image:
 
     singularity build ody_YYYYMMDD.sif ody_recipe.prod
+4. Build separate images for cellranger and cellranger-atac (to be bind-mounted in the ody container at /opt/cellranger and /opt/cellranger-atac, respectively); e.g.:
+
+```sh
+mkdir -p data/opt
+tar -C data/opt -xzf cellranger-atac-1.2.0.tar.gz
+/usr/sbin/mksquashfs data cellranger-atac-1.2.0.squashfs -comp xz -Xbcj x86 -Xdict-size 1M -all-root
+rm -rf data/opt && mkdir data/opt
+tar -C data/opt -xzf cellranger-4.0.0.tar.gz
+/usr/sbin/mksquashfs data cellranger-4.0.0.squashfs -b 1M -comp xz -Xbcj x86 -Xdict-size 1M -all-root
+```
 
 ### Configuration
 
