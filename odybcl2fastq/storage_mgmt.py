@@ -28,9 +28,9 @@ logger = initLogger('storage_mgmt', 'storage_mgmt')
 # Set named storage paths
 # If config file is identified, use those values
 STORAGEPATHS = {
-    'SOURCE_DIR' : '/source',
-    'OUTPUT_DIR' : '/analysis',
-    'PUBLISHED_DIR'  : '/published',
+    'SOURCE_DIR' : '/data/source',
+    'OUTPUT_DIR' : '/data/analysis',
+    'PUBLISHED_DIR'  : '/data/published',
 }
 for k, v in STORAGEPATHS.items():
     STORAGEPATHS[k] = config[k]

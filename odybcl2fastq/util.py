@@ -72,3 +72,7 @@ def get_file_contents(file_dir):
                 data += line + '<br>'
     return data
 
+# hard-link src to dst, skipping if it already exists
+def link(src, dst, *, follow_symlinks=True):
+    if not os.path.exists(dst):
+        os.link(src, dst, follow_symlinks=True)
