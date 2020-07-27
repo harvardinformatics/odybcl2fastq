@@ -108,7 +108,7 @@ def run_is_incomplete(dir):
 
 def find_runs(filter):
     # get all subdirectories
-    dirs = sorted(glob.glob('/source/*/'))
+    dirs = sorted(glob.glob('/data/source/*/'))
     runs = []
     for dir in dirs:
         if filter(dir):
@@ -120,7 +120,7 @@ def check_sample_sheet(sample_sheet, run):
     # for flowcell
     if not os.path.exists(sample_sheet):
         flowcell = run.split('_')[-1][1:]
-        path = '/source/sample_sheet/' + flowcell + '.csv'
+        path = '/data/source/sample_sheet/' + flowcell + '.csv'
         if os.path.exists(path):
             util.copy(path, sample_sheet)
 
@@ -242,7 +242,7 @@ def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
         '--printshellcmds': None,
         '--reason': None,
         '-s': '/app/odybcl2fastq/%s' % snakefile,
-        '-d': '/snakemake/ody',
+        '--directory': '/data/snakemake/',
         '--latency-wait': 120
     }
     return [k + ((' %s' % v) if v else '') for k, v in opts.items()]

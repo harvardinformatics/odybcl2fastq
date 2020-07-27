@@ -20,7 +20,7 @@ MASK_SHORT_ADAPTER_READS = 22
 # get some information about the run
 sample_sheet = SampleSheet(sample_sheet_path)
 instrument = sample_sheet.get_instrument()
-run_info = '/source/' + config['run'] + '/RunInfo.xml'
+run_info = '/data/source/' + config['run'] + '/RunInfo.xml'
 run_type = sample_sheet.get_run_type()
 
 # get basemasks for entire run and then use the one for the indexing strategy
@@ -44,7 +44,7 @@ rule all:
     final output of workflow
     """
     input:
-        expand("/source/{run}/{status}/ody.complete", run=config['run'], status=status_dir)
+        expand("/data/source/{run}/{status}/ody.complete", run=config['run'], status=status_dir)
 
 def get_params_from_sample_sheet(sample_sheet):
     # users can add params to the end of the HEADER section of the sample sheet
@@ -95,19 +95,19 @@ rule demultiplex_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("/source/{run}/{status}/analysis_id", run=config['run'], status=status_dir),
-        run_dir=expand("/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
+        expand("/data/source/{run}/{status}/analysis_id", run=config['run'], status=status_dir),
+        run_dir=expand("/data/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
     params:
         bcl_params=get_bcl_params
     output:
-        expand("/analysis/{run}{suffix}/script/demultiplex.sh", run=config['run'], suffix=config['suffix'])
+        expand("/data/analysis/{run}{suffix}/script/demultiplex.sh", run=config['run'], suffix=config['suffix'])
     shell:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p /analysis/{config[run]}{config[suffix]}/fastq\n"
-        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet /source/{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir /source/{config[run]} --output-dir /analysis/{config[run]}{config[suffix]}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
+        cmd+="mkdir -p /data/analysis/{config[run]}{config[suffix]}/fastq\n"
+        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet /data/source/{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir /data/source/{config[run]} --output-dir /data/analysis/{config[run]}{config[suffix]}/fastq --processing-threads 8 {mask_opt} || exit_code=\$?\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -119,9 +119,9 @@ rule demultiplex:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("/analysis/{run}{suffix}/script/demultiplex.sh", run=config['run'], suffix=config['suffix'])
+        expand("/data/analysis/{run}{suffix}/script/demultiplex.sh", run=config['run'], suffix=config['suffix'])
     output:
-        touch(expand("/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
+        touch(expand("/data/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
     run:
         update_analysis({'step': 'demultiplex', 'status': 'processing'})
         shell("{input}")
@@ -132,13 +132,13 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
-        'demux': '/source/%s/%s/demultiplex.processed' % (config['run'], status_dir),
-        'checksum': "/analysis/%s%s/md5sum.txt" % (config['run'], config['suffix']),
-        'fastqc': "/source/%s/%s/fastqc.processed" % (config['run'], status_dir),
-        'multiqc': "/source/%s/%s/multiqc.processed" % (config['run'], status_dir),
-        'lims': "/source/%s/%s/update_lims_db.processed" % (config['run'], status_dir),
-        'sample_sheet': "/analysis/%s%s/SampleSheet.csv" % (config['run'], config['suffix']),
-        'run_info': "/analysis/%s%s/RunInfo.xml" % (config['run'], config['suffix'])
+        'demux': '/data/source/%s/%s/demultiplex.processed' % (config['run'], status_dir),
+        'checksum': "/data/analysis/%s%s/md5sum.txt" % (config['run'], config['suffix']),
+        'fastqc': "/data/source/%s/%s/fastqc.processed" % (config['run'], status_dir),
+        'multiqc': "/data/source/%s/%s/multiqc.processed" % (config['run'], status_dir),
+        'lims': "/data/source/%s/%s/update_lims_db.processed" % (config['run'], status_dir),
+        'sample_sheet': "/data/analysis/%s%s/SampleSheet.csv" % (config['run'], config['suffix']),
+        'run_info': "/data/analysis/%s%s/RunInfo.xml" % (config['run'], config['suffix'])
     }
     return input
 
@@ -150,10 +150,15 @@ rule publish:
     input:
         unpack(publish_input)
     output:
-        touch(expand("/source/{{run}}/{status}/ody.complete", status=status_dir))
+        touch(expand("/data/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shell("rsync --info=STATS -rtl --perms --chmod=Dug=rwx,Do=rx,Fug=rw,Fo=r /analysis/{config[run]}{config[suffix]}/ /published/{config[run]}{config[suffix]}/")
+        # remove the published directory (if already exists) to avoid retaining any old files,
+        shutil.rmtree(path="/data/published/{config[run]}{config[suffix]}/", ignore_errors=True)
+        # recursively hard-link analysis directory to published for speed & disk-usage reduction
+        shutil.copytree(src="/data/analysis/{config[run]}{config[suffix]}",
+                        dst="/data/published/{config[run]}{config[suffix]}",
+                        symlinks=True, copy_function=os.link)
         send_success_email()
 
 onsuccess:
@@ -169,10 +174,10 @@ onerror:
 def send_success_email():
     output_dir = '%s%s' % (config['run'], config['suffix'])
     message = 'run %s completed successfully\n see logs here: /log/%s.log\n' % (output_dir, output_dir)
-    cmd_file = '/analysis/%s/script/demultiplex.sh' % (output_dir)
+    cmd_file = '/data/analysis/%s/script/demultiplex.sh' % (output_dir)
     cmd = util.get_file_contents(cmd_file)
-    ss_file = '/source%s/SampleSheet.csv' % (config['run'])
-    fastq_dir = '/analysis/%s/fastq' % (output_dir)
+    ss_file = '/data/source%s/SampleSheet.csv' % (config['run'])
+    fastq_dir = '/data/analysis/%s/fastq' % (output_dir)
     summary_data = parse_stats.get_summary(fastq_dir, instrument, ss_file, output_dir)
     summary_data['cmd'] = cmd
     summary_data['version'] = 'bcl2fastq2 v2.2'
