@@ -16,7 +16,7 @@ class Config(object):
         self.check_dir('/data/source')
         self.check_dir('/data/analysis', check_is_writable=True)
         self.check_dir('/data/published', check_is_writable=True)
-        self.check_dir('/data/ref')
+        self.check_dir('/ref')
         self.data['TEST'] = os.environ.get('ODY_TEST', 'FALSE') == 'TRUE'
         # default to empty for db connection variables for now since they are
         # not used in when TEST is true

@@ -154,10 +154,10 @@ rule publish:
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
         # remove the published directory (if already exists) to avoid retaining any old files,
-        shutil.rmtree(path="/data/published/{config[run]}{config[suffix]}/", ignore_errors=True)
+        shutil.rmtree(path=f"/data/published/{config['run']}{config['suffix']}/", ignore_errors=True)
         # recursively hard-link analysis directory to published for speed & disk-usage reduction
-        shutil.copytree(src="/data/analysis/{config[run]}{config[suffix]}",
-                        dst="/data/published/{config[run]}{config[suffix]}",
+        shutil.copytree(src=f"/data/analysis/{config['run']}{config['suffix']}",
+                        dst=f"/data/published/{config['run']}{config['suffix']}",
                         symlinks=True, copy_function=os.link)
         send_success_email()
 

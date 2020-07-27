@@ -123,10 +123,10 @@ rule fastq_email:
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
         # remove the published directory (if already exists) to avoid retaining any old files,
-        shutil.rmtree(path="/data/published/{wildcards.run}{config[suffix]}", ignore_errors=True)
+        shutil.rmtree(path=f"/data/published/{wildcards.run}{config['suffix']}", ignore_errors=True)
         # recursively hard-link analysis directory to published for speed & disk-usage reduction
-        shutil.copytree(src="/data/analysis/{wildcards.run}{config[suffix]}",
-                        dst="/data/published/{wildcards.run}{config[suffix]}",
+        shutil.copytree(src=f"/data/analysis/{wildcards.run}{config['suffix']}",
+                        dst=f"/data/published/{wildcards.run}{config['suffix']}",
                         symlinks=True, copy_function=os.link)
         subject = 'Demultiplex Summary for: %s%s (count pending)' % (wildcards.run, config['suffix'])
         send_success_email(subject)
@@ -165,8 +165,8 @@ rule publish:
         touch(expand("/data/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shutil.copytree(src="/data/analysis/{wildcards.run}{config[suffix]}",
-                        dst="/data/published/{wildcards.run}{config[suffix]}",
+        shutil.copytree(src=f"/data/analysis/{wildcards.run}{config['suffix']}",
+                        dst=f"/data/published/{wildcards.run}{config['suffix']}",
                         symlinks=True, copy_function=util.link, dirs_exist_ok=True)
         subject = 'Demultiplex Summary for: %s%s' % (wildcards.run, config['suffix'])
         send_success_email(subject)
