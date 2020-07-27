@@ -207,8 +207,7 @@ def get_run_suffix(custom_suffix, mask_suffix):
     return suffix
 
 def get_output_log(run):
-    logdir = os.environ.get('ODYBCL2FASTQ_RUN_LOG_DIR', '/log/')
-    return os.path.join(logdir, run + '.log')
+    return os.path.join('/data/log/', run + '.log')
 
 def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix):
     atac = ''
