@@ -3,6 +3,7 @@ import logging
 import shutil
 import json
 import re
+import stat
 
 
 def chmod_rec(path, d_permissions, f_permissions):
@@ -72,7 +73,9 @@ def get_file_contents(file_dir):
                 data += line + '<br>'
     return data
 
-# hard-link src to dst, skipping if it already exists
-def link(src, dst, *, follow_symlinks=True):
+# hard-link src to dst, skipping if it already exists, and changing mode to read-only
+def link_readonly(src, dst, *, follow_symlinks=True):
     if not os.path.exists(dst):
-        os.link(src, dst, follow_symlinks=True)
+        os.link(src, dst, follow_symlinks=False)
+        # cannot specify follow_symlinks=False on Linux: "chmod: follow_symlinks unavailable on this platform"
+        os.chmod(path=dst, mode = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)

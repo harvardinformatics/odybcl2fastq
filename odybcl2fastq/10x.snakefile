@@ -127,7 +127,7 @@ rule fastq_email:
         # recursively hard-link analysis directory to published for speed & disk-usage reduction
         shutil.copytree(src=f"/data/analysis/{wildcards.run}{config['suffix']}",
                         dst=f"/data/published/{wildcards.run}{config['suffix']}",
-                        symlinks=True, copy_function=os.link)
+                        symlinks=True, copy_function=util.link_readonly)
         subject = 'Demultiplex Summary for: %s%s (count pending)' % (wildcards.run, config['suffix'])
         send_success_email(subject)
 
@@ -167,7 +167,7 @@ rule publish:
         update_analysis({'step': 'publish', 'status': 'processing'})
         shutil.copytree(src=f"/data/analysis/{wildcards.run}{config['suffix']}",
                         dst=f"/data/published/{wildcards.run}{config['suffix']}",
-                        symlinks=True, copy_function=util.link, dirs_exist_ok=True)
+                        symlinks=True, copy_function=util.link_readonly, dirs_exist_ok=True)
         subject = 'Demultiplex Summary for: %s%s' % (wildcards.run, config['suffix'])
         send_success_email(subject)
 

@@ -158,7 +158,7 @@ rule publish:
         # recursively hard-link analysis directory to published for speed & disk-usage reduction
         shutil.copytree(src=f"/data/analysis/{config['run']}{config['suffix']}",
                         dst=f"/data/published/{config['run']}{config['suffix']}",
-                        symlinks=True, copy_function=os.link)
+                        symlinks=True, copy_function=util.link_readonly)
         send_success_email()
 
 onsuccess:
