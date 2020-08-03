@@ -18,6 +18,9 @@ import odybcl2fastq.util as util
 import logging
 import os
 import shutil
+from pathlib import Path
+
+os.umask(0o002) # created files/directories default to mode 0775
 
 # allow an empty suffix
 wildcard_constraints:
