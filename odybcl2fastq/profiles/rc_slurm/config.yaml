@@ -1,4 +1,4 @@
-restart-times: 3
+restart-times: 1
 jobscript: 'jobscript.sh'
 cluster: 'slurm_submit.py'
 cluster-status: 'cluster_status.py'
