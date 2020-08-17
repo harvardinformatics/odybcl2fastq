@@ -6,7 +6,7 @@
 #
 appdirs==1.4.4            # via snakemake
 attrs==19.3.0             # via jsonschema
-certifi==2020.6.20        # via requests
+certifi==2020.6.20        # via matplotlib, requests
 chardet==3.0.4            # via requests
 click==7.1.2              # via multiqc
 coloredlogs==14.0         # via multiqc
@@ -29,27 +29,28 @@ kiwisolver==1.2.0         # via matplotlib
 lzstring==1.0.4           # via multiqc
 markdown==3.2.2           # via multiqc
 markupsafe==1.1.1         # via jinja2
-matplotlib==3.2.2         # via multiqc
+matplotlib==3.3.1         # via multiqc
 multiqc==1.9              # via -r requirements.in
-mysqlclient==2.0.0        # via -r requirements.in
+mysqlclient==2.0.1        # via -r requirements.in
 nbformat==5.0.7           # via snakemake
 networkx==2.4             # via colormath, multiqc
-numpy==1.19.0             # via colormath, matplotlib, multiqc
-psutil==5.7.0             # via snakemake
+numpy==1.19.1             # via colormath, matplotlib, multiqc
+pillow==7.2.0             # via matplotlib
+psutil==5.7.2             # via snakemake
 pyparsing==2.4.7          # via matplotlib
 pyrsistent==0.16.0        # via jsonschema
 python-dateutil==2.8.1    # via matplotlib
 pyyaml==5.3.1             # via multiqc, snakemake
 ratelimiter==1.2.0.post0  # via snakemake
 requests==2.24.0          # via multiqc, snakemake
-simplejson==3.17.0        # via multiqc
+simplejson==3.17.2        # via multiqc
 six==1.15.0               # via cycler, jsonschema, pyrsistent, python-dateutil, traitlets
 smmap==3.0.4              # via gitdb
-snakemake==5.20.1         # via -r requirements.in
+snakemake==5.22.1         # via -r requirements.in
 spectra==0.0.11           # via multiqc
 toposort==1.5             # via snakemake
 traitlets==4.3.3          # via jupyter-core, nbformat
-urllib3==1.25.9           # via requests
+urllib3==1.25.10          # via requests
 wrapt==1.12.1             # via snakemake
 
 # The following packages are considered to be unsafe in a requirements file:
