@@ -35,6 +35,7 @@ rule demultiplex_10x_cmd:
     shell:
         """
         cmd="#!/bin/bash\n"
+        cmd+="ulimit -n \$(ulimit -Hn)\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p /data/analysis/{wildcards.run}{wildcards.suffix}/fastq\n"
