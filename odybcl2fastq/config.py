@@ -11,6 +11,8 @@ class Config(object):
         self.data['EMAIL_SMTP'] = os.environ['ODY_EMAIL_SMTP']
         self.data['EMAIL_TO'] = json.loads(os.environ['ODY_EMAIL_TO'])
         self.data['FASTQ_URL'] = os.environ.get('ODY_FASTQ_URL', 'https://software.rc.fas.harvard.edu/ngsdata/')
+        self.data['GLOBUS_URL'] = os.environ['ODY_GLOBUS_URL']
+        self.data['PUBLISHED_CLUSTER_PATH'] = os.environ['ODY_PUBLISHED_CLUSTER_PATH']
         self.data['ANALYSIS_DIR'] = os.environ['ODY_ANALYSIS_DIR']
         # pre-flight checks to ensure existence and accessibility of required directories
         self.check_dir('/sequencing/source')

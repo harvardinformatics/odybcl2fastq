@@ -45,6 +45,7 @@ def get_summary(output_dir, instrument, sample_sheet_dir, run):
             'stats_file': stats_url,
             'sample_sheet': get_sample_sheet(sample_sheet_dir),
             'fastq_url': config.FASTQ_URL,
+            'globus_url': config.GLOBUS_URL,
             'fastq_dir': output_dir,
             'undetermined': undetermined,
             'undetermined_file': 'Undetermined_SO',

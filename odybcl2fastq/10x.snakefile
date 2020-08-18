@@ -198,6 +198,7 @@ def get_summary_data(cmd, run, ss_file):
         versions.append('annotation gtf: %s' % config['gtf'])
     summary_data = {
         'fastq_url': ody_config.FASTQ_URL,
+        'globus_url': ody_config.GLOBUS_URL,
         'fastq_dir': ody_config.PUBLISHED_CLUSTER_PATH,
         'versions': versions,
         'run': run,
