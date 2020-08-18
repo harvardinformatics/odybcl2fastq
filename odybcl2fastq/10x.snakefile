@@ -29,7 +29,7 @@ rule demultiplex_10x_cmd:
     """
     input:
         expand("/sequencing/source/{{run}}/{status}/analysis_id", status=status_dir),
-        sample_sheet=expand("/sequencing/source/{{run}}/SampleSheet{{suffix}}.csv")
+        sample_sheet_path
     output:
         expand("/sequencing/analysis/{{run}}{{suffix}}/script/demultiplex_10x.sh")
     shell:
@@ -41,7 +41,7 @@ rule demultiplex_10x_cmd:
         cmd+="mkdir -p /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq --run=/sequencing/source/{wildcards.run} --samplesheet=/sequencing/source/{wildcards.run}/SampleSheet{wildcards.suffix}.csv --output-dir=/sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq --run=/sequencing/source/{wildcards.run} --samplesheet={sample_sheet_path} --output-dir=/sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
         cmd+="cp -p */*.mri.tgz /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"

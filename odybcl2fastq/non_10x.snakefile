@@ -96,7 +96,7 @@ rule demultiplex_cmd:
     """
     input:
         expand("/sequencing/source/{run}/{status}/analysis_id", run=config['run'], status=status_dir),
-        run_dir=expand("/sequencing/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
+        sample_sheet_path
     params:
         bcl_params=get_bcl_params
     output:
@@ -108,7 +108,7 @@ rule demultiplex_cmd:
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
         cmd+="mkdir -p /sequencing/analysis/{config[run]}{config[suffix]}/fastq\n"
-        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet /sequencing/source/{config[run]}/SampleSheet{config[suffix]}.csv --runfolder-dir /sequencing/source/{config[run]} --output-dir /sequencing/analysis/{config[run]}{config[suffix]}/fastq --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE {mask_opt} || exit_code=\$?\n"
+        cmd+="/usr/bin/time -v bcl2fastq {params.bcl_params} --sample-sheet {sample_sheet_path} --runfolder-dir /sequencing/source/{config[run]} --output-dir /sequencing/analysis/{config[run]}{config[suffix]}/fastq --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE {mask_opt} || exit_code=\$?\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -177,9 +177,8 @@ def send_success_email():
     message = 'run %s completed successfully\n see logs here: /log/%s.log\n' % (output_dir, output_dir)
     cmd_file = '/sequencing/analysis/%s/script/demultiplex.sh' % (output_dir)
     cmd = util.get_file_contents(cmd_file)
-    ss_file = '/sequencing/source%s/SampleSheet.csv' % (config['run'])
     fastq_dir = '/sequencing/analysis/%s/fastq' % (output_dir)
-    summary_data = parse_stats.get_summary(fastq_dir, instrument, ss_file, output_dir)
+    summary_data = parse_stats.get_summary(fastq_dir, instrument, sample_sheet_path, output_dir)
     summary_data['cmd'] = cmd
     summary_data['version'] = 'bcl2fastq2 v2.2'
     subject = 'Demultiplex Summary for ' + output_dir

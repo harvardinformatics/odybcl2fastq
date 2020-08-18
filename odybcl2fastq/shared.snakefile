@@ -56,7 +56,7 @@ rule insert_run_into_bauer_db:
     insert the run into the bauer_db
     """
     input:
-        sample_sheet=expand("/sequencing/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
+        sample_sheet_path
     output:
         expand("/sequencing/source/{{run}}/{status}/analysis_id", status=status_dir)
     run:
@@ -79,7 +79,7 @@ rule update_lims_db:
     """
     input:
         expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
-        sample_sheet=expand("/sequencing/source/{{run}}/SampleSheet{suffix}.csv", suffix=config['suffix'])
+        sample_sheet_path
     output:
         touch(expand("/sequencing/source/{{run}}/{status}/update_lims_db.processed", status=status_dir))
     run:
