@@ -29,11 +29,11 @@ wildcard_constraints:
 status_dir_root = 'status_test' if ody_config.TEST else 'status'
 status_dir = status_dir_root # default status_dir
 if 'mask_suffix' in config and config['mask_suffix']:
-    sample_sheet_path = "/data/source/%s/SampleSheet.csv" % (config['run'])
+    sample_sheet_path = "/sequencing/source/%s/SampleSheet.csv" % (config['run'])
     # for a mask suffix we need a subdir for status for each mask
     status_dir += '/%s' % config['mask_suffix']
 else:
-    sample_sheet_path = "/data/source/%s/SampleSheet%s.csv" % (config['run'], config['suffix'])
+    sample_sheet_path = "/sequencing/source/%s/SampleSheet%s.csv" % (config['run'], config['suffix'])
 
 # set up bauer db for step updates
 bauer = BauerDB(sample_sheet_path)
@@ -43,12 +43,12 @@ onstart:
     touch processed file to prevent reprocessing
     prepare log, script and status dirs
     """
-    shell("mkdir -p /data/source/{run}/{status}", run=config['run'], status=status_dir)
-    shell("touch /data/source/{run}/{status_root}/ody.processed", run=config['run'], status_root=status_dir_root)
-    shell("touch /data/source/{run}/{status}/ody.processed", run=config['run'], status=status_dir)
-    shell("mkdir -p /data/analysis/{run}{suffix}", run=config['run'], suffix=config['suffix'])
-    shell("mkdir -p /data/analysis/{run}{suffix}/log", run=config['run'], suffix=config['suffix'])
-    shell("mkdir -p /data/analysis/{run}{suffix}/script", run=config['run'], suffix=config['suffix'])
+    shell("mkdir -p /sequencing/source/{run}/{status}", run=config['run'], status=status_dir)
+    shell("touch /sequencing/source/{run}/{status_root}/ody.processed", run=config['run'], status_root=status_dir_root)
+    shell("touch /sequencing/source/{run}/{status}/ody.processed", run=config['run'], status=status_dir)
+    shell("mkdir -p /sequencing/analysis/{run}{suffix}", run=config['run'], suffix=config['suffix'])
+    shell("mkdir -p /sequencing/analysis/{run}{suffix}/log", run=config['run'], suffix=config['suffix'])
+    shell("mkdir -p /sequencing/analysis/{run}{suffix}/script", run=config['run'], suffix=config['suffix'])
     update_analysis({'status': 'processing'})
 
 rule insert_run_into_bauer_db:
@@ -56,9 +56,9 @@ rule insert_run_into_bauer_db:
     insert the run into the bauer_db
     """
     input:
-        sample_sheet=expand("/data/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
+        sample_sheet=expand("/sequencing/source/{run}/SampleSheet{suffix}.csv", run=config['run'], suffix=config['suffix'])
     output:
-        expand("/data/source/{{run}}/{status}/analysis_id", status=status_dir)
+        expand("/sequencing/source/{{run}}/{status}/analysis_id", status=status_dir)
     run:
         if ody_config.TEST:
             analysis_id = 'test'
@@ -67,26 +67,26 @@ rule insert_run_into_bauer_db:
             bauer.insert_run()
             # TODO: consider the implications of storing output_run in the db
             analysis_id = bauer.send_data('requests', {"run": config['run'], "status":"processing", "step":"demultiplex"})
-        analysis_file_path = '/data/source/%s/%s/analysis_id' % (wildcards.run, status_dir)
+        analysis_file_path = '/sequencing/source/%s/%s/analysis_id' % (wildcards.run, status_dir)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
         # for a new analysis remove the script dir to ensure a total restart
-        shell("rm -f /data/analysis/{wildcards.run}{config[suffix]}/script/*")
+        shell("rm -f /sequencing/analysis/{wildcards.run}{config[suffix]}/script/*")
 
 rule update_lims_db:
     """
     connect the submission with the run in lims
     """
     input:
-        expand("/data/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
-        sample_sheet=expand("/data/source/{{run}}/SampleSheet{suffix}.csv", suffix=config['suffix'])
+        expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
+        sample_sheet=expand("/sequencing/source/{{run}}/SampleSheet{suffix}.csv", suffix=config['suffix'])
     output:
-        touch(expand("/data/source/{{run}}/{status}/update_lims_db.processed", status=status_dir))
+        touch(expand("/sequencing/source/{{run}}/{status}/update_lims_db.processed", status=status_dir))
     run:
         if not ody_config.TEST:
             sample_sheet = SampleSheet(input.sample_sheet[0])
             instrument = sample_sheet.get_instrument()
-            run_folder = '/data/source/' + wildcards.run
+            run_folder = '/sequencing/source/' + wildcards.run
             update_lims_db(run_folder, sample_sheet.sections, instrument)
             # also update step to fastqc
             update_analysis({'step': 'quality', 'status': 'processing'})
@@ -96,16 +96,16 @@ rule fastqc_cmd:
     build a bash file with the fastqc cmd
     """
     input:
-        ancient(expand("/data/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
+        ancient(expand("/sequencing/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir))
     output:
-        expand("/data/analysis/{{run}}{{suffix}}/script/fastqc.sh")
+        expand("/sequencing/analysis/{{run}}{{suffix}}/script/fastqc.sh")
     shell:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
-        cmd+="mkdir -p /data/analysis/{wildcards.run}{wildcards.suffix}/QC\n"
-        cmd+="cd /data/analysis/{wildcards.run}{wildcards.suffix}/fastq/\n"
-        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o /data/analysis/{wildcards.run}{wildcards.suffix}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
+        cmd+="mkdir -p /sequencing/analysis/{wildcards.run}{wildcards.suffix}/QC\n"
+        cmd+="cd /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq/\n"
+        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o /sequencing/analysis/{wildcards.run}{wildcards.suffix}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
         echo "$cmd" >> {output}
         chmod 775 {output}
         """
@@ -116,9 +116,9 @@ rule fastqc:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("/data/analysis/{{run}}{suffix}/script/fastqc.sh", suffix=config['suffix'])
+        expand("/sequencing/analysis/{{run}}{suffix}/script/fastqc.sh", suffix=config['suffix'])
     output:
-        touch(expand("/data/source/{{run}}/{status}/fastqc.processed", status=status_dir))
+        touch(expand("/sequencing/source/{{run}}/{status}/fastqc.processed", status=status_dir))
     shell:
         """
         {input}
@@ -129,13 +129,13 @@ rule multiqc:
     run multiqc
     """
     input:
-        ancient(expand("/data/source/{run}/{status}/fastqc.processed", run=config['run'], status=status_dir))
+        ancient(expand("/sequencing/source/{run}/{status}/fastqc.processed", run=config['run'], status=status_dir))
     output:
-        touch(expand("/data/source/{{run}}/{status}/multiqc.processed", status=status_dir))
+        touch(expand("/sequencing/source/{{run}}/{status}/multiqc.processed", status=status_dir))
     shell:
         """
-        cd /data/analysis/{config[run]}{config[suffix]}/QC
-        /usr/bin/time -v multiqc /data/analysis/{config[run]}{config[suffix]}/QC
+        cd /sequencing/analysis/{config[run]}{config[suffix]}/QC
+        /usr/bin/time -v multiqc /sequencing/analysis/{config[run]}{config[suffix]}/QC
         """
 
 rule cp_source_to_output:
@@ -143,7 +143,7 @@ rule cp_source_to_output:
     copy a few files from source to output dir
     """
     input:
-        expand("/data/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
+        expand("/sequencing/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
     params:
         sample_sheet="SampleSheet%s.csv" % config['suffix'],
         run_info="RunInfo.xml",
@@ -151,16 +151,16 @@ rule cp_source_to_output:
         nextseq_run_params="RunParameters.xml",
         hiseq_run_params="runParameters.xml"
     output:
-        sample_sheet=expand("/data/analysis/{{run}}{{suffix}}/SampleSheet.csv"),
-        run_info=expand("/data/analysis/{{run}}{{suffix}}/RunInfo.xml")
+        sample_sheet=expand("/sequencing/analysis/{{run}}{{suffix}}/SampleSheet.csv"),
+        run_info=expand("/sequencing/analysis/{{run}}{{suffix}}/RunInfo.xml")
     shell:
         """
-        cp /data/source/{config[run]}/{params.sample_sheet} {output.sample_sheet}
-        cp /data/source/{config[run]}/{params.run_info} {output.run_info}
-        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /data/source/{config[run]}/{params.interop}/ /data/analysis/{config[run]}{config[suffix]}/InterOp/
+        cp /sequencing/source/{config[run]}/{params.sample_sheet} {output.sample_sheet}
+        cp /sequencing/source/{config[run]}/{params.run_info} {output.run_info}
+        rsync --info=STATS -rtl --safe-links --perms --chmod=Dug=rwx,Fug=rw /sequencing/source/{config[run]}/{params.interop}/ /sequencing/analysis/{config[run]}{config[suffix]}/InterOp/
         # copy these if they exist
-        cp /data/source/{config[run]}/{params.nextseq_run_params} /data/analysis/{config[run]}{config[suffix]}/{params.nextseq_run_params} 2>/dev/null || :
-        cp /data/source/{config[run]}/{params.hiseq_run_params} /data/analysis/{config[run]}{config[suffix]}/{params.hiseq_run_params} 2>/dev/null || :
+        cp /sequencing/source/{config[run]}/{params.nextseq_run_params} /sequencing/analysis/{config[run]}{config[suffix]}/{params.nextseq_run_params} 2>/dev/null || :
+        cp /sequencing/source/{config[run]}/{params.hiseq_run_params} /sequencing/analysis/{config[run]}{config[suffix]}/{params.hiseq_run_params} 2>/dev/null || :
 
         """
 
@@ -169,18 +169,18 @@ rule checksum:
     calculate checksum for all the fastq files
     """
     input:
-        expand("/data/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
+        expand("/sequencing/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
     output:
-        checksum=expand("/data/analysis/{{run}}{{suffix}}/md5sum.txt"),
+        checksum=expand("/sequencing/analysis/{{run}}{{suffix}}/md5sum.txt"),
     shell:
         """
-        files=$(find /data/analysis/{wildcards.run}{wildcards.suffix}/ -name *.fastq.gz -print0 | xargs -0)
+        files=$(find /sequencing/analysis/{wildcards.run}{wildcards.suffix}/ -name *.fastq.gz -print0 | xargs -0)
         md5sum $files > {output.checksum}
         """
 
 def update_analysis(data):
     if not ody_config.TEST:
-        analysis_file_path = '/data/source/%s/%s/analysis_id' % (config['run'], status_dir)
+        analysis_file_path = '/sequencing/source/%s/%s/analysis_id' % (config['run'], status_dir)
         if os.path.isfile(analysis_file_path):
             with open(analysis_file_path, 'r') as ln:
                 analysis_id = ln.readline().strip()

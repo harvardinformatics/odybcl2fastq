@@ -13,9 +13,9 @@ class Config(object):
         self.data['FASTQ_URL'] = os.environ.get('ODY_FASTQ_URL', 'https://software.rc.fas.harvard.edu/ngsdata/')
         self.data['ANALYSIS_DIR'] = os.environ['ODY_ANALYSIS_DIR']
         # pre-flight checks to ensure existence and accessibility of required directories
-        self.check_dir('/data/source')
-        self.check_dir('/data/analysis', check_is_writable=True)
-        self.check_dir('/data/published', check_is_writable=True)
+        self.check_dir('/sequencing/source')
+        self.check_dir('/sequencing/analysis', check_is_writable=True)
+        self.check_dir('/sequencing/published', check_is_writable=True)
         self.check_dir('/ref')
         self.data['TEST'] = os.environ.get('ODY_TEST', 'FALSE') == 'TRUE'
         # default to empty for db connection variables for now since they are

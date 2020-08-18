@@ -21,28 +21,28 @@ rule all:
     final output of workflow
     """
     input:
-        expand("/data/source/{run}/{status}/ody.complete", run=config['run'], status=status_dir)
+        expand("/sequencing/source/{run}/{status}/ody.complete", run=config['run'], status=status_dir)
 
 rule demultiplex_10x_cmd:
     """
     build a bash file with the demux cmd
     """
     input:
-        expand("/data/source/{{run}}/{status}/analysis_id", status=status_dir),
-        sample_sheet=expand("/data/source/{{run}}/SampleSheet{{suffix}}.csv")
+        expand("/sequencing/source/{{run}}/{status}/analysis_id", status=status_dir),
+        sample_sheet=expand("/sequencing/source/{{run}}/SampleSheet{{suffix}}.csv")
     output:
-        expand("/data/analysis/{{run}}{{suffix}}/script/demultiplex_10x.sh")
+        expand("/sequencing/analysis/{{run}}{{suffix}}/script/demultiplex_10x.sh")
     shell:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -n \$(ulimit -Hn)\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p /data/analysis/{wildcards.run}{wildcards.suffix}/fastq\n"
+        cmd+="mkdir -p /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq\n"
         cmd+="mkdir -p /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq --run=/data/source/{wildcards.run} --samplesheet=/data/source/{wildcards.run}/SampleSheet{wildcards.suffix}.csv --output-dir=/data/analysis/{wildcards.run}{wildcards.suffix}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
-        cmd+="cp -p */*.mri.tgz /data/analysis/{wildcards.run}{wildcards.suffix}/fastq/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq --run=/sequencing/source/{wildcards.run} --samplesheet=/sequencing/source/{wildcards.run}/SampleSheet{wildcards.suffix}.csv --output-dir=/sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
+        cmd+="cp -p */*.mri.tgz /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -55,9 +55,9 @@ rule demultiplex_10x:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("/data/analysis/{{run}}{suffix}/script/demultiplex_10x.sh", suffix=config['suffix'])
+        expand("/sequencing/analysis/{{run}}{suffix}/script/demultiplex_10x.sh", suffix=config['suffix'])
     output:
-        touch(expand("/data/source/{{run}}/{status}/demultiplex.processed", status=status_dir))
+        touch(expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir))
     run:
         update_analysis({'step': 'demultiplex', 'status': 'processing'})
         shell("{input}")
@@ -67,13 +67,13 @@ rule count_10x_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("/data/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
-        expand("/data/source/{{run}}/{status}/fastq_email.processed", status=status_dir)
+        expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
+        expand("/sequencing/source/{{run}}/{status}/fastq_email.processed", status=status_dir)
     output:
-        expand("/data/analysis/{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh")
+        expand("/sequencing/analysis/{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh")
     shell:
         """
-        fastq_path="/data/analysis/{wildcards.run}{wildcards.suffix}/fastq/{wildcards.project}/{wildcards.sample}"
+        fastq_path="/sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq/{wildcards.project}/{wildcards.sample}"
         transcriptome="--transcriptome=/ref/{config[ref]}"
         if [ ! -z "{config[atac]}" ]; then
             transcriptome="--reference=/ref/{config[ref]}"
@@ -81,11 +81,11 @@ rule count_10x_cmd:
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p /data/analysis/{wildcards.run}{wildcards.suffix}/count/{wildcards.sample}\n"
+        cmd+="mkdir -p /sequencing/analysis/{wildcards.run}{wildcards.suffix}/count/{wildcards.sample}\n"
         cmd+="mkdir -p /scratch/{wildcards.run}{wildcards.suffix}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{wildcards.run}{wildcards.suffix}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="/usr/bin/time -v cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
-        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs /data/analysis/{wildcards.run}{wildcards.suffix}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs /sequencing/analysis/{wildcards.run}{wildcards.suffix}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{wildcards.run}{wildcards.suffix}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
@@ -98,9 +98,9 @@ rule count_10x:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        script=expand("/data/analysis/{{run}}{suffix}/script/{{project}}.{{sample}}_count.sh", suffix=config['suffix'])
+        script=expand("/sequencing/analysis/{{run}}{suffix}/script/{{project}}.{{sample}}_count.sh", suffix=config['suffix'])
     output:
-        touch(expand("/data/source/{{run}}/{status}/{{project}}.{{sample}}_count.processed", status=status_dir))
+        touch(expand("/sequencing/source/{{run}}/{status}/{{project}}.{{sample}}_count.processed", status=status_dir))
     shell:
         """
         {input}
@@ -112,22 +112,22 @@ rule fastq_email:
     running count
     """
     input:
-        checksum=expand("/data/analysis/{{run}}{suffix}/md5sum.txt", suffix=config['suffix']),
-        fastqc=expand("/data/source/{{run}}/{status}/fastqc.processed", status=status_dir),
-        multiqc=expand("/data/source/{{run}}/{status}/multiqc.processed", status=status_dir),
-        lims=expand("/data/source/{{run}}/{status}/update_lims_db.processed", status=status_dir),
-        demultiplex=expand("/data/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
-        sample_sheet=expand("/data/analysis/{{run}}{suffix}/SampleSheet.csv", suffix=config['suffix']),
-        run_info=expand("/data/analysis/{{run}}{suffix}/RunInfo.xml", suffix=config['suffix'])
+        checksum=expand("/sequencing/analysis/{{run}}{suffix}/md5sum.txt", suffix=config['suffix']),
+        fastqc=expand("/sequencing/source/{{run}}/{status}/fastqc.processed", status=status_dir),
+        multiqc=expand("/sequencing/source/{{run}}/{status}/multiqc.processed", status=status_dir),
+        lims=expand("/sequencing/source/{{run}}/{status}/update_lims_db.processed", status=status_dir),
+        demultiplex=expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
+        sample_sheet=expand("/sequencing/analysis/{{run}}{suffix}/SampleSheet.csv", suffix=config['suffix']),
+        run_info=expand("/sequencing/analysis/{{run}}{suffix}/RunInfo.xml", suffix=config['suffix'])
     output:
-        touch(expand("/data/source/{{run}}/{status}/fastq_email.processed", status=status_dir))
+        touch(expand("/sequencing/source/{{run}}/{status}/fastq_email.processed", status=status_dir))
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
         # remove the published directory (if already exists) to avoid retaining any old files,
-        shutil.rmtree(path=f"/data/published/{wildcards.run}{config['suffix']}", ignore_errors=True)
+        shutil.rmtree(path=f"/sequencing/published/{wildcards.run}{config['suffix']}", ignore_errors=True)
         # recursively hard-link analysis directory to published for speed & disk-usage reduction
-        shutil.copytree(src=f"/data/analysis/{wildcards.run}{config['suffix']}",
-                        dst=f"/data/published/{wildcards.run}{config['suffix']}",
+        shutil.copytree(src=f"/sequencing/analysis/{wildcards.run}{config['suffix']}",
+                        dst=f"/sequencing/published/{wildcards.run}{config['suffix']}",
                         symlinks=True, copy_function=util.link_readonly)
         subject = 'Demultiplex Summary for: %s%s (count pending)' % (wildcards.run, config['suffix'])
         send_success_email(subject)
@@ -138,21 +138,21 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
-        'checksum': "/data/analysis/%s%s/md5sum.txt" % (wildcards.run, config['suffix']),
-        'fastqc': "/data/source/%s/%s/fastqc.processed" % (wildcards.run, status_dir),
-        'multiqc': "/data/source/%s/%s/multiqc.processed" % (wildcards.run, status_dir),
-        'lims': "/data/source/%s/%s/update_lims_db.processed" % (wildcards.run, status_dir),
-        'sample_sheet': "/data/analysis/%s%s/SampleSheet.csv" % (wildcards.run, config['suffix']),
-        'run_info': "/data/analysis/%s%s/RunInfo.xml" % (wildcards.run, config['suffix'])
+        'checksum': "/sequencing/analysis/%s%s/md5sum.txt" % (wildcards.run, config['suffix']),
+        'fastqc': "/sequencing/source/%s/%s/fastqc.processed" % (wildcards.run, status_dir),
+        'multiqc': "/sequencing/source/%s/%s/multiqc.processed" % (wildcards.run, status_dir),
+        'lims': "/sequencing/source/%s/%s/update_lims_db.processed" % (wildcards.run, status_dir),
+        'sample_sheet': "/sequencing/analysis/%s%s/SampleSheet.csv" % (wildcards.run, config['suffix']),
+        'run_info': "/sequencing/analysis/%s%s/RunInfo.xml" % (wildcards.run, config['suffix'])
     }
     # if reference is provided then run count
     if config['ref']:
         # copy fastq to final and send an email that count is pending
-        input['email'] = "/data/source/%s/%s/fastq_email.processed" % (wildcards.run, status_dir)
+        input['email'] = "/sequencing/source/%s/%s/fastq_email.processed" % (wildcards.run, status_dir)
         for i, sample in enumerate(samples):
             project = projects[i]
             key = 'count_%s.%s' % (project, sample)
-            input[key] = "/data/source/%s/%s/%s.%s_count.processed" % (wildcards.run, status_dir, project, sample)
+            input[key] = "/sequencing/source/%s/%s/%s.%s_count.processed" % (wildcards.run, status_dir, project, sample)
     return input
 
 
@@ -163,11 +163,11 @@ rule publish:
     input:
         unpack(publish_input)
     output:
-        touch(expand("/data/source/{{run}}/{status}/ody.complete", status=status_dir))
+        touch(expand("/sequencing/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shutil.copytree(src=f"/data/analysis/{wildcards.run}{config['suffix']}",
-                        dst=f"/data/published/{wildcards.run}{config['suffix']}",
+        shutil.copytree(src=f"/sequencing/analysis/{wildcards.run}{config['suffix']}",
+                        dst=f"/sequencing/published/{wildcards.run}{config['suffix']}",
                         symlinks=True, copy_function=util.link_readonly, dirs_exist_ok=True)
         subject = 'Demultiplex Summary for: %s%s' % (wildcards.run, config['suffix'])
         send_success_email(subject)
@@ -177,7 +177,7 @@ onsuccess:
 
 onerror:
     run_dir = '%s%s' % (config['run'], config['suffix'])
-    message = 'run %s failed\n see logs here: /data/log/%s.log\n' % (run_dir, run_dir)
+    message = 'run %s failed\n see logs here: /sequencing/log/%s.log\n' % (run_dir, run_dir)
     subject = 'Run Failed: %s' % run_dir
     sent = buildmessage(message, subject, {}, ody_config.EMAIL_FROM, ody_config.EMAIL_TO)
     update_analysis({'status': 'failed'})
@@ -211,8 +211,8 @@ def get_summary_data(cmd, run, ss_file):
 
 def send_success_email(subject):
     run_dir = '%s%s' % (config['run'], config['suffix'])
-    message = 'run %s completed successfully\n see logs here: /data/log/%s.log\n' % (run_dir, run_dir)
-    cmd_file = '/data/analysis/%s/script/demultiplex_10x.sh' % (run_dir)
+    message = 'run %s completed successfully\n see logs here: /sequencing/log/%s.log\n' % (run_dir, run_dir)
+    cmd_file = '/sequencing/analysis/%s/script/demultiplex_10x.sh' % (run_dir)
     cmd = util.get_file_contents(cmd_file)
     summary_data = get_summary_data(cmd, run_dir, sample_sheet_path)
     sent = buildmessage(message, subject, summary_data, ody_config.EMAIL_FROM, ody_config.EMAIL_TO, '10x_summary.html')
