@@ -28,7 +28,7 @@ rule demultiplex_10x_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("/sequencing/source/{{run}}/{status}/analysis_id", status=status_dir),
+        f"/sequencing/source/{config['run']}/{status_dir}/analysis_id",
         sample_sheet_path
     output:
         expand("/sequencing/analysis/{{run}}{{suffix}}/script/demultiplex_10x.sh")
@@ -38,12 +38,12 @@ rule demultiplex_10x_cmd:
         cmd+="ulimit -n \$(ulimit -Hn)\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq\n"
-        cmd+="mkdir -p /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="cd /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
-        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq --run=/sequencing/source/{wildcards.run} --samplesheet={sample_sheet_path} --output-dir=/sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
-        cmd+="cp -p */*.mri.tgz /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq/ || exit_code=\$((exit_code | \$?))\n"
-        cmd+="rm -rf /scratch/{wildcards.run}{wildcards.suffix}_fastq_\$SLURM_JOB_ID\n"
+        cmd+="mkdir -p /sequencing/analysis/{config[run]}{config[suffix]}/fastq\n"
+        cmd+="mkdir -p /scratch/{config[run]}{config[suffix]}_fastq_\$SLURM_JOB_ID\n"
+        cmd+="cd /scratch/{config[run]}{config[suffix]}_fastq_\$SLURM_JOB_ID\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} mkfastq --run=/sequencing/source/{config[run]} --samplesheet={sample_sheet_path} --output-dir=/sequencing/analysis/{config[run]}{config[suffix]}/fastq --localmem=\$((9*\$(ulimit -m)/10000000)) --loading-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --writing-threads=\$((SLURM_JOB_CPUS_PER_NODE/4)) --processing-threads=\$SLURM_JOB_CPUS_PER_NODE --localcores=\$SLURM_JOB_CPUS_PER_NODE --barcode-mismatches=0 || exit_code=\$?\n"
+        cmd+="cp -p */*.mri.tgz /sequencing/analysis/{config[run]}{config[suffix]}/fastq/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="rm -rf /scratch/{config[run]}{config[suffix]}_fastq_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -73,7 +73,7 @@ rule count_10x_cmd:
         expand("/sequencing/analysis/{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh")
     shell:
         """
-        fastq_path="/sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq/{wildcards.project}/{wildcards.sample}"
+        fastq_path="/sequencing/analysis/{config[run]}{config[suffix]}/fastq/{wildcards.project}/{wildcards.sample}"
         transcriptome="--transcriptome=/ref/{config[ref]}"
         if [ ! -z "{config[atac]}" ]; then
             transcriptome="--reference=/ref/{config[ref]}"
@@ -81,12 +81,12 @@ rule count_10x_cmd:
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
         cmd+="exit_code=0\n"
-        cmd+="mkdir -p /sequencing/analysis/{wildcards.run}{wildcards.suffix}/count/{wildcards.sample}\n"
-        cmd+="mkdir -p /scratch/{wildcards.run}{wildcards.suffix}_{wildcards.sample}_\$SLURM_JOB_ID\n"
-        cmd+="cd /scratch/{wildcards.run}{wildcards.suffix}_{wildcards.sample}_\$SLURM_JOB_ID\n"
+        cmd+="mkdir -p /sequencing/analysis/{config[run]}{config[suffix]}/count/{wildcards.sample}\n"
+        cmd+="mkdir -p /scratch/{config[run]}{config[suffix]}_{wildcards.sample}_\$SLURM_JOB_ID\n"
+        cmd+="cd /scratch/{config[run]}{config[suffix]}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="/usr/bin/time -v cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
-        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs /sequencing/analysis/{wildcards.run}{wildcards.suffix}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
-        cmd+="rm -rf /scratch/{wildcards.run}{wildcards.suffix}_{wildcards.sample}_\$SLURM_JOB_ID\n"
+        cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs /sequencing/analysis/{config[run]}{config[suffix]}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
+        cmd+="rm -rf /scratch/{config[run]}{config[suffix]}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
         echo "$cmd" >> {output}
         chmod 775 {output}
@@ -124,12 +124,12 @@ rule fastq_email:
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
         # remove the published directory (if already exists) to avoid retaining any old files,
-        shutil.rmtree(path=f"/sequencing/published/{wildcards.run}{config['suffix']}", ignore_errors=True)
+        shutil.rmtree(path=f"/sequencing/published/{config['run']}{config['suffix']}", ignore_errors=True)
         # recursively hard-link analysis directory to published for speed & disk-usage reduction
-        shutil.copytree(src=f"/sequencing/analysis/{wildcards.run}{config['suffix']}",
-                        dst=f"/sequencing/published/{wildcards.run}{config['suffix']}",
+        shutil.copytree(src=f"/sequencing/analysis/{config['run']}{config['suffix']}",
+                        dst=f"/sequencing/published/{config['run']}{config['suffix']}",
                         symlinks=True, copy_function=util.link_readonly)
-        subject = 'Demultiplex Summary for: %s%s (count pending)' % (wildcards.run, config['suffix'])
+        subject = 'Demultiplex Summary for: %s%s (count pending)' % (config['run'], config['suffix'])
         send_success_email(subject)
 
 def publish_input(wildcards):
@@ -138,21 +138,21 @@ def publish_input(wildcards):
     count is not run if there is not reference genome
     """
     input = {
-        'checksum': "/sequencing/analysis/%s%s/md5sum.txt" % (wildcards.run, config['suffix']),
-        'fastqc': "/sequencing/source/%s/%s/fastqc.processed" % (wildcards.run, status_dir),
-        'multiqc': "/sequencing/source/%s/%s/multiqc.processed" % (wildcards.run, status_dir),
-        'lims': "/sequencing/source/%s/%s/update_lims_db.processed" % (wildcards.run, status_dir),
-        'sample_sheet': "/sequencing/analysis/%s%s/SampleSheet.csv" % (wildcards.run, config['suffix']),
-        'run_info': "/sequencing/analysis/%s%s/RunInfo.xml" % (wildcards.run, config['suffix'])
+        'checksum': "/sequencing/analysis/%s%s/md5sum.txt" % (config['run'], config['suffix']),
+        'fastqc': "/sequencing/source/%s/%s/fastqc.processed" % (config['run'], status_dir),
+        'multiqc': "/sequencing/source/%s/%s/multiqc.processed" % (config['run'], status_dir),
+        'lims': "/sequencing/source/%s/%s/update_lims_db.processed" % (config['run'], status_dir),
+        'sample_sheet': "/sequencing/analysis/%s%s/SampleSheet.csv" % (config['run'], config['suffix']),
+        'run_info': "/sequencing/analysis/%s%s/RunInfo.xml" % (config['run'], config['suffix'])
     }
     # if reference is provided then run count
     if config['ref']:
         # copy fastq to final and send an email that count is pending
-        input['email'] = "/sequencing/source/%s/%s/fastq_email.processed" % (wildcards.run, status_dir)
+        input['email'] = "/sequencing/source/%s/%s/fastq_email.processed" % (config['run'], status_dir)
         for i, sample in enumerate(samples):
             project = projects[i]
             key = 'count_%s.%s' % (project, sample)
-            input[key] = "/sequencing/source/%s/%s/%s.%s_count.processed" % (wildcards.run, status_dir, project, sample)
+            input[key] = "/sequencing/source/%s/%s/%s.%s_count.processed" % (config['run'], status_dir, project, sample)
     return input
 
 
@@ -166,10 +166,10 @@ rule publish:
         touch(expand("/sequencing/source/{{run}}/{status}/ody.complete", status=status_dir))
     run:
         update_analysis({'step': 'publish', 'status': 'processing'})
-        shutil.copytree(src=f"/sequencing/analysis/{wildcards.run}{config['suffix']}",
-                        dst=f"/sequencing/published/{wildcards.run}{config['suffix']}",
+        shutil.copytree(src=f"/sequencing/analysis/{config['run']}{config['suffix']}",
+                        dst=f"/sequencing/published/{config['run']}{config['suffix']}",
                         symlinks=True, copy_function=util.link_readonly, dirs_exist_ok=True)
-        subject = 'Demultiplex Summary for: %s%s' % (wildcards.run, config['suffix'])
+        subject = 'Demultiplex Summary for: %s%s' % (config['run'], config['suffix'])
         send_success_email(subject)
 
 onsuccess:

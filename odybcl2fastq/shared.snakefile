@@ -58,7 +58,7 @@ rule insert_run_into_bauer_db:
     input:
         sample_sheet_path
     output:
-        expand("/sequencing/source/{{run}}/{status}/analysis_id", status=status_dir)
+        f"/sequencing/source/{config['run']}/{status_dir}/analysis_id"
     run:
         if ody_config.TEST:
             analysis_id = 'test'
@@ -67,11 +67,11 @@ rule insert_run_into_bauer_db:
             bauer.insert_run()
             # TODO: consider the implications of storing output_run in the db
             analysis_id = bauer.send_data('requests', {"run": config['run'], "status":"processing", "step":"demultiplex"})
-        analysis_file_path = '/sequencing/source/%s/%s/analysis_id' % (wildcards.run, status_dir)
+        analysis_file_path = '/sequencing/source/%s/%s/analysis_id' % (config['run'], status_dir)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
         # for a new analysis remove the script dir to ensure a total restart
-        shell("rm -f /sequencing/analysis/{wildcards.run}{config[suffix]}/script/*")
+        shell("rm -f /sequencing/analysis/{config[run]}{config[suffix]}/script/*")
 
 rule update_lims_db:
     """
@@ -86,7 +86,7 @@ rule update_lims_db:
         if not ody_config.TEST:
             sample_sheet = SampleSheet(input.sample_sheet[0])
             instrument = sample_sheet.get_instrument()
-            run_folder = '/sequencing/source/' + wildcards.run
+            run_folder = '/sequencing/source/' + config['run']
             update_lims_db(run_folder, sample_sheet.sections, instrument)
             # also update step to fastqc
             update_analysis({'step': 'quality', 'status': 'processing'})
@@ -103,9 +103,9 @@ rule fastqc_cmd:
         """
         cmd="#!/bin/bash\n"
         cmd+="ulimit -u \$(ulimit -Hu)\n"
-        cmd+="mkdir -p /sequencing/analysis/{wildcards.run}{wildcards.suffix}/QC\n"
-        cmd+="cd /sequencing/analysis/{wildcards.run}{wildcards.suffix}/fastq/\n"
-        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o /sequencing/analysis/{wildcards.run}{wildcards.suffix}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
+        cmd+="mkdir -p /sequencing/analysis/{config[run]}{config[suffix]}/QC\n"
+        cmd+="cd /sequencing/analysis/{config[run]}{config[suffix]}/fastq/\n"
+        cmd+="find . -name '*.fastq.gz' ! -name 'Undetermined*' -exec /usr/bin/time -v fastqc -o /sequencing/analysis/{config[run]}{config[suffix]}/QC --threads \$SLURM_JOB_CPUS_PER_NODE {{}} +"
         echo "$cmd" >> {output}
         chmod 775 {output}
         """
@@ -174,7 +174,7 @@ rule checksum:
         checksum=expand("/sequencing/analysis/{{run}}{{suffix}}/md5sum.txt"),
     shell:
         """
-        files=$(find /sequencing/analysis/{wildcards.run}{wildcards.suffix}/ -name *.fastq.gz -print0 | xargs -0)
+        files=$(find /sequencing/analysis/{config[run]}{config[suffix]}/ -name *.fastq.gz -print0 | xargs -0)
         md5sum $files > {output.checksum}
         """
 
