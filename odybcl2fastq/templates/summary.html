@@ -55,12 +55,12 @@
     Hi all,<br><br>
     The fastq files with the read sequences of run {{run}} are available at:<br>
     <a href="{{fastq_url}}{{run}}/fastq">{{fastq_url}}{{run}}/fastq</a><br>
-    or under {{fastq_dir}} on the cluster.<br><br>
+    or under {{fastq_dir}}/{{run_folder}} on the cluster.<br><br>
     Summary statistics can be found in
     <a href="{{stats_file}}">{{stats_file}}</a><br><br>
     Quality statistics can be found in
     <a href="{{fastq_url}}{{run}}/QC">{{fastq_url}}{{run}}/QC</a><br><br>
-    Reads with indices not in {{sample_sheet_file}} are in the fastq
+    Reads with indices not in {{fastq_dir}}/{{run_folder}}/SampleSheet.csv are in the fastq
     {{undetermined_file}}<br><br>
     Users must download a local copy of their data,
     THIS RUN DATA WILL BE DELETED AFTER 30 DAYS from its current location with no exceptions.<br><br>
