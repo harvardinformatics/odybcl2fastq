@@ -63,7 +63,7 @@ rule insert_run_into_bauer_db:
         if ody_config.TEST:
             analysis_id = 'test'
         else:
-            bauer = BauerDB(input.sample_sheet[0])
+            bauer = BauerDB(sample_sheet_path)
             bauer.insert_run()
             # TODO: consider the implications of storing output_run in the db
             analysis_id = bauer.send_data('requests', {"run": config['run'], "status":"processing", "step":"demultiplex"})
@@ -84,7 +84,7 @@ rule update_lims_db:
         touch(expand("/sequencing/source/{{run}}/{status}/update_lims_db.processed", status=status_dir))
     run:
         if not ody_config.TEST:
-            sample_sheet = SampleSheet(input.sample_sheet[0])
+            sample_sheet = SampleSheet(sample_sheet_path)
             instrument = sample_sheet.get_instrument()
             run_folder = '/sequencing/source/' + config['run']
             update_lims_db(run_folder, sample_sheet.sections, instrument)
