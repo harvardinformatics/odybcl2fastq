@@ -19,6 +19,7 @@ import traceback
 from time import sleep
 from datetime import datetime
 from multiprocessing import Pool
+from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq import config, initLogger, setupMainLogger
 from odybcl2fastq import constants as const
@@ -192,7 +193,12 @@ def get_reference(run_dir, run_type, sample_sheet):
         sent = buildmessage(message, subject, {}, config.EMAIL_FROM, config.EMAIL_ADMIN)
     if ref_file:
         # get gtf file
-        with open(('/ref/%s/reference.json' % (ref_file)), 'r') as f:
+        # cellranger uses reference.json:
+        #     https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/advanced/references
+        # cellranger-atac uses metadata.json:
+        #     https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/advanced/references
+        with (Path('/ref', ref_file, 'reference.json') if Path('/ref', ref_file, 'reference.json').exists()
+                                                       else Path('/ref', ref_file, 'metadata.json')).open() as f:
             data = json.load(f)
             if 'input_gtf_files' in data:
                 gtf = ', '.join(data['input_gtf_files']).replace('.filtered.gtf', '').replace('.gtf.filtered', '')
