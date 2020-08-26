@@ -73,7 +73,7 @@ rule count_10x_cmd:
         expand("/sequencing/analysis/{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh")
     shell:
         """
-        fastq_path="/sequencing/analysis/{config[run]}{config[suffix]}/fastq/{wildcards.project}/{wildcards.sample}"
+        fastq_path="/sequencing/analysis/{config[run]}{config[suffix]}/fastq"
         transcriptome="--transcriptome=/ref/{config[ref]}"
         if [ ! -z "{config[atac]}" ]; then
             transcriptome="--reference=/ref/{config[ref]}"
