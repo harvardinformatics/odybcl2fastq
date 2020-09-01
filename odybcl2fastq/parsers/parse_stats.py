@@ -16,7 +16,7 @@ def get_summary(output_dir, instrument, sample_sheet_dir, run):
     """
     # set locale so numeric formating works
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-    stats_url = config.FASTQ_URL + run + '/Reports/html'
+    stats_url = config.FASTQ_URL + run + '/fastq/Reports/html'
     stats_path = output_dir + '/Stats/Stats.json'
     if not os.path.exists(stats_path):
         raise UserException('Stats path does not exist: %s' % stats_path)
