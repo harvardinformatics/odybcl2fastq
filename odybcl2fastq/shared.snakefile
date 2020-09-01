@@ -86,8 +86,7 @@ rule update_lims_db:
         if not ody_config.TEST:
             sample_sheet = SampleSheet(sample_sheet_path)
             instrument = sample_sheet.get_instrument()
-            run_folder = '/sequencing/source/' + config['run']
-            update_lims_db(run_folder, sample_sheet.sections, instrument)
+            update_lims_db(config['run'], sample_sheet.sections, instrument)
             # also update step to fastqc
             update_analysis({'step': 'quality', 'status': 'processing'})
 

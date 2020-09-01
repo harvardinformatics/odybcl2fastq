@@ -202,7 +202,6 @@ def get_summary_data(cmd, run, ss_file):
         'fastq_dir': ody_config.PUBLISHED_CLUSTER_PATH,
         'versions': versions,
         'run': run,
-        'run_folder': run,
         'cmd': cmd,
         'sample_sheet_file': ss_file,
         'sample_sheet': sample_sheet,
