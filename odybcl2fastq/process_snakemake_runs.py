@@ -27,7 +27,6 @@ import odybcl2fastq.util as util
 from odybcl2fastq.emailbuilder.emailbuilder import buildmessage
 from odybcl2fastq.parsers.samplesheet import SampleSheet
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
-from snakemake import snakemake
 from odybcl2fastq.status_db import StatusDB
 
 STATUS_DIR = 'status_test' if config.TEST else 'status'
