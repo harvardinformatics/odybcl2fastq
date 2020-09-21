@@ -6,7 +6,7 @@
 #
 amply==0.1.2              # via pulp
 appdirs==1.4.4            # via snakemake
-attrs==20.1.0             # via jsonschema
+attrs==20.2.0             # via jsonschema
 certifi==2020.6.20        # via matplotlib, requests
 chardet==3.0.4            # via requests
 click==7.1.2              # via multiqc
@@ -15,11 +15,11 @@ colormath==3.0.0          # via spectra
 configargparse==1.2.3     # via snakemake
 cycler==0.10.0            # via matplotlib
 datrie==0.8.2             # via snakemake
-decorator==4.4.2          # via networkx, traitlets
+decorator==4.4.2          # via networkx
 docutils==0.16            # via amply, snakemake
 future==0.18.2            # via lzstring, multiqc
 gitdb==4.0.5              # via gitpython
-gitpython==3.1.7          # via snakemake
+gitpython==3.1.8          # via snakemake
 humanfriendly==8.2        # via coloredlogs
 idna==2.10                # via requests
 ipython-genutils==0.2.0   # via nbformat, traitlets
@@ -30,28 +30,28 @@ kiwisolver==1.2.0         # via matplotlib
 lzstring==1.0.4           # via multiqc
 markdown==3.2.2           # via multiqc
 markupsafe==1.1.1         # via jinja2
-matplotlib==3.3.1         # via multiqc
+matplotlib==3.3.2         # via multiqc
 multiqc==1.9              # via -r requirements.in
 mysqlclient==2.0.1        # via -r requirements.in
 nbformat==5.0.7           # via snakemake
 networkx==2.5             # via colormath, multiqc
-numpy==1.19.1             # via colormath, matplotlib, multiqc
+numpy==1.19.2             # via colormath, matplotlib, multiqc
 pillow==7.2.0             # via matplotlib
 psutil==5.7.2             # via snakemake
 pulp==2.3                 # via snakemake
 pyparsing==2.4.7          # via amply, matplotlib
-pyrsistent==0.16.0        # via jsonschema
+pyrsistent==0.17.3        # via jsonschema
 python-dateutil==2.8.1    # via matplotlib
 pyyaml==5.3.1             # via multiqc, snakemake
 ratelimiter==1.2.0.post0  # via snakemake
 requests==2.24.0          # via multiqc, snakemake
 simplejson==3.17.2        # via multiqc
-six==1.15.0               # via cycler, jsonschema, pyrsistent, python-dateutil, traitlets
+six==1.15.0               # via cycler, jsonschema, python-dateutil
 smmap==3.0.4              # via gitdb
-snakemake==5.23.0         # via -r requirements.in
+snakemake==5.25.0         # via -r requirements.in
 spectra==0.0.11           # via multiqc
 toposort==1.5             # via snakemake
-traitlets==4.3.3          # via jupyter-core, nbformat
+traitlets==5.0.4          # via jupyter-core, nbformat
 urllib3==1.25.10          # via requests
 wrapt==1.12.1             # via snakemake
 
