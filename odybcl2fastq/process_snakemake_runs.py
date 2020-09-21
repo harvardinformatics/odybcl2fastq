@@ -173,16 +173,22 @@ def get_reference(run_dir, run_type, sample_sheet):
     elif ref == 'GRCh' or ref == 'human_GRC38': # human
         if run_type == '10x single cell atac':
             ref_file = 'atac-seq/refdata-cellranger-atac-GRCh38-1.2.0'
+        elif run_type == '10x single nuclei rna':
+            ref_file = 'refdata-gex-GRCh38-2020-A_premrna'
         else:
             ref_file = 'refdata-gex-GRCh38-2020-A'
     elif 'Zebrafish' in ref or ref =='Zebrafish_GRCz11':
         if run_type == '10x single cell atac':
             ref_file = 'atac-seq/refdata-cellranger-atac-zebrafish/Danio_rerio.GRCz11'
+        elif run_type == '10x single nuclei rna':
+            ref_file = 'zebrafish_ensembl/Danio_rerio.GRCz11_premrna'
         else:
             ref_file = 'zebrafish_ensembl/Danio_rerio.GRCz11'
     elif 'mouse' in ref or ref == 'mouse_mm10':
         if run_type == '10x single cell atac':
             ref_file = 'atac-seq/refdata-cellranger-atac-mm10-1.2.0'
+        elif run_type == '10x single nuclei rna':
+            ref_file = 'refdata-gex-mm10-2020-A_premrna'
         else:
             ref_file = 'refdata-gex-mm10-2020-A'
     elif ref not in ['', 'None', 'Other']: # this will cause count to error and then we can add a genome
@@ -220,7 +226,7 @@ def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix):
         atac = '-atac'
     ref_file = ''
     gtf = ''
-    if not 'nuclei' in run_type and not run_type == '10x single cell vdj':
+    if not run_type == '10x single cell vdj':
         ref_file, gtf = get_reference(run_dir, run_type, sample_sheet)
     return {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac, 'suffix': suffix}
 
