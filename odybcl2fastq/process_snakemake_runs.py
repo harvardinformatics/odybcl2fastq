@@ -217,8 +217,8 @@ def get_run_suffix(custom_suffix, mask_suffix):
         suffix += '_%s' % custom_suffix
     return suffix
 
-def get_output_log(run):
-    return os.path.join('/sequencing/log/', run + '.log')
+def get_output_log(run, suffix):
+    return os.path.join('/sequencing/log/', run + suffix + '.log')
 
 def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix):
     atac = ''
@@ -369,7 +369,7 @@ def process_runs(pool):
             suffix = get_run_suffix(custom_suffix, mask_suffix)
             opts = get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix)
             logger.info("Queueing odybcl2fastq cmd for %s:\n" % (run))
-            run_log = get_output_log(run)
+            run_log = get_output_log(run, suffix)
             cmd = 'snakemake ' + ' '.join(opts)
             msg = "Running cmd: %s\n" % cmd
             logger.info(msg)

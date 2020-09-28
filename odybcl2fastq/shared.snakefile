@@ -4,7 +4,7 @@ snakemake shared rules
 Created on  2020-04-01
 
 @author: Meghan Correa <mportermahoney@g.harvard.edu>
-@author: Nathan Weeks <nweeks@fas.harvard.edu>
+@author: Nathan Weeks <nweeks@g.harvard.edu>
 @copyright: 2020 The Presidents and Fellows of Harvard College. All rights reserved.
 @license: GPL v2.0
 '''
@@ -18,6 +18,7 @@ import odybcl2fastq.util as util
 import logging
 import os
 import shutil
+from pathlib import Path
 
 os.umask(0o002) # created files/directories default to mode 0775
 
@@ -25,6 +26,7 @@ os.umask(0o002) # created files/directories default to mode 0775
 wildcard_constraints:
     suffix=".*"
 
+analysis_dir = Path('/sequencing', 'analysis', config['run'] + config['suffix'])
 # set the output_run and status_dir which may include a suffix or a mask_suffix
 status_dir_root = 'status_test' if ody_config.TEST else 'status'
 status_dir = status_dir_root # default status_dir
@@ -46,9 +48,6 @@ onstart:
     shell("mkdir -p /sequencing/source/{run}/{status}", run=config['run'], status=status_dir)
     shell("touch /sequencing/source/{run}/{status_root}/ody.processed", run=config['run'], status_root=status_dir_root)
     shell("touch /sequencing/source/{run}/{status}/ody.processed", run=config['run'], status=status_dir)
-    shell("mkdir -p /sequencing/analysis/{run}{suffix}", run=config['run'], suffix=config['suffix'])
-    shell("mkdir -p /sequencing/analysis/{run}{suffix}/log", run=config['run'], suffix=config['suffix'])
-    shell("mkdir -p /sequencing/analysis/{run}{suffix}/script", run=config['run'], suffix=config['suffix'])
     update_analysis({'status': 'processing'})
 
 rule insert_run_into_bauer_db:
@@ -70,8 +69,11 @@ rule insert_run_into_bauer_db:
         analysis_file_path = '/sequencing/source/%s/%s/analysis_id' % (config['run'], status_dir)
         with open(analysis_file_path, 'w+') as f:
             f.write(str(analysis_id))
-        # for a new analysis remove the script dir to ensure a total restart
-        shell("rm -f /sequencing/analysis/{config[run]}{config[suffix]}/script/*")
+        # for a new analysis remove any existing analysis_dir to ensure a total restart
+        if analysis_dir.exists(): shutil.rmtree(analysis_dir)
+        analysis_dir.mkdir()
+        Path(analysis_dir, 'log').mkdir()
+        Path(analysis_dir, 'script').mkdir()
 
 rule update_lims_db:
     """
