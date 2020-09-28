@@ -290,12 +290,6 @@ def notify_incomplete_runs():
             util.touch(run, INCOMPLETE_NOTIFIED_FILE)
 
 
-def tail(f, n):
-    cmd = "tail -n %i %s | grep returned" % (n, f)
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    std_out, std_err = proc.communicate()
-    return std_out.splitlines(True)
-
 def get_runs():
     run_dirs_tmp = find_runs(need_to_process)
     run_dirs = []
