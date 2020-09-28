@@ -252,8 +252,7 @@ def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
         '--printshellcmds': None,
         '--reason': None,
         '-s': '/app/odybcl2fastq/%s' % snakefile,
-        '--directory': '/sequencing/snakemake/',
-        '--latency-wait': 120
+        '--directory': '/sequencing/snakemake/'
     }
     return [k + ((' %s' % v) if v else '') for k, v in opts.items()]
 
