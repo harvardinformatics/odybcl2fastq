@@ -20,7 +20,6 @@ from time import sleep
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
-from subprocess import Popen, PIPE, STDOUT
 from odybcl2fastq import config, initLogger, setupMainLogger
 from odybcl2fastq import constants as const
 import odybcl2fastq.util as util
@@ -259,25 +258,9 @@ def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
 def run_snakemake(cmd, output_log):
     # run unix cmd, stream out and error, return last lines of out
     with open(output_log, 'a+') as writer:
-        with open(output_log, 'r') as reader:
-            proc = Popen(cmd, shell=True, stderr=STDOUT, stdout=writer)
-            lines = []
-            # stream output to log, std out
-            while proc.poll() is None:
-                line = reader.readline()
-                # save last 40 lines for email
-                if line:
-                    lines.append(line)
-                    if len(lines) > 40:
-                        lines.pop(0)
-            # write any remaining output
-            try:
-                line = reader.readline()
-                lines.append(line)
-            except Exception:
-                pass
-            code = proc.wait()
-    return code, '\n'.join(lines)
+        proc = subprocess.run(cmd, shell=True, stderr=writer, stdout=writer)
+    lines = subprocess.run(["tail", "-n", "40", output_log], stdout=subprocess.PIPE).stdout
+    return proc.returncode, lines.decode()
 
 def notify_incomplete_runs():
     run_dirs = find_runs(run_is_incomplete)
