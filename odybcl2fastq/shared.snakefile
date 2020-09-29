@@ -165,18 +165,38 @@ rule cp_source_to_output:
 
         """
 
-rule checksum:
+rule checksum_cmd:
     """
-    calculate checksum for all the fastq files
+    build a bash script with the md5sum command to calculate checksum for all fastq files
     """
     input:
         expand("/sequencing/source/{run}/{status}/demultiplex.processed", run=config['run'], status=status_dir)
     output:
-        checksum=expand("/sequencing/analysis/{{run}}{{suffix}}/md5sum.txt"),
+        expand("/sequencing/analysis/{run}{suffix}/script/md5sum.sh", run=config['run'], suffix=config['suffix'])
     shell:
         """
-        files=$(find /sequencing/analysis/{config[run]}{config[suffix]}/ -name *.fastq.gz -print0 | xargs -0)
-        md5sum $files > {output.checksum}
+        cmd="#!/bin/bash\n"
+        cmd+="set -o errexit -o pipefail\n"
+        cmd+="cd /sequencing/analysis/{config[run]}{config[suffix]}\n"
+        cmd+="find fastq/ -name '*.fastq.gz' -print0 | /usr/bin/time -v xargs -0 -n 1 -P \$SLURM_JOB_CPUS_PER_NODE md5sum > md5sum.txt.unsorted\n"
+        cmd+="sort -k 2,2 -o md5sum.txt md5sum.txt.unsorted\n"
+        cmd+="rm md5sum.txt.unsorted\n"
+        echo "$cmd" >> {output}
+        chmod 775 {output}
+        """
+
+rule checksum:
+    """
+    submit job script for checksum
+    the slurm_submit.py script will add slurm params to the top of this file
+    """
+    input:
+        expand("/sequencing/analysis/{run}{suffix}/script/md5sum.sh", run=config['run'], suffix=config['suffix'])
+    output:
+        checksum=expand("/sequencing/analysis/{run}{suffix}/md5sum.txt", run=config['run'], suffix=config['suffix']),
+    shell:
+        """
+        {input}
         """
 
 def update_analysis(data):

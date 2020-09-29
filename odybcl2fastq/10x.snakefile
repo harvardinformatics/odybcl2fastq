@@ -10,7 +10,7 @@ Created on  2020-04-02
 '''
 
 include: "shared.snakefile"
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, multiqc, fastq_email, insert_run_into_bauer_db
+localrules: all, update_lims_db, cp_source_to_output, checksum_cmd, publish, demultiplex_10x_cmd, count_10x_cmd, fastqc_cmd, multiqc, fastq_email, insert_run_into_bauer_db
 
 sample_sheet = SampleSheet(sample_sheet_path)
 samples = sample_sheet.get_samples()

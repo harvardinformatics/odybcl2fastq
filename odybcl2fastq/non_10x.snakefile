@@ -10,7 +10,7 @@ Created on  2020-03-26
 
 include: "shared.snakefile"
 
-localrules: all, update_lims_db, cp_source_to_output, checksum, publish, demultiplex_cmd, fastqc_cmd, multiqc, insert_run_into_bauer_db
+localrules: all, update_lims_db, cp_source_to_output, checksum_cmd, publish, demultiplex_cmd, fastqc_cmd, multiqc, insert_run_into_bauer_db
 from odybcl2fastq.parsers.makebasemask import extract_basemasks
 from odybcl2fastq.parsers import parse_stats
 
