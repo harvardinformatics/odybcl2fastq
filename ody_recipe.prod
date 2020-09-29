@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:3.8.5-slim-buster
+From: python:3.8.6-slim-buster
 Stage: builder
 
 %files
@@ -13,7 +13,7 @@ Stage: builder
     pip install --no-cache-dir -r requirements.txt
 
 Bootstrap: docker
-From: python:3.8.5-slim-buster
+From: python:3.8.6-slim-buster
 
 %files
     ./bcl2fastq2_0v2.20.0.422-2_amd64.deb /
