@@ -48,7 +48,7 @@ requests==2.24.0          # via multiqc, snakemake
 simplejson==3.17.2        # via multiqc
 six==1.15.0               # via cycler, jsonschema, python-dateutil
 smmap==3.0.4              # via gitdb
-snakemake==5.25.0         # via -r requirements.in
+snakemake==5.26.0         # via -r requirements.in
 spectra==0.0.11           # via multiqc
 toposort==1.5             # via snakemake
 traitlets==5.0.4          # via jupyter-core, nbformat
