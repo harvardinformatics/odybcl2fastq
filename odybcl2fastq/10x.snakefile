@@ -194,7 +194,6 @@ def get_summary_data(cmd, run, ss_file):
     ]
     if config['ref']:
         assumptions.append('reference genome %s, see annotation under versions below' % os.path.basename(config['ref']))
-        assumptions.append('samples are full cell, not nuclei')
         versions.append('annotation gtf: %s' % config['gtf'])
     summary_data = {
         'fastq_url': ody_config.FASTQ_URL,
