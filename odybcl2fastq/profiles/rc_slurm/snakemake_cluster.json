@@ -1,6 +1,6 @@
 {
     "__default__": {
-        "time": "0:00:10",
+        "time": "1:00:00",
         "nodes": 1,
         "mem": 0,
         "partition": "bos-info_priority",
