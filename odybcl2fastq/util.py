@@ -48,13 +48,6 @@ def copy(src, dest):
         print('copyfile')
     logging.info('Successfully copied %s to %s' % (src, dest))
 
-def touch(run_dir, file):
-    # touch a processed file in the run_dir
-    path = run_dir + file
-    with open(path, 'w+'):
-        os.utime(path, None)
-
-
 def alphanumeric(str):
     if str:
         return re.match(r"^[\w-]+$", str)

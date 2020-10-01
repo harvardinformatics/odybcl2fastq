@@ -137,14 +137,15 @@ def get_sample_sheet_path(run_dir):
     return sample_sheet_path
 
 def check_complete(run_dir):
-    if not os.path.exists('%s%s' % (run_dir, COMPLETE_FILE)):
+    complete_file_path = Path(run_dir, COMPLETE_FILE)
+    if not complete_file_path.exists():
         sub_dirs = next(os.walk('%s%s' % (run_dir, STATUS_DIR)))[1]
         complete = True
         for sub_dir in sub_dirs:
             if not os.path.exists('%s%s/%s/%s' % (run_dir, STATUS_DIR, sub_dir, COMPLETE_FILE_NAME)):
                 complete = False
         if complete:
-            util.touch(run_dir, COMPLETE_FILE)
+            complete_file_path.touch()
 
 def get_custom_suffix(sample_sheet_path):
     suffix = ''
@@ -269,7 +270,7 @@ def notify_incomplete_runs():
         message = "The following runs failed to complete %s or more days ago:\n\n%s" % (INCOMPLETE_AFTER_DAYS, run_dirs_str)
         send_email(message, 'Odybcl2fastq incomplete runs')
         for run in run_dirs:
-            util.touch(run, INCOMPLETE_NOTIFIED_FILE)
+            Path(run, INCOMPLETE_NOTIFIED_FILE).touch()
 
 
 def get_runs():
@@ -302,12 +303,12 @@ def get_runs():
                     if jobs_tot > 1:
                         for mask, mask_list in mask_lists.items():
                             mask_suffix = mask.replace(',', '_')
-                            mask_status_path = '%s%s/%s/' % (run_dir, STATUS_DIR, mask_suffix)
+                            mask_status_processed_file_path = Path(run_dir, STATUS_DIR, mask_suffix, PROCESSED_FILE_NAME)
                             # only start the run if the processed file for that mask
                             # is not present, this will enable restart of one mask
-                            if not os.path.isfile(mask_status_path + PROCESSED_FILE_NAME):
+                            if not mask_status_processed_file_path.is_file()
                                 run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
-                                util.touch(mask_status_path, PROCESSED_FILE_NAME)
+                                mask_status_processed_file_path.touch()
                     else:
                         run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
                 else:
@@ -357,7 +358,7 @@ def process_runs(pool):
                 os.mkdir(status_path)
             # touch processed file so errors in snakemake don't cause the run to
             # continually be queued
-            util.touch(run_dir, PROCESSED_FILE)
+            Path(run_dir, PROCESSED_FILE).touch()
             results[run] = pool.apply_async(run_snakemake, (cmd, run_log,))
             queued_runs[run] = 1
         for run in list(results.keys()):
