@@ -124,17 +124,11 @@ def check_sample_sheet(sample_sheet, run):
             util.copy(path, sample_sheet)
 
 def get_sample_sheet_path(run_dir):
-    # set default
-    sample_sheet_path = run_dir + 'SampleSheet.csv'
-    # see if a txt file indicates a specific, existing sample sheet
-    sample_sheet_txt = glob.glob(run_dir + 'SampleSheet*txt')
-    # if there are more than one then just use default
-    if len(sample_sheet_txt) == 1:
-        sample_sheet_path_tmp = sample_sheet_txt[0].replace('.txt', '.csv')
-        # override with this path if it exists
-        if os.path.exists(sample_sheet_path_tmp):
-            sample_sheet_path = sample_sheet_path_tmp
-    return sample_sheet_path
+    sample_sheet_paths = sorted(Path(run_dir).glob("SampleSheet*csv"), key=lambda file: file.stat().st_mtime, reverse=True)
+    if sample_sheet_paths:
+        return str(sample_sheet_paths[0]) # return most-recently-updated sample sheet if there are multiple
+    else:
+        return os.path.join(run_dir, "SampleSheet.csv") # default
 
 def check_complete(run_dir):
     complete_file_path = Path(run_dir, COMPLETE_FILE)
@@ -283,7 +277,6 @@ def get_runs():
             # flagged if one exists
             ss_path = get_sample_sheet_path(run_dir)
             custom_suffix = get_custom_suffix(ss_path)
-            ss_path = get_sample_sheet_path('%s%s' % (run_dir, custom_suffix))
             run = os.path.basename(os.path.normpath(run_dir))
             # copy samplesheet from samplesheet folder if necessary
             check_sample_sheet(ss_path, run)
@@ -306,7 +299,7 @@ def get_runs():
                             mask_status_processed_file_path = Path(run_dir, STATUS_DIR, mask_suffix, PROCESSED_FILE_NAME)
                             # only start the run if the processed file for that mask
                             # is not present, this will enable restart of one mask
-                            if not mask_status_processed_file_path.is_file()
+                            if not mask_status_processed_file_path.is_file():
                                 run_dirs.append({'run':run_dir, 'type':v, 'mask_suffix': mask_suffix, 'custom_suffix': custom_suffix})
                                 mask_status_processed_file_path.touch()
                     else:
