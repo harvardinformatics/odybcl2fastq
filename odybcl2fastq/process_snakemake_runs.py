@@ -148,7 +148,7 @@ def get_custom_suffix(sample_sheet_path):
     return suffix
 
 def get_reference(run_dir, run_type, sample_sheet):
-    run = os.path.basename(os.path.normpath(run_dir))
+    run = Path(run_dir).name
     subs = sample_sheet.get_submissions()
     stdb = StatusDB()
     # TODO: assuming that all samples in the run are same type if not we
@@ -225,7 +225,7 @@ def get_10x_snakemake_config(run_dir, run_type, sample_sheet, run, suffix):
     return {'run': run, 'ref': ref_file, 'gtf': gtf, 'atac': atac, 'suffix': suffix}
 
 def get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix):
-    run = os.path.basename(os.path.normpath(run_dir))
+    run = Path(run_dir).name
     sample_sheet = SampleSheet(ss_path)
     sample_sheet.validate()
     if run_type in TYPES_10X:
@@ -277,7 +277,7 @@ def get_runs():
             # flagged if one exists
             ss_path = get_sample_sheet_path(run_dir)
             custom_suffix = get_custom_suffix(ss_path)
-            run = os.path.basename(os.path.normpath(run_dir))
+            run = Path(run_dir).name
             # copy samplesheet from samplesheet folder if necessary
             check_sample_sheet(ss_path, run)
             sample_sheet = SampleSheet(ss_path)
@@ -334,7 +334,7 @@ def process_runs(pool):
             run_dir = run_info['run']
             mask_suffix = run_info['mask_suffix']
             custom_suffix = run_info['custom_suffix']
-            run = '%s%s%s' % (os.path.basename(os.path.normpath(run_dir)), ('_' if mask_suffix else ''), mask_suffix)
+            run = '%s%s%s' % (Path(run_dir).name, ('_' if mask_suffix else ''), mask_suffix)
             ss_path = get_sample_sheet_path(run_dir)
             suffix = get_run_suffix(custom_suffix, mask_suffix)
             opts = get_ody_snakemake_opts(run_dir, ss_path, run_type, suffix, mask_suffix)
@@ -378,7 +378,7 @@ def process_runs(pool):
         sleep(10)
         new_run_dirs = get_runs()
         for new_run_dir in new_run_dirs:
-            new_run = os.path.basename(os.path.normpath(new_run_dir['run']))
+            new_run = Path(new_run_dir['run']).name
             if new_run not in queued_runs:
                 run_dirs.append(new_run_dir)
         if len(run_dirs) > 0:
