@@ -55,7 +55,7 @@ rule demultiplex_10x:
     the slurm_submit.py script will add slurm params to the top of this file
     """
     input:
-        expand("/sequencing/analysis/{{run}}{suffix}/script/demultiplex_10x.sh", suffix=config['suffix'])
+        f"/sequencing/analysis/{config['run']}{config['suffix']}/script/demultiplex_10x.sh"
     output:
         touch(expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir))
     run:
@@ -67,8 +67,8 @@ rule count_10x_cmd:
     build a bash file with the demux cmd
     """
     input:
-        expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
-        expand("/sequencing/source/{{run}}/{status}/fastq_email.processed", status=status_dir)
+        f"/sequencing/source/{config['run']}/{status_dir}/demultiplex.processed",
+        f"/sequencing/source/{config['run']}/{status_dir}/fastq_email.processed"
     output:
         expand("/sequencing/analysis/{{run}}{{suffix}}/script/{{project}}.{{sample}}_count.sh")
     shell:
@@ -112,15 +112,15 @@ rule fastq_email:
     running count
     """
     input:
-        checksum=expand("/sequencing/analysis/{{run}}{suffix}/md5sum.txt", suffix=config['suffix']),
-        fastqc=expand("/sequencing/source/{{run}}/{status}/fastqc.processed", status=status_dir),
-        multiqc=expand("/sequencing/source/{{run}}/{status}/multiqc.processed", status=status_dir),
-        lims=expand("/sequencing/source/{{run}}/{status}/update_lims_db.processed", status=status_dir),
-        demultiplex=expand("/sequencing/source/{{run}}/{status}/demultiplex.processed", status=status_dir),
-        sample_sheet=expand("/sequencing/analysis/{{run}}{suffix}/SampleSheet.csv", suffix=config['suffix']),
-        run_info=expand("/sequencing/analysis/{{run}}{suffix}/RunInfo.xml", suffix=config['suffix'])
+        f"/sequencing/analysis/{config['run']}{config['suffix']}/md5sum.txt",
+        f"/sequencing/source/{config['run']}/{status_dir}/fastqc.processed",
+        f"/sequencing/source/{config['run']}/{status_dir}/multiqc.processed",
+        f"/sequencing/source/{config['run']}/{status_dir}/update_lims_db.processed",
+        f"/sequencing/source/{config['run']}/{status_dir}/demultiplex.processed",
+        f"/sequencing/analysis/{config['run']}{config['suffix']}/SampleSheet.csv",
+        f"/sequencing/analysis/{config['run']}{config['suffix']}/RunInfo.xml"
     output:
-        touch(expand("/sequencing/source/{{run}}/{status}/fastq_email.processed", status=status_dir))
+        touch(f"/sequencing/source/{config['run']}/{status_dir}/fastq_email.processed")
     run:
         update_analysis({'step': 'count', 'status': 'processing'})
         # remove the published directory (if already exists) to avoid retaining any old files,
