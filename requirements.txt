@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements.in
 #
-amply==0.1.2              # via pulp
+amply==0.1.4              # via pulp
 appdirs==1.4.4            # via snakemake
 attrs==20.2.0             # via jsonschema
 certifi==2020.6.20        # via matplotlib, requests
@@ -19,26 +19,26 @@ decorator==4.4.2          # via networkx
 docutils==0.16            # via amply, snakemake
 future==0.18.2            # via lzstring, multiqc
 gitdb==4.0.5              # via gitpython
-gitpython==3.1.8          # via snakemake
+gitpython==3.1.11         # via snakemake
 humanfriendly==8.2        # via coloredlogs
 idna==2.10                # via requests
 ipython-genutils==0.2.0   # via nbformat, traitlets
 jinja2==2.11.2            # via multiqc
 jsonschema==3.2.0         # via nbformat, snakemake
 jupyter-core==4.6.3       # via nbformat
-kiwisolver==1.2.0         # via matplotlib
+kiwisolver==1.3.0         # via matplotlib
 lzstring==1.0.4           # via multiqc
-markdown==3.2.2           # via multiqc
+markdown==3.3.3           # via multiqc
 markupsafe==1.1.1         # via jinja2
 matplotlib==3.3.2         # via multiqc
 multiqc==1.9              # via -r requirements.in
 mysqlclient==2.0.1        # via -r requirements.in
-nbformat==5.0.7           # via snakemake
+nbformat==5.0.8           # via snakemake
 networkx==2.5             # via colormath, multiqc
 numpy==1.19.2             # via colormath, matplotlib, multiqc
-pillow==7.2.0             # via matplotlib
-psutil==5.7.2             # via snakemake
-pulp==2.3                 # via snakemake
+pillow==8.0.1             # via matplotlib
+psutil==5.7.3             # via snakemake
+pulp==2.3.1               # via snakemake
 pyparsing==2.4.7          # via amply, matplotlib
 pyrsistent==0.17.3        # via jsonschema
 python-dateutil==2.8.1    # via matplotlib
@@ -48,11 +48,11 @@ requests==2.24.0          # via multiqc, snakemake
 simplejson==3.17.2        # via multiqc
 six==1.15.0               # via cycler, jsonschema, python-dateutil
 smmap==3.0.4              # via gitdb
-snakemake==5.26.0         # via -r requirements.in
+snakemake==5.26.1         # via -r requirements.in
 spectra==0.0.11           # via multiqc
 toposort==1.5             # via snakemake
-traitlets==5.0.4          # via jupyter-core, nbformat
-urllib3==1.25.10          # via requests
+traitlets==5.0.5          # via jupyter-core, nbformat
+urllib3==1.25.11          # via requests
 wrapt==1.12.1             # via snakemake
 
 # The following packages are considered to be unsafe in a requirements file:
