@@ -21,7 +21,7 @@
     },
     "count_10x": {
         "time": "4-18:00:00",
-        "nice": "",
+        "partition": "bos-info",
         "job-name": "{rule}.{wildcards.run}{config[suffix]}_{wildcards.sample}",
         "output": "log/{rule}.{wildcards.sample}-%j.out",
         "error": "log/{rule}.{wildcards.sample}-%j.err",
