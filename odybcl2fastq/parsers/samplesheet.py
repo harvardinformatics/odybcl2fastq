@@ -2,6 +2,7 @@ from collections import OrderedDict
 import logging
 import odybcl2fastq.util as util
 import re, os
+from pathlib import Path
 
 class SampleSheet(object):
     SAMPLE_SHEET_FILE = 'SampleSheet.csv'
@@ -121,12 +122,12 @@ class SampleSheet(object):
 
     def validate(self):
         if self.validate_sample_names() | self.validate_index2():
-            # copy orig sample sheet as backup and record
-            util.copy(self.path, self.path.replace('.csv', '_orig.csv'))
             # write a corrected sheet
             corrected_sample_sheet = self.write_new_sample_sheet(self.sections['Data'].values(), 'corrected')
-            # copy corrected to sample sheet path, leave corrected file as record
-            util.copy(corrected_sample_sheet, self.path)
+            # rename orig sample sheet (adding '.orig-uncorrected' suffix) as backup and record
+            Path(self.path).rename(self.path + '.orig-uncorrected')
+            # rename corrected to sample sheet path
+            Path(corrected_sample_sheet).rename(self.path)
 
     def validate_index2(self):
         corrected = False
