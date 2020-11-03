@@ -84,7 +84,7 @@ rule count_10x_cmd:
         cmd+="mkdir -p /sequencing/analysis/{config[run]}{config[suffix]}/count/{wildcards.sample}\n"
         cmd+="mkdir -p /scratch/{config[run]}{config[suffix]}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="cd /scratch/{config[run]}{config[suffix]}_{wildcards.sample}_\$SLURM_JOB_ID\n"
-        cmd+="/usr/bin/time -v cellranger{config[atac]} count --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
+        cmd+="/usr/bin/time -v cellranger{config[atac]} count --project={wildcards.project} --id={wildcards.sample} $transcriptome --sample={wildcards.sample} --fastqs=$fastq_path --localmem=\$((9*\$(ulimit -m)/10000000)) --localcores=\$SLURM_JOB_CPUS_PER_NODE || exit_code=\$?\n\n"
         cmd+="/usr/bin/time -v cp -Rp {wildcards.sample}/*.mri.tgz {wildcards.sample}/outs /sequencing/analysis/{config[run]}{config[suffix]}/count/{wildcards.sample}/ || exit_code=\$((exit_code | \$?))\n"
         cmd+="rm -rf /scratch/{config[run]}{config[suffix]}_{wildcards.sample}_\$SLURM_JOB_ID\n"
         cmd+="exit \$exit_code"
