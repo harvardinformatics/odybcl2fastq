@@ -1,13 +1,13 @@
 import os
 import json
 import time
-import MySQLdb
+import mariadb
 import logging
 from odybcl2fastq import config
 
 class StatusDB(object):
     def __init__(self):
-        self.db = MySQLdb.connect(
+        self.db = mariadb.connect(
                 host = config.STATUS_DB_HOST,
                 user = config.STATUS_DB_USER,
                 passwd = config.STATUS_DB_PASSWORD,
